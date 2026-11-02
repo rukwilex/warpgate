@@ -46,3 +46,7 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+test/screens/out/
+tool/mcp_stdio/build/
+tool/mcp_stdio/.dart_tool/
