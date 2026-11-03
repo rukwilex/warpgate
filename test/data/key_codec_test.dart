@@ -1,7 +1,7 @@
 import 'package:dartssh2/dartssh2.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:warpgate/features/keys/data/key_codec.dart';
-import 'package:warpgate/features/keys/domain/ssh_key.dart';
+import 'package:warpgate_core/features/keys/data/key_codec.dart';
+import 'package:warpgate_core/features/keys/domain/ssh_key.dart';
 
 void main() {
   test(

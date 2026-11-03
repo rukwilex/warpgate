@@ -4,12 +4,12 @@ import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:warpgate/core/interaction/interaction_broker.dart';
-import 'package:warpgate/features/settings/domain/app_settings.dart';
-import 'package:warpgate/features/sftp/data/endpoints.dart';
-import 'package:warpgate/features/sftp/domain/file_endpoint.dart';
-import 'package:warpgate/features/transfers/data/file_checksum.dart';
-import 'package:warpgate/features/transfers/data/transfer_engine.dart';
-import 'package:warpgate/features/transfers/domain/transfer_job.dart';
+import 'package:warpgate_core/features/settings/domain/app_settings.dart';
+import 'package:warpgate_core/features/sftp/data/endpoints.dart';
+import 'package:warpgate_core/features/sftp/domain/file_endpoint.dart';
+import 'package:warpgate_core/features/transfers/data/file_checksum.dart';
+import 'package:warpgate_core/features/transfers/data/transfer_engine.dart';
+import 'package:warpgate_core/features/transfers/domain/transfer_job.dart';
 
 class ShortWriteEndpoint extends LocalEndpoint {
   @override

@@ -1,0 +1,13 @@
+Cancel a queued or running transfer
+
+Usage:
+  warpgate transfers cancel <id>
+
+Arguments:
+  id  Transfer id
+
+Examples:
+  warpgate transfers cancel 3f2a
+  warpgate transfers cancel 3f2a --yes
+
+Run warpgate --help for flags that work on every command.

@@ -1,11 +1,12 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:warpgate/core/util/ids.dart';
-import 'package:warpgate/features/connection/data/connection_pool.dart';
-import 'package:warpgate/features/connection/domain/link_state.dart';
 import 'package:warpgate/features/connection/presentation/connection_providers.dart';
-import 'package:warpgate/features/multi_exec/domain/multi_exec_run.dart';
+import 'package:warpgate_core/core/util/ids.dart';
+import 'package:warpgate_core/features/connection/data/connection_pool.dart';
+import 'package:warpgate_core/features/connection/domain/link_state.dart';
+import 'package:warpgate_core/features/multi_exec/data/multi_exec_runner.dart';
+import 'package:warpgate_core/features/multi_exec/domain/multi_exec_run.dart';
 
 final multiExecProvider =
     NotifierProvider<MultiExecController, List<MultiExecRun>>(
@@ -13,7 +14,7 @@ final multiExecProvider =
     );
 
 class MultiExecController extends Notifier<List<MultiExecRun>> {
-  static const parallelism = 8;
+  static const int parallelism = MultiExecRunner.defaultParallelism;
 
   @override
   List<MultiExecRun> build() => const [];
@@ -27,40 +28,20 @@ class MultiExecController extends Notifier<List<MultiExecRun>> {
     Duration timeout = const Duration(seconds: 60),
   }) async {
     final id = Ids.next();
-    state = [
-      MultiExecRun(
-        id: id,
-        command: command,
-        startedAt: DateTime.now(),
-        timeout: timeout,
-        runs: {for (final hostId in hostIds) hostId: HostRun(hostId: hostId)},
-      ),
-      ...state,
-    ];
-    final pool = ref.read(connectionPoolProvider);
-    final queue = [...hostIds];
-    Future<void> worker() async {
-      while (queue.isNotEmpty) {
-        final hostId = queue.removeAt(0);
-        _set(id, HostRun(hostId: hostId, state: HostRunState.running));
-        final result = await runOne(pool, hostId, command, timeout);
-        _set(
-          id,
-          HostRun(
-            hostId: hostId,
-            state: result.succeeded
-                ? HostRunState.succeeded
-                : HostRunState.failed,
-            result: result,
-          ),
-        );
-      }
-    }
-
-    await Future.wait([
-      for (var i = 0; i < parallelism && i < hostIds.length; i++) worker(),
-    ]);
-    return byId(id)!;
+    return await MultiExecRunner(ref.read(connectionPoolProvider)).run(
+      command,
+      hostIds,
+      timeout: timeout,
+      id: id,
+      onUpdate: (run) {
+        state = state.any((item) => item.id == id)
+            ? [
+                for (final item in state)
+                  if (item.id == id) run else item,
+              ]
+            : [run, ...state];
+      },
+    );
   }
 
   static Future<ExecResult> runOne(
@@ -68,14 +49,7 @@ class MultiExecController extends Notifier<List<MultiExecRun>> {
     String hostId,
     String command,
     Duration timeout,
-  ) => pool.exec(hostId, command, timeout: timeout);
-
-  void _set(String runId, HostRun run) {
-    state = [
-      for (final item in state)
-        if (item.id == runId) item.update(run) else item,
-    ];
-  }
+  ) => MultiExecRunner(pool).runOne(hostId, command, timeout);
 
   void clear() => state = const [];
 }

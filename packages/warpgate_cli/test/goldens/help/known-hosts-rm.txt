@@ -1,0 +1,13 @@
+Forget a trusted host key
+
+Usage:
+  warpgate known-hosts rm <endpoint>
+
+Arguments:
+  endpoint  Endpoint as address:port, or a host label
+
+Examples:
+  warpgate known-hosts rm 10.0.0.5:22
+  warpgate known-hosts rm prod --yes
+
+Run warpgate --help for flags that work on every command.

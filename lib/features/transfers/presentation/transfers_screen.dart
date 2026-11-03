@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:warpgate/core/util/format.dart';
 import 'package:warpgate/design_system/design_system.dart';
 import 'package:warpgate/features/hosts/presentation/hosts_controller.dart';
 import 'package:warpgate/features/settings/presentation/settings_controller.dart';
-import 'package:warpgate/features/transfers/domain/transfer_job.dart';
 import 'package:warpgate/features/transfers/presentation/transfer_queue.dart';
+import 'package:warpgate_core/core/util/format.dart';
+import 'package:warpgate_core/features/transfers/domain/transfer_job.dart';
 
 enum _Filter { all, active, failed, done }
 

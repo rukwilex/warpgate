@@ -4,6 +4,7 @@ analyzer:
   exclude:
     - build/**
     - tool/mcp_stdio/.dart_tool/**
+    - packages/**
     - android/**
     - ios/**
     - web/**

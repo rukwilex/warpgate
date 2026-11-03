@@ -1,0 +1,15 @@
+Create a workspace
+
+Usage:
+  warpgate workspaces new [name]
+
+Arguments:
+  name  Workspace name
+
+Needs the app. Warpgate starts if it is not running.
+
+Examples:
+  warpgate workspaces new ops
+  warpgate workspaces new
+
+Run warpgate --help for flags that work on every command.

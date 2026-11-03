@@ -1,0 +1,4 @@
+tags:
+  binary:
+  integration:
+    timeout: 2x

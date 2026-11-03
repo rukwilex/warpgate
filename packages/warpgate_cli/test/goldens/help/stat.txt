@@ -1,0 +1,15 @@
+Show details of a file or folder
+
+Usage:
+  warpgate stat <path>
+
+Arguments:
+  path  host:path or a local path
+
+Also: warpgate files stat
+
+Examples:
+  warpgate stat prod:/etc/hosts
+  warpgate stat prod:/srv --json
+
+Run warpgate --help for flags that work on every command.

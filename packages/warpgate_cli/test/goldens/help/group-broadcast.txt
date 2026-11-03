@@ -1,0 +1,10 @@
+warpgate broadcast
+
+Usage:
+  warpgate broadcast <command> [flags]
+
+Commands:
+  toggle  Broadcast typing to all terminals in the active tab
+  stop    Stop broadcasting
+
+Run warpgate broadcast <command> --help for details.

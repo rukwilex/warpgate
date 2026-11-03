@@ -1,0 +1,16 @@
+Restore an encrypted backup. Asks for the passphrase
+
+Usage:
+  warpgate backup import [flags] <file>
+
+Arguments:
+  file  Backup file
+
+Flags:
+      --passphrase-stdin  Read the passphrase from stdin
+
+Examples:
+  warpgate backup import ~/warpgate.backup
+  warpgate backup import ~/warpgate.backup --yes --passphrase-stdin < pass.txt
+
+Run warpgate --help for flags that work on every command.

@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
 import 'package:warpgate/design_system/design_system.dart';
-import 'package:warpgate/features/sftp/domain/file_endpoint.dart';
+import 'package:warpgate_core/features/sftp/domain/file_endpoint.dart';
 
 abstract final class PathCompletion {
   static (String, String) split(String input, p.Context paths) {

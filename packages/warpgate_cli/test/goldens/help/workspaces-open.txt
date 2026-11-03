@@ -1,0 +1,15 @@
+Switch to a workspace in the app
+
+Usage:
+  warpgate workspaces open <workspace>
+
+Arguments:
+  workspace  Workspace name or id
+
+Needs the app. Warpgate starts if it is not running.
+
+Examples:
+  warpgate workspaces open ops
+  warpgate workspaces open Main
+
+Run warpgate --help for flags that work on every command.

@@ -20,10 +20,11 @@ import 'package:warpgate/features/shell/presentation/prompts.dart';
 import 'package:warpgate/features/shell/presentation/ui_state.dart';
 import 'package:warpgate/features/snippets/presentation/snippet_runner.dart';
 import 'package:warpgate/features/terminal/presentation/terminal_sessions.dart';
-import 'package:warpgate/features/workspace/domain/layout.dart';
-import 'package:warpgate/features/workspace/domain/pane.dart';
 import 'package:warpgate/features/workspace/presentation/saved_layouts_dialog.dart';
 import 'package:warpgate/features/workspace/presentation/workbench_controller.dart';
+import 'package:warpgate_core/actions/registry.dart';
+import 'package:warpgate_core/features/workspace/domain/layout.dart';
+import 'package:warpgate_core/features/workspace/domain/pane.dart';
 
 final routerProvider = Provider<GoRouter>(
   (ref) => throw UnimplementedError('routerProvider must be overridden'),
@@ -111,6 +112,10 @@ final shortcutMapProvider = Provider<Map<String, SingleActivator>>((ref) {
 class CommandRegistry {
   new(this._ref);
 
+  static final Map<String, PaletteEntry> _paletteEntries = {
+    for (final entry in ActionRegistry.paletteEntries) entry.id: entry,
+  };
+
   final Ref _ref;
 
   BuildContext? get _context => rootNavigatorKey.currentContext;
@@ -120,6 +125,8 @@ class CommandRegistry {
   void _go(String route) {
     _ref.read(routerProvider).go(route);
   }
+
+  void go(String route) => _go(route);
 
   void run(String id) {
     final command = commands().where((command) => command.id == id).firstOrNull;
@@ -348,373 +355,224 @@ class CommandRegistry {
     final state = _ref.read(workbenchProvider);
     AppCommand c(
       String id,
-      String title,
-      CommandCategory category,
       VoidCallback run, {
       IconData? icon,
-      List<String> keywords = const [],
-    }) => AppCommand(
-      id: id,
-      title: title,
-      category: category,
-      run: run,
-      shortcut: keys[id],
-      icon: icon,
-      keywords: keywords,
-    );
+      String? title,
+    }) {
+      final entry = _paletteEntries[id]!;
+      return AppCommand(
+        id: id,
+        title: title ?? entry.title,
+        category: entry.category,
+        run: run,
+        shortcut: keys[id],
+        icon: icon,
+        keywords: entry.keywords,
+      );
+    }
+
     return [
       c(
-        'palette.open',
-        'Command palette',
-        CommandCategory.general,
-        () => _ref.read(paletteProvider.notifier).toggle(PaletteMode.commands),
+        'palette.open', () => _ref.read(paletteProvider.notifier).toggle(PaletteMode.commands),
         icon: WgIcons.search,
       ),
       c(
-        'palette.switcher',
-        'Switch to session',
-        CommandCategory.general,
-        () => _ref.read(paletteProvider.notifier).toggle(PaletteMode.switcher),
+        'palette.switcher', () => _ref.read(paletteProvider.notifier).toggle(PaletteMode.switcher),
         icon: WgIcons.terminal,
-        keywords: const ['quick', 'jump'],
       ),
       c(
-        'session.new',
-        'New terminal',
-        CommandCategory.sessions,
-        () => unawaited(newSession()),
+        'session.new', () => unawaited(newSession()),
         icon: WgIcons.terminal,
-        keywords: const ['ssh', 'connect', 'tab'],
       ),
       if (PlatformInfo.supportsLocalTerminal)
         c(
-          'session.local',
-          'New local terminal',
-          CommandCategory.sessions,
-          () {
+          'session.local', () {
             _go(Routes.workbench);
             _bench.openPane(const LocalTerminalContent());
           },
           icon: WgIcons.monitor,
-          keywords: const ['shell'],
         ),
       c(
-        'sftp.new',
-        'Browse files',
-        CommandCategory.files,
-        () => unawaited(newSftp()),
+        'sftp.new', () => unawaited(newSftp()),
         icon: WgIcons.folder,
-        keywords: const ['sftp'],
       ),
       c(
-        'sftp.dual',
-        'Two-pane file browser',
-        CommandCategory.files,
-        () {
+        'sftp.dual', () {
           _go(Routes.workbench);
           _bench.openPane(
             const SftpContent(left: SftpSide(), right: SftpSide()),
           );
         },
         icon: WgIcons.arrowLeftRight,
-        keywords: const ['dual', 'sftp', 'copy between'],
       ),
       c(
-        'sftp.here',
-        'Show or hide files next to the terminal',
-        CommandCategory.files,
-        toggleFiles,
+        'sftp.here', toggleFiles,
         icon: WgIcons.filesPanel,
-        keywords: const ['sftp', 'cwd', 'panel', 'attach'],
       ),
       c(
-        'sftp.split',
-        'Open files at terminal folder in a new pane',
-        CommandCategory.files,
-        openSftpHere,
+        'sftp.split', openSftpHere,
         icon: WgIcons.folderOpen,
-        keywords: const ['sftp', 'cwd'],
       ),
       c(
-        'pane.splitRight',
-        'Split right',
-        CommandCategory.panes,
-        () => _split(SplitAxis.horizontal),
+        'pane.splitRight', () => _split(SplitAxis.horizontal),
         icon: WgIcons.splitHorizontal,
       ),
       c(
-        'pane.splitDown',
-        'Split down',
-        CommandCategory.panes,
-        () => _split(SplitAxis.vertical),
+        'pane.splitDown', () => _split(SplitAxis.vertical),
         icon: WgIcons.splitVertical,
       ),
       c(
-        'pane.close',
-        'Close pane',
-        CommandCategory.panes,
-        _bench.closeFocusedPane,
+        'pane.close', _bench.closeFocusedPane,
         icon: WgIcons.close,
       ),
       c(
-        'pane.maximize',
-        'Maximize or restore pane',
-        CommandCategory.panes,
-        _bench.toggleMaximize,
+        'pane.maximize', _bench.toggleMaximize,
         icon: WgIcons.maximize,
-        keywords: const ['zoom'],
       ),
       c(
-        'pane.focusLeft',
-        'Focus pane on the left',
-        CommandCategory.panes,
-        () => _bench.focusDirection(PaneDirection.left),
+        'pane.focusLeft', () => _bench.focusDirection(PaneDirection.left),
       ),
       c(
-        'pane.focusRight',
-        'Focus pane on the right',
-        CommandCategory.panes,
-        () => _bench.focusDirection(PaneDirection.right),
+        'pane.focusRight', () => _bench.focusDirection(PaneDirection.right),
       ),
       c(
-        'pane.focusUp',
-        'Focus pane above',
-        CommandCategory.panes,
-        () => _bench.focusDirection(PaneDirection.up),
+        'pane.focusUp', () => _bench.focusDirection(PaneDirection.up),
       ),
       c(
-        'pane.focusDown',
-        'Focus pane below',
-        CommandCategory.panes,
-        () => _bench.focusDirection(PaneDirection.down),
+        'pane.focusDown', () => _bench.focusDirection(PaneDirection.down),
       ),
       c(
-        'pane.growLeft',
-        'Move divider left',
-        CommandCategory.panes,
-        () => _bench.resizeFocused(PaneDirection.left),
-        keywords: const ['resize'],
+        'pane.growLeft', () => _bench.resizeFocused(PaneDirection.left),
       ),
       c(
-        'pane.growRight',
-        'Move divider right',
-        CommandCategory.panes,
-        () => _bench.resizeFocused(PaneDirection.right),
-        keywords: const ['resize'],
+        'pane.growRight', () => _bench.resizeFocused(PaneDirection.right),
       ),
       c(
-        'pane.growUp',
-        'Move divider up',
-        CommandCategory.panes,
-        () => _bench.resizeFocused(PaneDirection.up),
-        keywords: const ['resize'],
+        'pane.growUp', () => _bench.resizeFocused(PaneDirection.up),
       ),
       c(
-        'pane.growDown',
-        'Move divider down',
-        CommandCategory.panes,
-        () => _bench.resizeFocused(PaneDirection.down),
-        keywords: const ['resize'],
+        'pane.growDown', () => _bench.resizeFocused(PaneDirection.down),
       ),
       c(
-        'pane.swapRight',
-        'Swap with pane on the right',
-        CommandCategory.panes,
-        () => _bench.swapWithNeighbor(PaneDirection.right),
+        'pane.swapRight', () => _bench.swapWithNeighbor(PaneDirection.right),
         icon: WgIcons.swap,
       ),
       c(
-        'pane.swapDown',
-        'Swap with pane below',
-        CommandCategory.panes,
-        () => _bench.swapWithNeighbor(PaneDirection.down),
+        'pane.swapDown', () => _bench.swapWithNeighbor(PaneDirection.down),
         icon: WgIcons.swap,
       ),
-      c('pane.toTab', 'Move pane to new tab', CommandCategory.panes, () {
+      c('pane.toTab', () {
         final id = state.activeTab?.focusedPaneId;
         if (id != null) _bench.movePaneToTab(id);
       }),
       for (final preset in LayoutPresetKind.values)
         c(
-          'layout.${preset.name}',
-          'Layout: ${preset.label}',
-          CommandCategory.panes,
-          () => _bench.applyPreset(preset),
+          'layout.${preset.name}', () => _bench.applyPreset(preset),
           icon: WgIcons.layout,
-          keywords: const ['preset', 'arrange'],
         ),
       c(
-        'layout.save',
-        'Save layout as…',
-        CommandCategory.workspaces,
-        () => unawaited(_saveLayout()),
+        'layout.save', () => unawaited(_saveLayout()),
         icon: WgIcons.save,
-        keywords: const ['session', 'preset'],
       ),
-      c('layout.open', 'Open saved layout…', CommandCategory.workspaces, () {
+      c('layout.open', () {
         final context = _context;
         if (context != null) unawaited(showSavedLayouts(context));
       }, icon: WgIcons.history),
       c(
-        'tab.next',
-        'Next tab',
-        CommandCategory.workspaces,
-        () => _bench.cycleTab(1),
+        'tab.next', () => _bench.cycleTab(1),
       ),
       c(
-        'tab.previous',
-        'Previous tab',
-        CommandCategory.workspaces,
-        () => _bench.cycleTab(-1),
+        'tab.previous', () => _bench.cycleTab(-1),
       ),
       c(
-        'workspace.new',
-        'New workspace',
-        CommandCategory.workspaces,
-        () => unawaited(_newWorkspace()),
+        'workspace.new', () => unawaited(_newWorkspace()),
         icon: WgIcons.workspace,
       ),
       c(
-        'workspace.rename',
-        'Rename workspace',
-        CommandCategory.workspaces,
-        () => unawaited(_renameWorkspace()),
+        'workspace.rename', () => unawaited(_renameWorkspace()),
         icon: WgIcons.edit,
       ),
       for (final (index, workspace) in state.workspaces.take(9).indexed)
         c(
-          'workspace.${index + 1}',
-          'Workspace: ${workspace.name}',
-          CommandCategory.workspaces,
-          () {
+          'workspace.${index + 1}', () {
             _go(Routes.workbench);
             _bench.switchWorkspaceAt(index);
           },
           icon: WgIcons.workspace,
+          title: 'Workspace: ${workspace.name}',
         ),
       c(
-        'broadcast.toggle',
-        'Broadcast to all terminals in tab',
-        CommandCategory.multi,
-        _bench.toggleBroadcastForTab,
-        icon: WgIcons.broadcast,
-        keywords: const ['type', 'many', 'sync'],
-      ),
-      c(
-        'broadcast.clear',
-        'Stop broadcasting',
-        CommandCategory.multi,
-        () => _bench.setBroadcast(const {}),
+        'broadcast.toggle', _bench.toggleBroadcastForTab,
         icon: WgIcons.broadcast,
       ),
       c(
-        'group.open',
-        'Open host group in grid',
-        CommandCategory.multi,
-        () => unawaited(_openGroup()),
+        'broadcast.clear', () => _bench.setBroadcast(const {}),
+        icon: WgIcons.broadcast,
+      ),
+      c(
+        'group.open', () => unawaited(_openGroup()),
         icon: WgIcons.group,
       ),
       c(
-        'multiExec.open',
-        'Run on many hosts',
-        CommandCategory.multi,
-        () => _go(Routes.multiExec),
+        'multiExec.open', () => _go(Routes.multiExec),
         icon: WgIcons.multiExec,
-        keywords: const ['exec', 'parallel'],
       ),
-      c('snippets.run', 'Run snippet', CommandCategory.multi, () {
+      c('snippets.run', () {
         final context = _context;
         if (context != null) unawaited(showSnippetRunner(context));
       }, icon: WgIcons.snippet),
       c(
-        'nav.hosts',
-        'Hosts',
-        CommandCategory.navigation,
-        () => _go(Routes.hosts),
+        'nav.hosts', () => _go(Routes.hosts),
         icon: WgIcons.server,
       ),
       c(
-        'nav.keys',
-        'Keys',
-        CommandCategory.navigation,
-        () => _go(Routes.keys),
+        'nav.keys', () => _go(Routes.keys),
         icon: WgIcons.key,
       ),
       c(
-        'transfers.open',
-        'Transfers',
-        CommandCategory.navigation,
-        () => _go(Routes.transfers),
+        'transfers.open', () => _go(Routes.transfers),
         icon: WgIcons.transfer,
       ),
       c(
-        'nav.forwards',
-        'Port forwards',
-        CommandCategory.navigation,
-        () => _go(Routes.forwards),
+        'nav.forwards', () => _go(Routes.forwards),
         icon: WgIcons.forward,
       ),
       c(
-        'nav.snippets',
-        'Snippets',
-        CommandCategory.navigation,
-        () => _go(Routes.snippets),
+        'nav.snippets', () => _go(Routes.snippets),
         icon: WgIcons.snippet,
       ),
       c(
-        'nav.workbench',
-        'Sessions',
-        CommandCategory.navigation,
-        () => _go(Routes.workbench),
+        'nav.workbench', () => _go(Routes.workbench),
         icon: WgIcons.terminal,
       ),
       c(
-        'settings.open',
-        'Settings',
-        CommandCategory.navigation,
-        () => _go(Routes.settings),
+        'settings.open', () => _go(Routes.settings),
         icon: WgIcons.settings,
       ),
       c(
-        'nav.mcp',
-        'Claude Code activity',
-        CommandCategory.navigation,
-        () => _go(Routes.mcpActivity),
+        'nav.mcp', () => _go(Routes.mcpActivity),
         icon: WgIcons.bot,
       ),
-      c('sidebar.toggle', 'Show or hide sidebar', CommandCategory.general, () {
+      c('sidebar.toggle', () {
         final collapsed = _ref.read(settingsProvider).sidebarCollapsed;
         _ref.read(settingsProvider.notifier).update({
           'sidebarCollapsed': !collapsed,
         });
       }, icon: WgIcons.sidebar),
       c(
-        'terminal.zoomIn',
-        'Larger terminal text',
-        CommandCategory.general,
-        () => zoom(WgTerminalZoom.step),
+        'terminal.zoomIn', () => zoom(WgTerminalZoom.step),
         icon: WgIcons.zoomIn,
       ),
       c(
-        'terminal.zoomOut',
-        'Smaller terminal text',
-        CommandCategory.general,
-        () => zoom(-WgTerminalZoom.step),
+        'terminal.zoomOut', () => zoom(-WgTerminalZoom.step),
         icon: WgIcons.zoomOut,
       ),
       c(
-        'terminal.zoomReset',
-        'Default terminal text size',
-        CommandCategory.general,
-        () => zoom(null),
-        keywords: const ['zoom', 'font'],
+        'terminal.zoomReset', () => zoom(null),
       ),
       if (_ref.read(settingsProvider).appLock)
         c(
-          'app.lock',
-          'Lock Warpgate',
-          CommandCategory.general,
-          () => _ref.read(appLockProvider.notifier).lock(),
+          'app.lock', () => _ref.read(appLockProvider.notifier).lock(),
           icon: WgIcons.lock,
         ),
     ];

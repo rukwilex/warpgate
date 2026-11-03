@@ -1,7 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:warpgate/core/data/storage_providers.dart';
-import 'package:warpgate/core/util/ids.dart';
-import 'package:warpgate/features/snippets/domain/snippet.dart';
+import 'package:warpgate_core/features/snippets/data/snippet_repository.dart';
+import 'package:warpgate_core/features/snippets/domain/snippet.dart';
+
+final snippetRepositoryProvider = Provider<SnippetRepository>(
+  (ref) => SnippetRepository(ref.watch(documentStoreProvider)),
+);
 
 final snippetsProvider =
     AsyncNotifierProvider<SnippetsController, List<Snippet>>(
@@ -9,28 +13,22 @@ final snippetsProvider =
     );
 
 class SnippetsController extends AsyncNotifier<List<Snippet>> {
-  static const collection = 'snippets';
+  static const String collection = SnippetRepository.collection;
 
   @override
-  Future<List<Snippet>> build() async {
-    final docs = await ref.watch(documentStoreProvider).all(collection);
-    return [for (final json in docs) Snippet.fromJson(json)]
-      ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
-  }
+  Future<List<Snippet>> build() => ref.watch(snippetRepositoryProvider).all();
+
+  Future<void> reload() async =>
+      state = AsyncData(await ref.read(snippetRepositoryProvider).all());
 
   Future<void> save({
     required String name,
     required String body,
     String? id,
   }) async {
-    final snippet = Snippet(
-      id: id ?? Ids.next(),
-      name: name.trim(),
-      body: body,
-    );
-    await ref
-        .read(documentStoreProvider)
-        .put(collection, snippet.id, snippet.toJson());
+    final snippet = await ref
+        .read(snippetRepositoryProvider)
+        .save(name: name, body: body, id: id);
     final rest = (state.value ?? const []).where(
       (item) => item.id != snippet.id,
     );
@@ -41,7 +39,7 @@ class SnippetsController extends AsyncNotifier<List<Snippet>> {
   }
 
   Future<void> delete(String id) async {
-    await ref.read(documentStoreProvider).delete(collection, id);
+    await ref.read(snippetRepositoryProvider).delete(id);
     state = AsyncData(
       (state.value ?? const []).where((item) => item.id != id).toList(),
     );

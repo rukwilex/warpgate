@@ -1,0 +1,15 @@
+Delete a workspace and close its tabs
+
+Usage:
+  warpgate workspaces rm <workspace>
+
+Arguments:
+  workspace  Workspace name or id
+
+Needs the app. Warpgate starts if it is not running.
+
+Examples:
+  warpgate workspaces rm old
+  warpgate workspaces rm old --yes
+
+Run warpgate --help for flags that work on every command.

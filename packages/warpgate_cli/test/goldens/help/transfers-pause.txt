@@ -1,0 +1,13 @@
+Pause a transfer
+
+Usage:
+  warpgate transfers pause <id>
+
+Arguments:
+  id  Transfer id
+
+Examples:
+  warpgate transfers pause 3f2a
+  warpgate transfers pause 3f2a --json
+
+Run warpgate --help for flags that work on every command.

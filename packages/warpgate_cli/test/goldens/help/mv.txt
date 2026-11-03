@@ -1,0 +1,16 @@
+Rename or move within one host
+
+Usage:
+  warpgate mv <source> <target>
+
+Arguments:
+  source  host:path
+  target  New path on the same host
+
+Also: warpgate files mv
+
+Examples:
+  warpgate mv prod:/tmp/a.txt prod:/tmp/b.txt
+  warpgate mv prod:/tmp/a.txt /srv/a.txt
+
+Run warpgate --help for flags that work on every command.

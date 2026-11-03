@@ -1,0 +1,12 @@
+Show or hide files next to the focused terminal
+
+Usage:
+  warpgate files toggle
+
+Needs the app. Warpgate starts if it is not running.
+
+Examples:
+  warpgate files toggle
+  warpgate files toggle --json
+
+Run warpgate --help for flags that work on every command.

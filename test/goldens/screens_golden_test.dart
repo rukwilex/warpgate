@@ -5,20 +5,21 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:warpgate/core/data/storage_providers.dart';
 import 'package:warpgate/core/routing/routes.dart';
-import 'package:warpgate/features/connection/domain/link_state.dart';
-import 'package:warpgate/features/keys/domain/ssh_key.dart';
+import 'package:warpgate/features/connection/presentation/connection_providers.dart';
 import 'package:warpgate/features/keys/presentation/keys_controller.dart';
 import 'package:warpgate/features/palette/presentation/command_registry.dart';
 import 'package:warpgate/features/settings/presentation/settings_controller.dart';
-import 'package:warpgate/features/sftp/domain/file_endpoint.dart';
 import 'package:warpgate/features/sftp/presentation/endpoint_providers.dart';
 import 'package:warpgate/features/shell/presentation/window_chrome.dart';
 import 'package:warpgate/features/snippets/presentation/snippets_controller.dart';
 import 'package:warpgate/features/terminal/presentation/terminal_sessions.dart';
-import 'package:warpgate/features/transfers/domain/transfer_job.dart';
 import 'package:warpgate/features/transfers/presentation/transfer_queue.dart';
-import 'package:warpgate/features/workspace/domain/pane.dart';
 import 'package:warpgate/features/workspace/presentation/workbench_controller.dart';
+import 'package:warpgate_core/features/connection/domain/link_state.dart';
+import 'package:warpgate_core/features/keys/domain/ssh_key.dart';
+import 'package:warpgate_core/features/sftp/domain/file_endpoint.dart';
+import 'package:warpgate_core/features/transfers/domain/transfer_job.dart';
+import 'package:warpgate_core/features/workspace/domain/pane.dart';
 
 import '../helpers/harness.dart';
 import '../screens/render_screens_test.dart' show seedHosts;
@@ -107,7 +108,8 @@ class _FixedFrame extends WindowFrameController {
 }
 
 class FakeResolver extends EndpointResolver {
-  new(super.ref);
+  new(Ref ref)
+    : super(pool: ref.read(connectionPoolProvider), labelOf: (_) => null);
 
   @override
   Future<FileEndpoint> resolve(String? hostId) async =>

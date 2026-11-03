@@ -1,0 +1,14 @@
+warpgate sessions
+
+Usage:
+  warpgate sessions <command> [flags]
+
+Commands:
+  list   List terminal sessions open in the app
+  open   Open a terminal on a host in the app
+  close  Close a terminal session and its pane
+  focus  Bring a session to the front in the app
+  send   Type text into a session. Use \r for Enter
+  read   Print the last lines of a session
+
+Run warpgate sessions <command> --help for details.

@@ -1,0 +1,16 @@
+Fetch the key of a host, show it and save it
+
+Usage:
+  warpgate known-hosts trust [flags] <host>
+
+Arguments:
+  host  Host label, id or user@host[:port]
+
+Flags:
+      --fingerprint <FINGERPRINT>  Only trust this exact fingerprint
+
+Examples:
+  warpgate known-hosts trust prod
+  warpgate known-hosts trust prod --fingerprint "SHA256:abc"
+
+Run warpgate --help for flags that work on every command.

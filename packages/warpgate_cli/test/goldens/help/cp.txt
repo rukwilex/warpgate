@@ -1,0 +1,27 @@
+Copy between any two places, including two hosts
+
+Usage:
+  warpgate cp [flags] <source...>
+
+Arguments:
+  source  host:path or a local path. The last one is the target
+
+Flags:
+  -r, --recursive             Include folders
+      --move                  Delete the source after a verified copy
+      --resume                Continue a partial file
+      --direct                Use rsync or scp on the source host when it can reach the target
+      --verify                Compare sha256 after each file
+      --queue                 Add to the app queue and return at once. Needs the app
+      --on-conflict <ACTION>  When a file exists. One of: ask, overwrite, skip, rename
+
+The last path is the target. A target that ends in / or is a folder receives the source inside it.
+
+Also: warpgate files cp
+
+Examples:
+  warpgate cp prod:/var/log/app.log staging:/tmp/
+  warpgate cp -r --verify ./site prod:/srv/
+  warpgate cp --direct --move prod:/data/big.tar backup:/data/
+
+Run warpgate --help for flags that work on every command.

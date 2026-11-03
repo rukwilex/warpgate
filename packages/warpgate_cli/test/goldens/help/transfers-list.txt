@@ -1,0 +1,14 @@
+List transfers from the app and the CLI
+
+Usage:
+  warpgate transfers list [flags]
+
+Flags:
+      --status <STATUS>  Only this status. One of: queued, running, paused, completed, failed, canceled
+
+Examples:
+  warpgate transfers list
+  warpgate transfers list --status failed
+  warpgate transfers list --json
+
+Run warpgate --help for flags that work on every command.

@@ -1,0 +1,15 @@
+Save the active tab as a layout
+
+Usage:
+  warpgate layouts save [name]
+
+Arguments:
+  name  Layout name
+
+Needs the app. Warpgate starts if it is not running.
+
+Examples:
+  warpgate layouts save incident
+  warpgate layouts save
+
+Run warpgate --help for flags that work on every command.

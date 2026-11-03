@@ -1,0 +1,14 @@
+Add a key to a host's authorized_keys
+
+Usage:
+  warpgate keys install <key> <host>
+
+Arguments:
+  key   Key name or id
+  host  Host label, id or user@host[:port]
+
+Examples:
+  warpgate keys install work prod
+  warpgate keys install work deploy@10.0.0.5
+
+Run warpgate --help for flags that work on every command.

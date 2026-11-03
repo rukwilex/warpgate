@@ -1,0 +1,15 @@
+Rename the active workspace
+
+Usage:
+  warpgate workspaces rename [name]
+
+Arguments:
+  name  New name
+
+Needs the app. Warpgate starts if it is not running.
+
+Examples:
+  warpgate workspaces rename ops
+  warpgate workspaces rename
+
+Run warpgate --help for flags that work on every command.

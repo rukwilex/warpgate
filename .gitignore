@@ -50,6 +50,7 @@ app.*.map.json
 test/screens/out/
 tool/mcp_stdio/build/
 tool/mcp_stdio/.dart_tool/
+packages/warpgate_cli/build/
 
 macos/Runner/Configs/Signing.xcconfig
 macos/Runner/Configs/KeychainGroup.xcconfig

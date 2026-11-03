@@ -1,0 +1,15 @@
+Open every host in a group in a grid in the app
+
+Usage:
+  warpgate groups open [group]
+
+Arguments:
+  group  Group name or id
+
+Needs the app. Warpgate starts if it is not running.
+
+Examples:
+  warpgate groups open web
+  warpgate groups open
+
+Run warpgate --help for flags that work on every command.

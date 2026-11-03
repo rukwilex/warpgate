@@ -1,0 +1,13 @@
+Add hosts from an OpenSSH config file
+
+Usage:
+  warpgate hosts import-ssh-config [file]
+
+Arguments:
+  file  Config file. Defaults to ~/.ssh/config
+
+Examples:
+  warpgate hosts import-ssh-config
+  warpgate hosts import-ssh-config ./ssh_config
+
+Run warpgate --help for flags that work on every command.

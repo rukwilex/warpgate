@@ -1,0 +1,19 @@
+name: warpgate_cli
+description: The warpgate command line interface.
+publish_to: 'none'
+version: 1.0.0
+
+environment:
+  sdk: ^3.13.5
+
+dependencies:
+  dartssh2: ^4.1.0
+  path: ^1.9.1
+  warpgate_core:
+    path: ../warpgate_core
+
+dev_dependencies:
+  test: ^1.25.0
+
+executables:
+  warpgate: warpgate

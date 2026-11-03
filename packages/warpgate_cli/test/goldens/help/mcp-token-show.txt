@@ -1,0 +1,10 @@
+Print the Claude Code access token. Asks first
+
+Usage:
+  warpgate mcp token show
+
+Examples:
+  warpgate mcp token show
+  warpgate mcp token show --yes
+
+Run warpgate --help for flags that work on every command.

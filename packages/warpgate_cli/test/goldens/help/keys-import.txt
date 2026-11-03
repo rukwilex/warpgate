@@ -1,0 +1,17 @@
+Save a private key from a file
+
+Usage:
+  warpgate keys import [flags] <file>
+
+Arguments:
+  file  Private key file
+
+Flags:
+  -n, --name <NAME>       Key name. Defaults to the file name
+      --passphrase-stdin  Read the passphrase from stdin
+
+Examples:
+  warpgate keys import ~/.ssh/id_ed25519
+  warpgate keys import ./deploy.pem --name deploy
+
+Run warpgate --help for flags that work on every command.

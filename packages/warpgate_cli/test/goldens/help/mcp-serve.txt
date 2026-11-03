@@ -1,0 +1,10 @@
+Run a stdio MCP server for Claude Code
+
+Usage:
+  warpgate mcp serve
+
+Examples:
+  warpgate mcp serve
+  claude mcp add warpgate -- warpgate mcp serve
+
+Run warpgate --help for flags that work on every command.

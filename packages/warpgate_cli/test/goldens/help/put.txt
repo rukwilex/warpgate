@@ -1,0 +1,22 @@
+Upload from this device to a host
+
+Usage:
+  warpgate put [flags] <source> <target>
+
+Arguments:
+  source  Local path, or - for stdin
+  target  host:path
+
+Flags:
+  -r, --recursive  Include folders
+      --resume     Continue a partial file
+      --verify     Compare sha256 after each file
+
+Also: warpgate files put
+
+Examples:
+  warpgate put ./app.tar prod:/tmp/
+  warpgate put -r ./site staging:/srv/
+  echo hello | warpgate put - prod:/tmp/note.txt
+
+Run warpgate --help for flags that work on every command.

@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:warpgate/features/hosts/domain/host.dart';
-import 'package:warpgate/features/hosts/domain/ssh_config_parser.dart';
+import 'package:warpgate_core/features/hosts/domain/host.dart';
+import 'package:warpgate_core/features/hosts/domain/ssh_config_parser.dart';
 
 void main() {
   test('host json round trip', () {

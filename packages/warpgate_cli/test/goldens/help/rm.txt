@@ -1,0 +1,18 @@
+Delete a file or folder
+
+Usage:
+  warpgate rm [flags] <path>
+
+Arguments:
+  path  host:path or a local path
+
+Flags:
+  -r, --recursive  Include folders and everything in them
+
+Also: warpgate files rm
+
+Examples:
+  warpgate rm prod:/tmp/old.log
+  warpgate rm -r prod:/tmp/build --yes
+
+Run warpgate --help for flags that work on every command.

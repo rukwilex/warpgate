@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:warpgate/core/data/storage_providers.dart';
-import 'package:warpgate/features/keys/data/key_repository.dart';
-import 'package:warpgate/features/keys/domain/ssh_key.dart';
+import 'package:warpgate_core/features/keys/data/key_repository.dart';
+import 'package:warpgate_core/features/keys/domain/ssh_key.dart';
 
 final keyRepositoryProvider = Provider<KeyRepository>(
   (ref) => KeyRepository(

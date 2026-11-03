@@ -1,0 +1,16 @@
+warpgate hosts
+
+Usage:
+  warpgate hosts <command> [flags]
+
+Commands:
+  list               List saved hosts
+  show               Show the settings of one host
+  add                Save a new host
+  edit               Change the settings of a saved host
+  rm                 Remove a saved host and its password
+  test               Connect to a host and report how long it took
+  import-ssh-config  Add hosts from an OpenSSH config file
+  export             Print saved hosts as an OpenSSH config, without secrets
+
+Run warpgate hosts <command> --help for details.

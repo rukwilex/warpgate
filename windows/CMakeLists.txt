@@ -58,6 +58,14 @@ add_subdirectory("runner")
 include(flutter/generated_plugins.cmake)
 
 
+include(flutter/ephemeral/generated_config.cmake)
+set(WARPGATE_CLI_OUTPUT "${CMAKE_BINARY_DIR}/warpgate-cli.exe")
+add_custom_target(warpgate_cli ALL
+  COMMAND cmd /c "${FLUTTER_ROOT}/bin/dart.bat" pub get
+  COMMAND cmd /c "${FLUTTER_ROOT}/bin/dart.bat" compile exe bin/warpgate.dart -o "${WARPGATE_CLI_OUTPUT}"
+  WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/../packages/warpgate_cli"
+  VERBATIM)
+
 # === Installation ===
 # Support files are copied into place next to the executable, so that it can
 # run in place. This is done instead of making a separate bundle (as on Linux)
@@ -73,6 +81,9 @@ set(INSTALL_BUNDLE_DATA_DIR "${CMAKE_INSTALL_PREFIX}/data")
 set(INSTALL_BUNDLE_LIB_DIR "${CMAKE_INSTALL_PREFIX}")
 
 install(TARGETS ${BINARY_NAME} RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}"
+  COMPONENT Runtime)
+
+install(PROGRAMS "${WARPGATE_CLI_OUTPUT}" DESTINATION "${CMAKE_INSTALL_PREFIX}"
   COMPONENT Runtime)
 
 install(FILES "${FLUTTER_ICU_DATA_FILE}" DESTINATION "${INSTALL_BUNDLE_DATA_DIR}"

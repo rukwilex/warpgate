@@ -9,8 +9,8 @@ import 'package:warpgate/features/palette/presentation/command_registry.dart';
 import 'package:warpgate/features/settings/presentation/settings_controller.dart';
 import 'package:warpgate/features/shell/presentation/title_bar.dart';
 import 'package:warpgate/features/shell/presentation/window_chrome.dart';
-import 'package:warpgate/features/workspace/domain/pane.dart';
 import 'package:warpgate/features/workspace/presentation/workbench_controller.dart';
+import 'package:warpgate_core/features/workspace/domain/pane.dart';
 
 import '../helpers/harness.dart';
 

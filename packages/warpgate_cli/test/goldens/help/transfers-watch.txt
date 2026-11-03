@@ -1,0 +1,13 @@
+Follow transfers until they finish
+
+Usage:
+  warpgate transfers watch [id]
+
+Arguments:
+  id  Only this transfer
+
+Examples:
+  warpgate transfers watch
+  warpgate transfers watch 3f2a --json
+
+Run warpgate --help for flags that work on every command.

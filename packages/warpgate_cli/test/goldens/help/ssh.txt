@@ -1,0 +1,22 @@
+Open an interactive shell on a host, or run one command
+
+Usage:
+  warpgate ssh [flags] <host> [command...]
+
+Arguments:
+  host     Host label, id or user@host[:port]
+  command  Command to run instead of a shell
+
+Flags:
+  -L, --local-forward <SPEC>    Forward a local port: [bind:]port:host:hostport. Can be repeated
+  -R, --remote-forward <SPEC>   Forward a remote port: port:host:hostport. Can be repeated
+  -D, --dynamic-forward <SPEC>  Start a SOCKS proxy: [bind:]port. Can be repeated
+  -J, --jump <HOST>             Connect through this host
+      --tmux                    Attach the persistent tmux session
+
+Examples:
+  warpgate ssh prod
+  warpgate ssh deploy@10.0.0.5:2222 uptime
+  warpgate ssh prod -L 8080:localhost:80 -J bastion
+
+Run warpgate --help for flags that work on every command.

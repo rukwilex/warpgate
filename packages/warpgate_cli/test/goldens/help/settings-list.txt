@@ -1,0 +1,10 @@
+List every setting and its value
+
+Usage:
+  warpgate settings list
+
+Examples:
+  warpgate settings list
+  warpgate settings list --json
+
+Run warpgate --help for flags that work on every command.

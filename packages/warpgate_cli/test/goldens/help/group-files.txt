@@ -1,0 +1,24 @@
+warpgate files
+
+Usage:
+  warpgate files <command> [flags]
+
+Commands:
+  toggle  Show or hide files next to the focused terminal
+  here    Open files at the folder of the focused terminal, in a new pane
+  dual    Open a two-pane file browser in the app
+  ls      List a remote or local folder
+  cat     Print a remote file
+  get     Download from a host to this device
+  put     Upload from this device to a host
+  cp      Copy between any two places, including two hosts
+  mv      Rename or move within one host
+  rm      Delete a file or folder
+  mkdir   Create a folder
+  chmod   Change the permissions of a file or folder
+  stat    Show details of a file or folder
+  edit    Open a remote file in $EDITOR and upload it on save
+  find    Find files by name under a folder
+  du      Add up the size of a folder
+
+Run warpgate files <command> --help for details.

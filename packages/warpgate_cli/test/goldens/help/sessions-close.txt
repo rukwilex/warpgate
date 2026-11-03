@@ -1,0 +1,15 @@
+Close a terminal session and its pane
+
+Usage:
+  warpgate sessions close <session>
+
+Arguments:
+  session  Session id. Run warpgate sessions list to see them
+
+Needs the app. Warpgate starts if it is not running.
+
+Examples:
+  warpgate sessions close 3f2a
+  warpgate sessions close 3f2a --yes
+
+Run warpgate --help for flags that work on every command.

@@ -1,0 +1,15 @@
+Open a remote file in $EDITOR and upload it on save
+
+Usage:
+  warpgate edit <path>
+
+Arguments:
+  path  host:path
+
+Also: warpgate files edit
+
+Examples:
+  warpgate edit prod:/etc/nginx/nginx.conf
+  EDITOR=nano warpgate edit prod:~/.bashrc
+
+Run warpgate --help for flags that work on every command.

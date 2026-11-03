@@ -1,0 +1,14 @@
+Show help for a command
+
+Usage:
+  warpgate help [command...]
+
+Arguments:
+  command  Command
+
+Examples:
+  warpgate help
+  warpgate help cp
+  warpgate help hosts add
+
+Run warpgate --help for flags that work on every command.

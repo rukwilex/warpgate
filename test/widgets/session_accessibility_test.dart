@@ -4,8 +4,8 @@ import 'package:warpgate/core/routing/routes.dart';
 import 'package:warpgate/features/palette/presentation/command_registry.dart';
 import 'package:warpgate/features/sftp/presentation/endpoint_providers.dart';
 import 'package:warpgate/features/terminal/presentation/terminal_sessions.dart';
-import 'package:warpgate/features/workspace/domain/pane.dart';
 import 'package:warpgate/features/workspace/presentation/workbench_controller.dart';
+import 'package:warpgate_core/features/workspace/domain/pane.dart';
 
 import '../goldens/screens_golden_test.dart'
     show FakeResolver, fakeTerminals, start;

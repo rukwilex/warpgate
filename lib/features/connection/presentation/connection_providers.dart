@@ -2,11 +2,11 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:warpgate/core/interaction/interaction_broker.dart';
-import 'package:warpgate/features/connection/data/connection_pool.dart';
-import 'package:warpgate/features/connection/data/port_forwarder.dart';
-import 'package:warpgate/features/connection/domain/link_state.dart';
 import 'package:warpgate/features/hosts/presentation/hosts_controller.dart';
 import 'package:warpgate/features/keys/presentation/keys_controller.dart';
+import 'package:warpgate_core/features/connection/data/connection_pool.dart';
+import 'package:warpgate_core/features/connection/data/port_forwarder.dart';
+import 'package:warpgate_core/features/connection/domain/link_state.dart';
 
 final connectionPoolProvider = Provider<ConnectionPool>((ref) {
   final pool = ConnectionPool(

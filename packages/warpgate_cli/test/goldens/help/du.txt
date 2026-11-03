@@ -1,0 +1,15 @@
+Add up the size of a folder
+
+Usage:
+  warpgate du <path>
+
+Arguments:
+  path  host:path or a local path
+
+Also: warpgate files du
+
+Examples:
+  warpgate du prod:/var/log
+  warpgate du prod:/srv --json
+
+Run warpgate --help for flags that work on every command.

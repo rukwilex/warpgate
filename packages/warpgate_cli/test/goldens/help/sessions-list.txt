@@ -1,0 +1,12 @@
+List terminal sessions open in the app
+
+Usage:
+  warpgate sessions list
+
+Needs the app. Warpgate starts if it is not running.
+
+Examples:
+  warpgate sessions list
+  warpgate sessions list --json
+
+Run warpgate --help for flags that work on every command.

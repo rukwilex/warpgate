@@ -3,10 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:warpgate/core/routing/routes.dart';
 import 'package:warpgate/design_system/design_system.dart';
-import 'package:warpgate/features/snippets/domain/snippet.dart';
 import 'package:warpgate/features/snippets/presentation/snippets_controller.dart';
 import 'package:warpgate/features/terminal/presentation/terminal_sessions.dart';
 import 'package:warpgate/features/workspace/presentation/workbench_controller.dart';
+import 'package:warpgate_core/features/snippets/domain/snippet.dart';
 
 Future<void> showSnippetRunner(BuildContext context) async {
   final snippet = await showGeneralDialog<Snippet>(

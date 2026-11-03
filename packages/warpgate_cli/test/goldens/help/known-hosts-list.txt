@@ -1,0 +1,10 @@
+List trusted host keys
+
+Usage:
+  warpgate known-hosts list
+
+Examples:
+  warpgate known-hosts list
+  warpgate known-hosts list --json
+
+Run warpgate --help for flags that work on every command.

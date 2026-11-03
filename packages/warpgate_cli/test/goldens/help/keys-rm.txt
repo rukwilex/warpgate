@@ -1,0 +1,13 @@
+Delete a saved key
+
+Usage:
+  warpgate keys rm <key>
+
+Arguments:
+  key  Key name or id
+
+Examples:
+  warpgate keys rm old
+  warpgate keys rm old --yes
+
+Run warpgate --help for flags that work on every command.

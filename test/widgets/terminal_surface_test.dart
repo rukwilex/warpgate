@@ -2,20 +2,20 @@ import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:warpgate/core/data/app_database.dart';
-import 'package:warpgate/core/data/secret_store.dart';
 import 'package:warpgate/core/interaction/interaction_broker.dart';
 import 'package:warpgate/design_system/design_system.dart';
-import 'package:warpgate/features/connection/data/connection_pool.dart';
-import 'package:warpgate/features/hosts/data/host_repository.dart';
-import 'package:warpgate/features/keys/data/key_repository.dart';
 import 'package:warpgate/features/terminal/data/terminal_session.dart';
 import 'package:warpgate/features/terminal/presentation/terminal_surface.dart';
+import 'package:warpgate_core/core/data/secret_store.dart';
+import 'package:warpgate_core/features/connection/data/connection_pool.dart';
+import 'package:warpgate_core/features/hosts/data/host_repository.dart';
+import 'package:warpgate_core/features/keys/data/key_repository.dart';
 import 'package:xterm/xterm.dart';
 
 import '../helpers/harness.dart';
 
 TerminalSession localSession() {
-  final store = DocumentStore(AppDatabase(NativeDatabase.memory()));
+  final store = DriftDocumentStore(AppDatabase(NativeDatabase.memory()));
   final secrets = MemorySecretStore();
   return TerminalSession(
     id: 'pane',

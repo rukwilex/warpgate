@@ -1,0 +1,10 @@
+warpgate tabs
+
+Usage:
+  warpgate tabs <command> [flags]
+
+Commands:
+  next      Go to the next tab
+  previous  Go to the previous tab
+
+Run warpgate tabs <command> --help for details.

@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'dart:ui';
 
 import 'package:flutter/services.dart';
@@ -8,8 +7,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:warpgate/core/platform/platform_info.dart';
 import 'package:warpgate/core/routing/routes.dart';
 import 'package:warpgate/core/shortcuts/shortcut_codec.dart';
+import 'package:warpgate/features/cli/presentation/cli_bridge.dart';
 import 'package:warpgate/features/connection/presentation/connection_providers.dart';
-import 'package:warpgate/features/hosts/domain/host.dart';
 import 'package:warpgate/features/hosts/presentation/hosts_controller.dart';
 import 'package:warpgate/features/mcp/presentation/mcp_service.dart';
 import 'package:warpgate/features/palette/presentation/command_registry.dart';
@@ -17,6 +16,7 @@ import 'package:warpgate/features/security/presentation/app_lock_controller.dart
 import 'package:warpgate/features/shell/presentation/ui_state.dart';
 import 'package:warpgate/features/terminal/presentation/terminal_sessions.dart';
 import 'package:warpgate/features/workspace/presentation/workbench_controller.dart';
+import 'package:warpgate_core/features/hosts/domain/host.dart';
 import 'package:window_manager/window_manager.dart';
 
 class AppEffects extends ConsumerStatefulWidget {
@@ -45,7 +45,9 @@ class _AppEffectsState extends ConsumerState<AppEffects> {
         return AppExitResponse.exit;
       },
     );
-    ref.read(mcpServerProvider);
+    ref
+      ..read(mcpServerProvider)
+      ..read(cliBridgeProvider);
     WidgetsBinding.instance.addPostFrameCallback((_) => unawaited(_restore()));
   }
 

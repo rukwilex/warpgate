@@ -1,0 +1,13 @@
+Remove a saved host and its password
+
+Usage:
+  warpgate hosts rm <host>
+
+Arguments:
+  host  Host label, id or user@host[:port]
+
+Examples:
+  warpgate hosts rm old-box
+  warpgate hosts rm old-box --yes
+
+Run warpgate --help for flags that work on every command.

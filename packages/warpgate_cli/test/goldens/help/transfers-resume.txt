@@ -1,0 +1,15 @@
+Resume a paused transfer
+
+Usage:
+  warpgate transfers resume <id>
+
+Arguments:
+  id  Transfer id
+
+With the app running, the app continues it. Otherwise this command runs it until it ends.
+
+Examples:
+  warpgate transfers resume 3f2a
+  warpgate --no-app transfers resume 3f2a
+
+Run warpgate --help for flags that work on every command.

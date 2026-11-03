@@ -1,0 +1,13 @@
+Delete a snippet
+
+Usage:
+  warpgate snippets rm <snippet>
+
+Arguments:
+  snippet  Snippet name or id
+
+Examples:
+  warpgate snippets rm restart
+  warpgate snippets rm restart --yes
+
+Run warpgate --help for flags that work on every command.

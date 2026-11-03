@@ -1,0 +1,10 @@
+warpgate backup
+
+Usage:
+  warpgate backup <command> [flags]
+
+Commands:
+  export  Write an encrypted backup. Asks for a passphrase
+  import  Restore an encrypted backup. Asks for the passphrase
+
+Run warpgate backup <command> --help for details.

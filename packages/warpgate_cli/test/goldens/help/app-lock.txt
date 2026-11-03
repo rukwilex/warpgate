@@ -1,0 +1,12 @@
+Lock Warpgate
+
+Usage:
+  warpgate app lock
+
+Needs the app. Warpgate starts if it is not running.
+
+Examples:
+  warpgate app lock
+  warpgate app lock --json
+
+Run warpgate --help for flags that work on every command.

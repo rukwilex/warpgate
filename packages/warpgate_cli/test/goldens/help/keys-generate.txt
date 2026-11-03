@@ -1,0 +1,16 @@
+Create a new SSH key
+
+Usage:
+  warpgate keys generate [flags] <name>
+
+Arguments:
+  name  Key name
+
+Flags:
+  -t, --type <TYPE>  Key type. One of: ed25519, rsa. Default: ed25519
+
+Examples:
+  warpgate keys generate work
+  warpgate keys generate legacy --type rsa
+
+Run warpgate --help for flags that work on every command.

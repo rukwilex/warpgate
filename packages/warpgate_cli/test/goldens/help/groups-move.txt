@@ -1,0 +1,14 @@
+Move hosts into a group, or out with "none"
+
+Usage:
+  warpgate groups move <group> <hosts...>
+
+Arguments:
+  group  Group name, or "none"
+  hosts  Hosts to move
+
+Examples:
+  warpgate groups move web prod staging
+  warpgate groups move none old-box
+
+Run warpgate --help for flags that work on every command.

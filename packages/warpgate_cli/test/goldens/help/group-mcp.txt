@@ -1,0 +1,13 @@
+warpgate mcp
+
+Usage:
+  warpgate mcp <command> [flags]
+
+Commands:
+  serve         Run a stdio MCP server for Claude Code
+  status        Show whether Claude Code access is on
+  token show    Print the Claude Code access token. Asks first
+  token rotate  Replace the Claude Code access token
+  install       Print the claude mcp add command, or run it
+
+Run warpgate mcp <command> --help for details.

@@ -314,7 +314,7 @@ VERSION=1.0.0
 PKG=dist/warpgate_${VERSION}_amd64
 mkdir -p $PKG/DEBIAN $PKG/opt/warpgate $PKG/usr/bin $PKG/usr/share/applications $PKG/usr/share/icons/hicolor
 cp -r build/linux/x64/release/bundle/* $PKG/opt/warpgate/
-ln -sf /opt/warpgate/warpgate $PKG/usr/bin/warpgate
+ln -sf /opt/warpgate/warpgate-cli $PKG/usr/bin/warpgate
 cp -r build/linux/x64/release/bundle/share/icons/hicolor/. $PKG/usr/share/icons/hicolor/
 cp linux/packaging/eu.kwilex.warpgate.desktop $PKG/usr/share/applications/
 cat > $PKG/DEBIAN/control <<CONTROL
@@ -323,7 +323,7 @@ Version: ${VERSION}
 Section: net
 Priority: optional
 Architecture: amd64
-Depends: libgtk-3-0, libsecret-1-0
+Depends: libgtk-3-0, libsecret-1-0, libsqlite3-0
 Maintainer: kwilex
 Description: SSH and SFTP workbench for many servers at once
 CONTROL
@@ -370,6 +370,58 @@ cp macos/Runner/Configs/KeychainGroup.xcconfig.example macos/Runner/Configs/Keyc
 It switches to `DebugProfile.Signed.entitlements` / `Release.Signed.entitlements`, which add `keychain-access-groups = $(AppIdentifierPrefix)eu.kwilex.warpgate`, and writes that group into `Info.plist` (`KeychainAccessGroup`). The app then stores the master key with `MacOsOptions(usesDataProtectionKeychain: true, groupId: <group>)`. The entitlement needs a provisioning profile, so build once from Xcode or pass `-allowProvisioningUpdates` to let Xcode register the App ID `eu.kwilex.warpgate` in your team. For Developer ID releases, create a Developer ID provisioning profile with the same group. If the group is missing at runtime (`errSecMissingEntitlement -34018`), the app falls back to the login keychain instead of failing. **Not verified here**: registering the App ID changes the developer account, so it was not done on the machine used.
 
 Unsigned builds (CI, contributors without a team) keep the plain entitlement files and the login keychain. They work, but ask on every rebuild.
+
+## Building the command line
+
+The CLI is a Dart program in `packages/warpgate_cli`. It shares `packages/warpgate_core` with the app and has no Flutter in it.
+
+```sh
+cd packages/warpgate_cli
+dart pub get
+dart compile exe bin/warpgate.dart -o build/warpgate
+build/warpgate --help
+```
+
+These packages are deliberately not a pub workspace. `dart compile exe` refuses any package graph with build hooks, and the app's `sqlite3` package has one. The CLI talks to the system SQLite through `dart:ffi` instead.
+
+**Every desktop build includes it.**
+
+| Platform | How | Where |
+|---|---|---|
+| macOS | Xcode build phase running `tool/build_cli_macos.sh` | `Warpgate.app/Contents/MacOS/warpgate-cli`, signed with the app's identity |
+| Windows | `warpgate_cli` target in `windows/CMakeLists.txt` | `warpgate-cli.exe` next to `warpgate.exe` |
+| Linux | `warpgate_cli` target in `linux/CMakeLists.txt` | `warpgate-cli` in the bundle |
+
+**macOS signing.** A `dart compile exe` binary under the hardened runtime needs `com.apple.security.cs.allow-unsigned-executable-memory`, or macOS kills it at launch with exit code 137. `macos/Runner/WarpgateCli.entitlements` holds it. `allow-jit` is not enough.
+
+The keychain group is applied only when `WARPGATE_KEYCHAIN_GROUP` is set and the bundle has an `embedded.provisionprofile`, because a binary with `keychain-access-groups` and no profile is killed at launch too. Without the group the CLI gets secrets from the running app, then from the login keychain, where macOS may ask once.
+
+**Putting it on PATH.**
+
+- Settings → Command line, or `warpgate-cli --install`. On macOS and Linux this makes a link in `/usr/local/bin` when that folder is writable, otherwise in `~/.local/bin`. On Windows it writes `%LOCALAPPDATA%\Warpgate\bin\warpgate.cmd` and adds that folder to the user PATH.
+- `.deb`: the steps under Linux above link `/usr/bin/warpgate` to it.
+- AppImage: an AppImage cannot add to PATH. Tell users to run `warpgate-cli --install` from an extracted copy, or link it by hand.
+- Windows installer: the Inno Setup script picks it up with the rest of the Release folder. Installing it on PATH stays a user choice in Settings. For MSIX, add an `appExecutionAlias` named `warpgate.exe` pointing at `warpgate-cli.exe`.
+- Mobile has no CLI, and the settings section is hidden.
+
+**Tests.**
+
+```sh
+cd packages/warpgate_core && dart test
+cd packages/warpgate_cli && dart test --exclude-tags integration
+UPDATE_GOLDENS=1 dart test test/help_golden_test.dart
+dart run tool/gen_docs.dart
+```
+
+The second-to-last line accepts help text changes after review, and the last one regenerates `docs/CLI.md`. A test fails if either is out of date.
+
+Integration tests need a real SSH server. `tool/cli_test_server.sh` starts `linuxserver/openssh-server` in Docker and prints the variables to set:
+
+```sh
+env $(tool/cli_test_server.sh) dart test --tags integration --concurrency=1
+```
+
+Any server that accepts your key works too: set `WARPGATE_TEST_SSH_HOST`, `_PORT`, `_USER` and `_KEY`.
 
 ## 5. Which OS builds what
 

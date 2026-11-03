@@ -11,20 +11,21 @@ import 'package:warpgate/core/platform/platform_info.dart';
 import 'package:warpgate/core/routing/routes.dart';
 import 'package:warpgate/core/shortcuts/shortcut_codec.dart';
 import 'package:warpgate/core/util/clipboard_guard.dart';
-import 'package:warpgate/core/util/format.dart';
 import 'package:warpgate/design_system/design_system.dart';
-import 'package:warpgate/features/hosts/domain/host.dart';
+import 'package:warpgate/features/cli/presentation/command_line_settings.dart';
 import 'package:warpgate/features/hosts/presentation/hosts_controller.dart';
 import 'package:warpgate/features/keys/presentation/keys_controller.dart';
 import 'package:warpgate/features/mcp/presentation/mcp_service.dart';
 import 'package:warpgate/features/palette/presentation/command_registry.dart';
-import 'package:warpgate/features/security/data/backup_service.dart';
 import 'package:warpgate/features/security/presentation/app_lock_controller.dart';
-import 'package:warpgate/features/settings/domain/app_settings.dart';
 import 'package:warpgate/features/settings/presentation/settings_controller.dart';
 import 'package:warpgate/features/shell/presentation/ui_state.dart';
 import 'package:warpgate/features/snippets/presentation/snippets_controller.dart';
 import 'package:warpgate/features/transfers/presentation/transfer_queue.dart';
+import 'package:warpgate_core/core/util/format.dart';
+import 'package:warpgate_core/features/hosts/domain/host.dart';
+import 'package:warpgate_core/features/security/data/backup_service.dart';
+import 'package:warpgate_core/features/settings/domain/app_settings.dart';
 
 class _Item {
   const new(
@@ -214,9 +215,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           segmented(
             s.themeMode,
             const [
-              (ThemeMode.system, 'System'),
-              (ThemeMode.dark, 'Dark'),
-              (ThemeMode.light, 'Light'),
+              (AppThemeMode.system, 'System'),
+              (AppThemeMode.dark, 'Dark'),
+              (AppThemeMode.light, 'Light'),
             ],
             (v) => _set({'themeMode': v.name}),
             'Theme',
@@ -542,6 +543,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           stacked: true,
         ),
       ]),
+      if (PlatformInfo.isDesktop)
+        const _Section('command-line', 'Command line', WgIcons.commandLine, [
+          _Item(
+            'warpgate command',
+            CommandLineSettings(),
+            description: 'Use your hosts, files and sessions from a terminal',
+            keywords: 'cli install path shell terminal',
+            stacked: true,
+          ),
+        ]),
       const _Section('backup', 'Backup', WgIcons.archive, [
         _Item(
           'Encrypted backup',

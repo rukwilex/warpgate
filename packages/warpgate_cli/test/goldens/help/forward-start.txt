@@ -1,0 +1,15 @@
+Start a saved port forward in the app
+
+Usage:
+  warpgate forward start <id>
+
+Arguments:
+  id  Forward id
+
+Needs the app. Warpgate starts if it is not running.
+
+Examples:
+  warpgate forward start 3f2a
+  warpgate forward start 3f2a --json
+
+Run warpgate --help for flags that work on every command.

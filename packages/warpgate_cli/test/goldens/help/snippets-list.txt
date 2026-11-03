@@ -1,0 +1,10 @@
+List saved snippets
+
+Usage:
+  warpgate snippets list
+
+Examples:
+  warpgate snippets list
+  warpgate snippets list --json
+
+Run warpgate --help for flags that work on every command.

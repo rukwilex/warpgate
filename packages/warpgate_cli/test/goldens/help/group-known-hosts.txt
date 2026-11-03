@@ -1,0 +1,11 @@
+warpgate known-hosts
+
+Usage:
+  warpgate known-hosts <command> [flags]
+
+Commands:
+  list   List trusted host keys
+  rm     Forget a trusted host key
+  trust  Fetch the key of a host, show it and save it
+
+Run warpgate known-hosts <command> --help for details.

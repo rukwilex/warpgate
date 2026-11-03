@@ -1,0 +1,12 @@
+Stop broadcasting
+
+Usage:
+  warpgate broadcast stop
+
+Needs the app. Warpgate starts if it is not running.
+
+Examples:
+  warpgate broadcast stop
+  warpgate broadcast stop --json
+
+Run warpgate --help for flags that work on every command.

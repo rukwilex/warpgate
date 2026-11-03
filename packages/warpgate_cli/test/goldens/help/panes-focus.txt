@@ -1,0 +1,15 @@
+Move focus to a neighboring pane
+
+Usage:
+  warpgate panes focus <direction>
+
+Arguments:
+  direction  Direction. One of: left, right, up, down
+
+Needs the app. Warpgate starts if it is not running.
+
+Examples:
+  warpgate panes focus left
+  warpgate panes focus down
+
+Run warpgate --help for flags that work on every command.

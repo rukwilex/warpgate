@@ -197,7 +197,7 @@ Warpgate can expose an MCP server so Claude Code can work with your hosts. It is
    }
    ```
 
-4. For stdio, build the companion and register it:
+4. For stdio, use `warpgate mcp install`, which runs the same tools with or without the app. The older companion still works:
 
    ```sh
    cd tool/mcp_stdio && dart compile exe bin/warpgate_mcp.dart -o build/warpgate-mcp
@@ -216,6 +216,20 @@ Warpgate can expose an MCP server so Claude Code can work with your hosts. It is
 - Sessions that Claude Code opens get a `Claude Code` tag in the pane and a bot icon in their tab.
 - On iOS and Android the server only runs while Warpgate is on screen, and Settings says so.
 
+## Command line
+
+`warpgate` does everything the app does from a terminal, with or without the app running. Install it in Settings → Command line, or with `warpgate-cli --install`.
+
+```sh
+warpgate ssh prod
+warpgate exec @web --parallel 4 -- systemctl restart nginx
+warpgate cp prod:/var/log/app.log staging:/tmp/
+warpgate hosts list --json
+warpgate open prod --split right
+```
+
+The reference, JSON schemas, exit codes and scripting examples are in [docs/CLI.md](docs/CLI.md). Build steps are in [docs/BUILD.md](docs/BUILD.md).
+
 ## Project layout
 
 ```
@@ -227,6 +241,8 @@ lib/
     hosts keys connection terminal workspace sftp transfers multi_exec
     snippets palette settings security mcp shell
 test/                  unit, data, widget, golden, accessibility, screens, integration
+packages/warpgate_core all business logic, no Flutter: hosts, SSH, SFTP, transfers, MCP, the action registry, IPC
+packages/warpgate_cli  the warpgate command
 tool/mcp_stdio/        stdio bridge for Claude Code
 docs/design-system.md  direction, tokens, components, patterns, audit
 docs/BUILD.md          requirements, running, release builds, signing, packaging, CI

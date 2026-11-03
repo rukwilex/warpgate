@@ -5,9 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:warpgate/core/routing/routes.dart';
-import 'package:warpgate/core/util/format.dart';
 import 'package:warpgate/design_system/design_system.dart';
-import 'package:warpgate/features/connection/domain/link_state.dart';
 import 'package:warpgate/features/connection/presentation/connection_providers.dart';
 import 'package:warpgate/features/connection/presentation/link_dot.dart';
 import 'package:warpgate/features/hosts/presentation/hosts_controller.dart';
@@ -18,10 +16,12 @@ import 'package:warpgate/features/shell/presentation/window_chrome.dart';
 import 'package:warpgate/features/terminal/presentation/log_tail_pane.dart';
 import 'package:warpgate/features/terminal/presentation/terminal_pane.dart';
 import 'package:warpgate/features/terminal/presentation/terminal_sessions.dart';
-import 'package:warpgate/features/workspace/domain/pane.dart';
-import 'package:warpgate/features/workspace/domain/workspace.dart';
 import 'package:warpgate/features/workspace/presentation/layout_view.dart';
 import 'package:warpgate/features/workspace/presentation/workbench_controller.dart';
+import 'package:warpgate_core/core/util/format.dart';
+import 'package:warpgate_core/features/connection/domain/link_state.dart';
+import 'package:warpgate_core/features/workspace/domain/pane.dart';
+import 'package:warpgate_core/features/workspace/domain/workspace.dart';
 
 Widget buildPane(Pane pane, {bool compactChrome = false}) =>
     switch (pane.content) {

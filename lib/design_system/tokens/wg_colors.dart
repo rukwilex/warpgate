@@ -1,17 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:warpgate/design_system/tokens/wg_palette.dart';
+import 'package:warpgate_core/features/settings/domain/appearance.dart';
 
-enum WgAccent {
-  amber('Amber', WgPalette.amberDark, WgPalette.amberLight),
-  cobalt('Cobalt', WgPalette.cobaltDark, WgPalette.cobaltLight),
-  teal('Teal', WgPalette.tealDark, WgPalette.tealLight),
-  moss('Moss', WgPalette.mossDark, WgPalette.mossLight);
+export 'package:warpgate_core/features/settings/domain/appearance.dart';
 
-  new(this.label, this.onDark, this.onLight);
+extension WgAccentColors on WgAccent {
+  Color get onDark => switch (this) {
+    WgAccent.amber => WgPalette.amberDark,
+    WgAccent.cobalt => WgPalette.cobaltDark,
+    WgAccent.teal => WgPalette.tealDark,
+    WgAccent.moss => WgPalette.mossDark,
+  };
 
-  final String label;
-  final Color onDark;
-  final Color onLight;
+  Color get onLight => switch (this) {
+    WgAccent.amber => WgPalette.amberLight,
+    WgAccent.cobalt => WgPalette.cobaltLight,
+    WgAccent.teal => WgPalette.tealLight,
+    WgAccent.moss => WgPalette.mossLight,
+  };
 
   Color forBrightness(Brightness brightness) =>
       brightness == Brightness.dark ? onDark : onLight;

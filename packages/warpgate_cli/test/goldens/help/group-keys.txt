@@ -1,0 +1,14 @@
+warpgate keys
+
+Usage:
+  warpgate keys <command> [flags]
+
+Commands:
+  list           List saved SSH keys
+  generate       Create a new SSH key
+  import         Save a private key from a file
+  export-public  Print the public half of a key
+  install        Add a key to a host's authorized_keys
+  rm             Delete a saved key
+
+Run warpgate keys <command> --help for details.

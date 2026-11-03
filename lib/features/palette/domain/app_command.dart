@@ -1,18 +1,7 @@
 import 'package:flutter/widgets.dart';
+import 'package:warpgate_core/actions/action_spec.dart';
 
-enum CommandCategory {
-  general('General'),
-  sessions('Sessions'),
-  panes('Panes'),
-  workspaces('Workspaces'),
-  files('Files'),
-  multi('Many hosts'),
-  navigation('Go to');
-
-  new(this.label);
-
-  final String label;
-}
+export 'package:warpgate_core/actions/action_spec.dart' show CommandCategory;
 
 @immutable
 class AppCommand {

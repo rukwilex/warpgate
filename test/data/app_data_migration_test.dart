@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
-import 'package:warpgate/core/data/app_data_migration.dart';
+import 'package:warpgate_core/core/data/app_data_migration.dart';
 
 void main() {
   late Directory root;

@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:warpgate/core/routing/routes.dart';
-import 'package:warpgate/core/util/format.dart';
 import 'package:warpgate/design_system/design_system.dart';
-import 'package:warpgate/features/workspace/domain/workspace.dart';
 import 'package:warpgate/features/workspace/presentation/workbench_controller.dart';
+import 'package:warpgate_core/core/util/format.dart';
+import 'package:warpgate_core/features/workspace/domain/workspace.dart';
 
 Future<void> showSavedLayouts(BuildContext context) => showDialog<void>(
   context: context,

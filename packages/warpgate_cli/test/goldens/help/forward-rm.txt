@@ -1,0 +1,13 @@
+Remove a saved port forward
+
+Usage:
+  warpgate forward rm <id>
+
+Arguments:
+  id  Forward id
+
+Examples:
+  warpgate forward rm 3f2a
+  warpgate forward rm 3f2a --yes
+
+Run warpgate --help for flags that work on every command.

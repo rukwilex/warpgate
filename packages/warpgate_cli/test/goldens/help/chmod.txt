@@ -1,0 +1,16 @@
+Change the permissions of a file or folder
+
+Usage:
+  warpgate chmod <mode> <path>
+
+Arguments:
+  mode  Octal mode, such as 640
+  path  host:path or a local path
+
+Also: warpgate files chmod
+
+Examples:
+  warpgate chmod 640 prod:/srv/app/.env
+  warpgate chmod 755 prod:/srv/app/run.sh
+
+Run warpgate --help for flags that work on every command.

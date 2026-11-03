@@ -1,0 +1,13 @@
+warpgate snippets
+
+Usage:
+  warpgate snippets <command> [flags]
+
+Commands:
+  list  List saved snippets
+  add   Save a snippet. Use {{name}} or {{name|default}} for variables
+  edit  Change a snippet, in $EDITOR when no body is given
+  rm    Delete a snippet
+  run   Run a snippet on hosts
+
+Run warpgate snippets <command> --help for details.

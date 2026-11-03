@@ -9,19 +9,19 @@ import 'dart:typed_data';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:warpgate/core/data/app_database.dart';
-import 'package:warpgate/core/data/secret_store.dart';
 import 'package:warpgate/core/interaction/interaction_broker.dart';
-import 'package:warpgate/features/connection/data/connection_pool.dart';
-import 'package:warpgate/features/hosts/data/host_repository.dart';
-import 'package:warpgate/features/hosts/domain/host.dart';
-import 'package:warpgate/features/keys/data/key_codec.dart';
-import 'package:warpgate/features/keys/data/key_repository.dart';
-import 'package:warpgate/features/settings/domain/app_settings.dart';
-import 'package:warpgate/features/sftp/data/endpoints.dart';
-import 'package:warpgate/features/sftp/domain/file_endpoint.dart';
 import 'package:warpgate/features/terminal/data/terminal_session.dart';
-import 'package:warpgate/features/transfers/data/transfer_engine.dart';
-import 'package:warpgate/features/transfers/domain/transfer_job.dart';
+import 'package:warpgate_core/core/data/secret_store.dart';
+import 'package:warpgate_core/features/connection/data/connection_pool.dart';
+import 'package:warpgate_core/features/hosts/data/host_repository.dart';
+import 'package:warpgate_core/features/hosts/domain/host.dart';
+import 'package:warpgate_core/features/keys/data/key_codec.dart';
+import 'package:warpgate_core/features/keys/data/key_repository.dart';
+import 'package:warpgate_core/features/settings/domain/app_settings.dart';
+import 'package:warpgate_core/features/sftp/data/endpoints.dart';
+import 'package:warpgate_core/features/sftp/domain/file_endpoint.dart';
+import 'package:warpgate_core/features/transfers/data/transfer_engine.dart';
+import 'package:warpgate_core/features/transfers/domain/transfer_job.dart';
 
 void main() {
   final keyPath = Platform.environment['WARPGATE_TEST_KEY'];
@@ -38,7 +38,7 @@ void main() {
 
   setUp(() async {
     if (skip != null) return;
-    final store = DocumentStore(AppDatabase(NativeDatabase.memory()));
+    final store = DriftDocumentStore(AppDatabase(NativeDatabase.memory()));
     final secrets = MemorySecretStore();
     final keys = KeyRepository(store, secrets);
     final material = KeyCodec.parse(File(keyPath!).readAsStringSync());

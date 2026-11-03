@@ -1,0 +1,10 @@
+Remove warpgate from your PATH
+
+Usage:
+  warpgate uninstall
+
+Examples:
+  warpgate uninstall
+  warpgate uninstall --yes
+
+Run warpgate --help for flags that work on every command.

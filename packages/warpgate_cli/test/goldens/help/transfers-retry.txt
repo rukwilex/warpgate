@@ -1,0 +1,13 @@
+Run a failed or cancelled transfer again
+
+Usage:
+  warpgate transfers retry <id>
+
+Arguments:
+  id  Transfer id, or "failed" for all failed
+
+Examples:
+  warpgate transfers retry 3f2a
+  warpgate transfers retry failed
+
+Run warpgate --help for flags that work on every command.
