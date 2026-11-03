@@ -1,4 +1,4 @@
-package dev.warpgate.app
+package eu.kwilex.warpgate
 
 import io.flutter.embedding.android.FlutterFragmentActivity
 

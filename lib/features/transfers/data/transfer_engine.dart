@@ -7,6 +7,16 @@ import 'package:warpgate/features/transfers/domain/transfer_job.dart';
 
 typedef EndpointFor = Future<FileEndpoint> Function(String? hostId);
 typedef JobUpdate = void Function(TransferJob Function(TransferJob job) change);
+typedef Checksum = Future<String?> Function(String? hostId, String path);
+
+class VerificationFailed implements Exception {
+  const new(this.message);
+
+  final String message;
+
+  @override
+  String toString() => message;
+}
 
 class _PlanItem {
   const new(this.relative, this.size, this.mode, {required this.isDirectory});
@@ -18,9 +28,10 @@ class _PlanItem {
 }
 
 class TransferEngine {
-  new({required this.endpointFor, required this.askConflict});
+  new({required this.endpointFor, required this.askConflict, this.checksum});
 
   final EndpointFor endpointFor;
+  final Checksum? checksum;
   final Future<ConflictAnswer> Function(ConflictRequest request) askConflict;
 
   Future<void> run(
@@ -73,6 +84,7 @@ class TransferEngine {
     }
 
     final meter = SpeedMeter();
+    final skippedItems = <String>{};
     for (final item in plan) {
       cancel.throwIfCancelled();
       final sourcePath = item.relative.isEmpty
@@ -117,6 +129,7 @@ class TransferEngine {
         }
         switch (resolution) {
           case ConflictResolution.skip:
+            skippedItems.add(item.relative);
             done += item.size;
             final skipped = item.relative;
             update(
@@ -158,6 +171,21 @@ class TransferEngine {
       );
       cancel.throwIfCancelled();
       if (item.mode != null) await _tryMode(target, targetPath, item.mode!);
+      if (job.move) {
+        await _verify(
+          job,
+          source: source,
+          sourcePath: sourcePath,
+          target: target,
+          targetPath: targetPath,
+          size: item.size,
+        );
+        final verified = relative;
+        update(
+          (job) =>
+              job.copyWith(verifiedFiles: {...job.verifiedFiles, verified}),
+        );
+      }
       done += item.size;
       update(
         (job) => job.copyWith(
@@ -167,6 +195,75 @@ class TransferEngine {
           partialFile: () => null,
         ),
       );
+    }
+    if (job.move) {
+      await _removeSource(
+        source,
+        sourceRoot,
+        plan,
+        skippedItems,
+        isDirectory: rootEntry.isDirectory,
+        cancel: cancel,
+      );
+    }
+  }
+
+  Future<void> _verify(
+    TransferJob job, {
+    required FileEndpoint source,
+    required String sourcePath,
+    required FileEndpoint target,
+    required String targetPath,
+    required int size,
+  }) async {
+    final written = await target.stat(targetPath);
+    if (written == null || written.size != size) {
+      throw VerificationFailed(
+        'The copy of ${source.paths.basename(sourcePath)} on ${target.label} has ${written?.size ?? 0} bytes, expected $size. The original was kept',
+      );
+    }
+    final hash = checksum;
+    if (hash == null) return;
+    final (left, right) = await (
+      hash(job.source.hostId, sourcePath),
+      hash(job.target.hostId, targetPath),
+    ).wait;
+    if (left != null && right != null && left != right) {
+      throw VerificationFailed(
+        'The checksum of ${source.paths.basename(sourcePath)} on ${target.label} does not match. The original was kept',
+      );
+    }
+  }
+
+  Future<void> _removeSource(
+    FileEndpoint source,
+    String root,
+    List<_PlanItem> plan,
+    Set<String> skipped, {
+    required bool isDirectory,
+    required CancelToken cancel,
+  }) async {
+    if (!isDirectory) {
+      if (!skipped.contains('')) await source.deleteFile(root);
+      return;
+    }
+    for (final item in plan.where((item) => !item.isDirectory)) {
+      cancel.throwIfCancelled();
+      if (skipped.contains(item.relative)) continue;
+      await source.deleteFile(source.paths.join(root, item.relative));
+    }
+    final folders = [
+      for (final item in plan)
+        if (item.isDirectory) item.relative,
+    ]..sort((a, b) => b.length.compareTo(a.length));
+    for (final folder in [...folders, '']) {
+      try {
+        await source.removeEmptyDirectory(
+          folder.isEmpty ? root : source.paths.join(root, folder),
+        );
+      } on FileOperationException {
+        continue;
+      }
     }
   }
 

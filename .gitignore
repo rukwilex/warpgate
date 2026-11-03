@@ -50,3 +50,7 @@ app.*.map.json
 test/screens/out/
 tool/mcp_stdio/build/
 tool/mcp_stdio/.dart_tool/
+
+macos/Runner/Configs/Signing.xcconfig
+macos/Runner/Configs/KeychainGroup.xcconfig
+ios/Flutter/Signing.xcconfig

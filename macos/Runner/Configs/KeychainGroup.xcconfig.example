@@ -1,0 +1,6 @@
+CODE_SIGN_STYLE = Automatic
+CODE_SIGN_IDENTITY = Apple Development
+CODE_SIGN_ENTITLEMENTS[config=Debug] = Runner/DebugProfile.Signed.entitlements
+CODE_SIGN_ENTITLEMENTS[config=Profile] = Runner/DebugProfile.Signed.entitlements
+CODE_SIGN_ENTITLEMENTS[config=Release] = Runner/Release.Signed.entitlements
+WARPGATE_KEYCHAIN_GROUP = $(AppIdentifierPrefix)eu.kwilex.warpgate

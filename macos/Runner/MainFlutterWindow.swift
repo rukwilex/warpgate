@@ -41,6 +41,19 @@ class MainFlutterWindow: NSWindow {
       }
     }
 
+    let keychain = FlutterMethodChannel(
+      name: "warpgate/keychain",
+      binaryMessenger: flutterViewController.engine.binaryMessenger
+    )
+    keychain.setMethodCallHandler { call, result in
+      switch call.method {
+      case "accessGroup":
+        result(Bundle.main.object(forInfoDictionaryKey: "KeychainAccessGroup") as? String)
+      default:
+        result(FlutterMethodNotImplemented)
+      }
+    }
+
     let relayout: [NSNotification.Name] = [
       NSWindow.didResizeNotification,
       NSWindow.didEndLiveResizeNotification,

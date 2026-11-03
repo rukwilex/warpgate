@@ -28,7 +28,10 @@ class SftpEndpoint extends FileEndpoint {
 
   FileEntry _entry(String directory, SftpName name) {
     final attrs = name.attr;
+    final (owner, group) = FileEntry.ownerFromLongName(name.longname);
     return FileEntry(
+      owner: owner ?? attrs.userID?.toString(),
+      group: group ?? attrs.groupID?.toString(),
       name: name.filename,
       path: paths.join(directory, name.filename),
       isDirectory: attrs.isDirectory,
@@ -59,6 +62,8 @@ class SftpEndpoint extends FileEndpoint {
             size: target.size ?? 0,
             modified: entry.modified,
             mode: target.mode?.value,
+            owner: entry.owner,
+            group: entry.group,
           );
         } on Object {
           entries.add(entry);

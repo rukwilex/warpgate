@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:warpgate/design_system/design_system.dart';
+import 'package:warpgate/features/terminal/presentation/terminal_sessions.dart';
 import 'package:warpgate/features/workspace/domain/layout.dart';
 import 'package:warpgate/features/workspace/domain/workspace.dart';
 import 'package:warpgate/features/workspace/presentation/workbench_controller.dart';
@@ -75,7 +76,9 @@ class _SplitView extends ConsumerWidget {
             ? constraints.maxWidth
             : constraints.maxHeight;
         final available = (extent - hit).clamp(0.0, double.infinity);
-        final firstExtent = available * split.ratio;
+        final ratio = MediaQuery.devicePixelRatioOf(context);
+        final firstExtent =
+            (available * split.ratio * ratio).roundToDouble() / ratio;
         final firstChild = _NodeView(
           tabId: tabId,
           node: split.first,
@@ -86,7 +89,7 @@ class _SplitView extends ConsumerWidget {
           node: split.second,
           paneBuilder: paneBuilder,
         );
-        final divider = _Divider(
+        final divider = PaneDivider(
           horizontal: horizontal,
           ratio: split.ratio,
           onDrag: (delta) {
@@ -109,6 +112,7 @@ class _SplitView extends ConsumerWidget {
           onReset: () => ref
               .read(workbenchProvider.notifier)
               .setRatio(tabId, split.id, 0.5),
+          onDragEnd: () => ref.read(terminalSessionsProvider).settleSizes(),
         );
         return Flex(
           direction: horizontal ? Axis.horizontal : Axis.vertical,
@@ -128,13 +132,16 @@ class _SplitView extends ConsumerWidget {
   }
 }
 
-class _Divider extends StatefulWidget {
+class PaneDivider extends StatefulWidget {
   const new({
     required this.horizontal,
     required this.ratio,
     required this.onDrag,
     required this.onStep,
     required this.onReset,
+    super.key,
+    this.onDragEnd,
+    this.label,
   });
 
   final bool horizontal;
@@ -142,15 +149,22 @@ class _Divider extends StatefulWidget {
   final ValueChanged<double> onDrag;
   final ValueChanged<double> onStep;
   final VoidCallback onReset;
+  final VoidCallback? onDragEnd;
+  final String? label;
 
   @override
-  State<_Divider> createState() => _DividerState();
+  State<PaneDivider> createState() => _PaneDividerState();
 }
 
-class _DividerState extends State<_Divider> {
+class _PaneDividerState extends State<PaneDivider> {
   bool _hovered = false;
   bool _dragging = false;
   bool _focused = false;
+
+  void _endDrag() {
+    setState(() => _dragging = false);
+    widget.onDragEnd?.call();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -167,9 +181,11 @@ class _DividerState extends State<_Divider> {
         : LogicalKeyboardKey.arrowDown;
     return Semantics(
       slider: true,
-      label: widget.horizontal
-          ? 'Resize panes left and right'
-          : 'Resize panes up and down',
+      label:
+          widget.label ??
+          (widget.horizontal
+              ? 'Resize panes left and right'
+              : 'Resize panes up and down'),
       value: '${(widget.ratio * 100).round()} percent',
       increasedValue: '${((widget.ratio + step) * 100).round()} percent',
       decreasedValue: '${((widget.ratio - step) * 100).round()} percent',
@@ -202,18 +218,14 @@ class _DividerState extends State<_Divider> {
           onHorizontalDragUpdate: widget.horizontal
               ? (details) => widget.onDrag(details.delta.dx)
               : null,
-          onHorizontalDragEnd: widget.horizontal
-              ? (_) => setState(() => _dragging = false)
-              : null,
+          onHorizontalDragEnd: widget.horizontal ? (_) => _endDrag() : null,
           onVerticalDragStart: widget.horizontal
               ? null
               : (_) => setState(() => _dragging = true),
           onVerticalDragUpdate: widget.horizontal
               ? null
               : (details) => widget.onDrag(details.delta.dy),
-          onVerticalDragEnd: widget.horizontal
-              ? null
-              : (_) => setState(() => _dragging = false),
+          onVerticalDragEnd: widget.horizontal ? null : (_) => _endDrag(),
           child: SizedBox(
             width: widget.horizontal ? sizes.splitterHit : null,
             height: widget.horizontal ? null : sizes.splitterHit,

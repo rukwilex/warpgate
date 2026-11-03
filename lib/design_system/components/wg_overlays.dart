@@ -130,6 +130,7 @@ class WgMenuEntry {
     this.shortcut,
     this.destructive = false,
     this.enabled = true,
+    this.trailing,
   }) : divider = false;
 
   const new divider()
@@ -137,6 +138,7 @@ class WgMenuEntry {
       onSelected = null,
       icon = null,
       shortcut = null,
+      trailing = null,
       destructive = false,
       enabled = false,
       divider = true;
@@ -148,6 +150,7 @@ class WgMenuEntry {
   final bool destructive;
   final bool enabled;
   final bool divider;
+  final String? trailing;
 }
 
 Future<void> showWgMenu(
@@ -217,6 +220,13 @@ class _MenuRow extends StatelessWidget {
               style: context.type.body.copyWith(color: ink),
             ),
           ),
+          if (entry.trailing != null) ...[
+            SizedBox(width: space.lg),
+            Text(
+              entry.trailing!,
+              style: context.type.caption.copyWith(color: colors.textMuted),
+            ),
+          ],
           if (entry.shortcut != null) ...[
             SizedBox(width: space.xl),
             WgKeycap(entry.shortcut!),
@@ -233,11 +243,13 @@ class WgMenuButton extends StatelessWidget {
     required this.label,
     required this.entries,
     super.key,
+    this.compact = false,
   });
 
   final IconData icon;
   final String label;
   final List<WgMenuEntry> Function() entries;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -245,6 +257,7 @@ class WgMenuButton extends StatelessWidget {
       builder: (buttonContext) => WgIconButton(
         icon: icon,
         label: label,
+        compact: compact,
         onPressed: () {
           final box = buttonContext.findRenderObject()! as RenderBox;
           final origin = box.localToGlobal(Offset(0, box.size.height));
@@ -326,63 +339,78 @@ class WgTabChip extends StatelessWidget {
     final colors = context.colors;
     final space = context.space;
     final sizes = context.sizes;
-    return ConstrainedBox(
-      constraints: BoxConstraints(
-        maxWidth: sizes.tabMax,
-        minWidth: sizes.tabMin,
-      ),
-      child: WgPressable(
-        semanticLabel: label,
-        selected: selected,
-        onPressed: onPressed,
-        onSecondaryTapDown: onSecondaryTapDown,
-        borderRadius: context.radii.smAll,
-        builder: (context, state) => AnimatedContainer(
-          duration: context.motion.fast,
-          curve: context.motion.curve,
-          height: sizes.tabBar - space.sm,
-          padding: EdgeInsets.only(left: space.sm, right: space.xs),
-          decoration: BoxDecoration(
-            color: selected
-                ? colors.raised
-                : state.highlighted
-                ? colors.surface
-                : colors.transparent,
-            borderRadius: context.radii.smAll,
-            border: Border(
-              top: BorderSide(
-                color: marker ?? colors.transparent,
-                width: sizes.markerBar,
+    return WgPressable(
+      semanticLabel: label,
+      selected: selected,
+      onPressed: onPressed,
+      onSecondaryTapDown: onSecondaryTapDown,
+      borderRadius: context.radii.smAll,
+      builder: (context, state) => AnimatedContainer(
+        duration: context.motion.fast,
+        curve: context.motion.curve,
+        height: sizes.tabBar - space.sm,
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          color: selected
+              ? colors.raised
+              : state.highlighted
+              ? colors.surface
+              : colors.transparent,
+          borderRadius: context.radii.smAll,
+        ),
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: Padding(
+                padding: EdgeInsets.only(left: space.sm, right: space.xs),
+                child: Row(
+                  children: [
+                    if (leading != null) ...[
+                      leading!,
+                      SizedBox(width: space.sm),
+                    ],
+                    Expanded(
+                      child: Text(
+                        label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: context.type.label.copyWith(
+                          color: selected
+                              ? colors.textPrimary
+                              : colors.textSecondary,
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                    ),
+                    if (trailing != null) ...[
+                      SizedBox(width: space.xs),
+                      trailing!,
+                    ],
+                    if (onClose != null)
+                      Opacity(
+                        opacity: selected || state.hovered || state.focused
+                            ? 1
+                            : 0,
+                        child: WgIconButton(
+                          icon: WgIcons.close,
+                          label: 'Close $label',
+                          compact: true,
+                          onPressed: onClose,
+                        ),
+                      ),
+                  ],
+                ),
               ),
             ),
-          ),
-          child: Row(
-            children: [
-              if (leading != null) ...[leading!, SizedBox(width: space.sm)],
-              Expanded(
-                child: Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: context.type.label.copyWith(
-                    color: selected ? colors.textPrimary : colors.textSecondary,
-                    fontWeight: FontWeight.w400,
-                  ),
-                ),
+            if (marker != null)
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                height: sizes.markerBar,
+                child: ColoredBox(color: marker!),
               ),
-              if (trailing != null) ...[SizedBox(width: space.xs), trailing!],
-              if (onClose != null)
-                Opacity(
-                  opacity: selected || state.hovered || state.focused ? 1 : 0,
-                  child: WgIconButton(
-                    icon: WgIcons.close,
-                    label: 'Close $label',
-                    compact: true,
-                    onPressed: onClose,
-                  ),
-                ),
-            ],
-          ),
+          ],
         ),
       ),
     );

@@ -71,6 +71,8 @@ class TransferJob {
     this.completedFiles = const {},
     this.partialFile,
     this.origin = 'user',
+    this.move = false,
+    this.verifiedFiles = const {},
   });
 
   factory fromJson(JsonMap json) => TransferJob(
@@ -98,6 +100,10 @@ class TransferJob {
         .toSet(),
     partialFile: json['partialFile'] as String?,
     origin: json['origin'] as String? ?? 'user',
+    move: json['move'] as bool? ?? false,
+    verifiedFiles: ((json['verifiedFiles'] as List?) ?? const <Object?>[])
+        .cast<String>()
+        .toSet(),
   );
 
   final String id;
@@ -120,6 +126,8 @@ class TransferJob {
   final Set<String> completedFiles;
   final String? partialFile;
   final String origin;
+  final bool move;
+  final Set<String> verifiedFiles;
 
   double? get fraction =>
       totalBytes <= 0 ? null : (doneBytes / totalBytes).clamp(0, 1);
@@ -145,6 +153,7 @@ class TransferJob {
     DateTime? Function()? finishedAt,
     Set<String>? completedFiles,
     String? Function()? partialFile,
+    Set<String>? verifiedFiles,
   }) => TransferJob(
     id: id,
     source: source,
@@ -153,6 +162,8 @@ class TransferJob {
     createdAt: createdAt,
     isDirectory: isDirectory,
     origin: origin,
+    move: move,
+    verifiedFiles: verifiedFiles ?? this.verifiedFiles,
     status: status ?? this.status,
     mode: mode ?? this.mode,
     totalBytes: totalBytes ?? this.totalBytes,
@@ -187,6 +198,8 @@ class TransferJob {
     'completedFiles': completedFiles.toList(),
     'partialFile': partialFile,
     'origin': origin,
+    'move': move,
+    'verifiedFiles': verifiedFiles.toList(),
   };
 }
 

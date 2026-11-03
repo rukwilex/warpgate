@@ -11,6 +11,8 @@ import 'package:warpgate/features/workspace/domain/pane.dart';
 import 'package:warpgate/features/workspace/domain/workspace.dart';
 import 'package:warpgate/features/workspace/presentation/workbench_controller.dart';
 
+final sessionAutoStartProvider = Provider<bool>((ref) => true);
+
 class TerminalSessions extends ChangeNotifier {
   new(this._ref);
 
@@ -22,6 +24,12 @@ class TerminalSessions extends ChangeNotifier {
   Set<String> _broadcast = const {};
 
   Iterable<TerminalSession> get all => _sessions.values;
+
+  void settleSizes() {
+    for (final session in _sessions.values) {
+      session.settleSize();
+    }
+  }
 
   TerminalSession? operator [](String paneId) => _sessions[paneId];
 
@@ -70,7 +78,9 @@ class TerminalSessions extends ChangeNotifier {
     );
     _sessions[pane.id] = session;
     _applyBroadcast(session);
-    if (start) unawaited(session.start());
+    if (start && _ref.read(sessionAutoStartProvider)) {
+      unawaited(session.start());
+    }
     notifyListeners();
     return session;
   }

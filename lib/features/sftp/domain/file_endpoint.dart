@@ -14,6 +14,8 @@ class FileEntry {
     this.size = 0,
     this.modified,
     this.mode,
+    this.owner,
+    this.group,
   });
 
   final String name;
@@ -23,8 +25,19 @@ class FileEntry {
   final int size;
   final DateTime? modified;
   final int? mode;
+  final String? owner;
+  final String? group;
 
   bool get isHidden => name.startsWith('.');
+
+  String get permissions =>
+      FileModes.describe(mode, isDirectory: isDirectory, isLink: isLink);
+
+  static (String?, String?) ownerFromLongName(String longName) {
+    final parts = longName.trim().split(RegExp(r'\s+'));
+    if (parts.length < 4) return (null, null);
+    return (parts[2], parts[3]);
+  }
 
   String get extension {
     final dot = name.lastIndexOf('.');
@@ -74,6 +87,29 @@ class FileEntry {
           }.contains(extension) ||
           !name.contains('.') ||
           name.startsWith('.'));
+}
+
+abstract final class FileModes {
+  static String describe(
+    int? mode, {
+    bool isDirectory = false,
+    bool isLink = false,
+  }) {
+    if (mode == null) return '';
+    const letters = 'rwxrwxrwx';
+    final buffer = StringBuffer(
+      isLink
+          ? 'l'
+          : isDirectory
+          ? 'd'
+          : '-',
+    );
+    for (var i = 0; i < 9; i++) {
+      final bit = 1 << (8 - i);
+      buffer.write(mode & bit != 0 ? letters[i] : '-');
+    }
+    return buffer.toString();
+  }
 }
 
 class CancelToken {

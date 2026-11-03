@@ -33,9 +33,11 @@ class _Item {
     this.description,
     this.keywords = '',
     this.stacked = false,
+    this.leading,
   });
 
   final String title;
+  final Widget? leading;
   final String? description;
   final Widget control;
   final String keywords;
@@ -250,14 +252,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           'Terminal text size',
           _Stepper(
             value: s.terminalFontSize.round(),
-            min: 8,
-            max: 32,
+            min: WgTerminalZoom.min.round(),
+            max: WgTerminalZoom.max.round(),
             unit: 'pt',
             label: 'Terminal text size',
             onChanged: (v) => _set({'terminalFontSize': v.toDouble()}),
           ),
           description:
-              'Interface text is set in Geist, terminals in JetBrains Mono',
+              'Default for every terminal. To zoom one pane, press ${PlatformInfo.isApple ? 'Cmd' : 'Ctrl'} with + or −, or 0 to reset',
           keywords: 'font zoom',
         ),
         _Item(
@@ -550,7 +552,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
       ]),
       _Section('about', 'About', WgIcons.info, [
-        _Item('Version', Text('1.0.0', style: context.type.mono)),
+        _Item(
+          'Warpgate',
+          Text('1.0.0', style: context.type.mono),
+          leading: WgLogoMark(size: context.sizes.iconLarge),
+          description: 'SSH and SFTP for many servers at once. Made by kwilex',
+          keywords: 'version about logo',
+        ),
         _Item(
           'Licenses',
           WgButton.ghost(
@@ -573,7 +581,7 @@ class _SettingRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final space = context.space;
-    final text = Column(
+    Widget text = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(item.title, style: context.type.body),
@@ -583,6 +591,15 @@ class _SettingRow extends StatelessWidget {
         ],
       ],
     );
+    if (item.leading != null) {
+      text = Row(
+        children: [
+          item.leading!,
+          SizedBox(width: space.md),
+          Expanded(child: text),
+        ],
+      );
+    }
     final narrow = MediaQuery.sizeOf(context).width < WgBreakpoints.medium;
     return Container(
       padding: EdgeInsets.symmetric(vertical: space.md),
@@ -591,11 +608,11 @@ class _SettingRow extends StatelessWidget {
       ),
       child: item.stacked || narrow
           ? Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 text,
                 SizedBox(height: space.sm),
-                item.control,
+                Align(alignment: Alignment.centerLeft, child: item.control),
               ],
             )
           : Row(

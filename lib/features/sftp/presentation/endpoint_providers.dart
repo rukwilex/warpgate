@@ -6,7 +6,7 @@ import 'package:warpgate/features/sftp/data/endpoints.dart';
 import 'package:warpgate/features/sftp/domain/file_endpoint.dart';
 
 class EndpointResolver {
-  new(this._ref);
+  new(Ref ref) : _ref = ref;
 
   final Ref _ref;
   final Map<String, (SftpClient, SftpEndpoint)> _cache = {};

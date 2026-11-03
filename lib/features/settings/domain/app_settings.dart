@@ -69,6 +69,9 @@ class AppSettings {
     this.mcpAskBeforeMutating = true,
     this.sidebarCollapsed = false,
     this.shortcutOverrides = const {},
+    this.hostOpenModes = const {},
+    this.fileColumnWidths = const {},
+    this.collapsedHostGroups = const [],
   });
 
   factory fromJson(JsonMap json) {
@@ -126,6 +129,16 @@ class AppSettings {
       shortcutOverrides:
           (json['shortcutOverrides'] as Map?)?.cast<String, String>() ??
           const {},
+      hostOpenModes:
+          (json['hostOpenModes'] as Map?)?.cast<String, String>() ?? const {},
+      fileColumnWidths:
+          (json['fileColumnWidths'] as Map?)?.map(
+            (key, value) => MapEntry(key as String, (value as num).toDouble()),
+          ) ??
+          const {},
+      collapsedHostGroups:
+          ((json['collapsedHostGroups'] as List?) ?? const <Object?>[])
+              .cast<String>(),
     );
   }
 
@@ -159,6 +172,9 @@ class AppSettings {
   final bool mcpAskBeforeMutating;
   final bool sidebarCollapsed;
   final Map<String, String> shortcutOverrides;
+  final Map<String, String> hostOpenModes;
+  final Map<String, double> fileColumnWidths;
+  final List<String> collapsedHostGroups;
 
   JsonMap toJson() => {
     'themeMode': themeMode.name,
@@ -191,6 +207,9 @@ class AppSettings {
     'mcpAskBeforeMutating': mcpAskBeforeMutating,
     'sidebarCollapsed': sidebarCollapsed,
     'shortcutOverrides': shortcutOverrides,
+    'hostOpenModes': hostOpenModes,
+    'fileColumnWidths': fileColumnWidths,
+    'collapsedHostGroups': collapsedHostGroups,
   };
 
   AppSettings patch(JsonMap changes) =>

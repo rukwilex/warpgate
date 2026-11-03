@@ -58,25 +58,23 @@ class KeysScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final keys = ref.watch(keysProvider);
     final list = keys.value;
-    Widget body;
+    Widget? body;
+    Widget? empty;
     if (list == null) {
       body = const WgSkeletonList(rows: 4, label: 'Loading keys');
     } else if (list.isEmpty) {
-      body = Padding(
-        padding: EdgeInsets.only(top: context.space.huge),
-        child: WgEmptyState(
-          icon: WgIcons.key,
-          title: 'No keys yet',
-          body: 'Keys sign you in without a password. Generate a new one here, or bring an existing private key.',
-          action: WgButton.primary(
-            label: 'Generate key',
-            icon: WgIcons.plus,
-            onPressed: () => unawaited(_showGenerate(context)),
-          ),
-          secondary: WgButton.ghost(
-            label: 'Import key',
-            onPressed: () => unawaited(_showImport(context)),
-          ),
+      empty = WgEmptyState(
+        icon: WgIcons.key,
+        title: 'No keys yet',
+        body: 'Keys sign you in without a password. Generate a new one here, or bring an existing private key.',
+        action: WgButton.primary(
+          label: 'Generate key',
+          icon: WgIcons.plus,
+          onPressed: () => unawaited(_showGenerate(context)),
+        ),
+        secondary: WgButton.ghost(
+          label: 'Import key',
+          onPressed: () => unawaited(_showImport(context)),
         ),
       );
     } else {
@@ -103,6 +101,7 @@ class KeysScreen extends ConsumerWidget {
                   '${key.name}, ${key.algorithm.label}. Copy public key',
               trailing: WgMenuButton(
                 icon: WgIcons.more,
+                compact: true,
                 label: 'More for ${key.name}',
                 entries: () => [
                   WgMenuEntry(
@@ -179,6 +178,7 @@ class KeysScreen extends ConsumerWidget {
           ),
         ],
       ],
+      empty: empty,
       child: body,
     );
   }

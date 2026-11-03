@@ -21,6 +21,7 @@ class WgListRow extends StatelessWidget {
     this.semanticLabel,
     this.dense = false,
     this.focusNode,
+    this.revealTrailing = false,
   });
 
   final String title;
@@ -36,9 +37,19 @@ class WgListRow extends StatelessWidget {
   final String? semanticLabel;
   final bool dense;
   final FocusNode? focusNode;
+  final bool revealTrailing;
 
   @override
   Widget build(BuildContext context) {
+    if (!revealTrailing || trailing == null || context.sizes.touch) {
+      return _row(context, trailingVisible: true);
+    }
+    return _RevealTrailing(
+      builder: ({required visible}) => _row(context, trailingVisible: visible),
+    );
+  }
+
+  Widget _row(BuildContext context, {required bool trailingVisible}) {
     final colors = context.colors;
     final space = context.space;
     final sizes = context.sizes;
@@ -126,13 +137,49 @@ class WgListRow extends StatelessWidget {
                   ),
                 ),
               ],
-              if (trailing != null) ...[SizedBox(width: space.sm), trailing!],
+              if (trailing != null) ...[
+                SizedBox(width: space.sm),
+                AnimatedOpacity(
+                  opacity: trailingVisible ? 1 : 0,
+                  duration: context.motion.fast,
+                  child: IgnorePointer(
+                    ignoring: !trailingVisible,
+                    child: trailing,
+                  ),
+                ),
+              ],
             ],
           ),
         ),
       ),
     );
   }
+}
+
+class _RevealTrailing extends StatefulWidget {
+  const new({required this.builder});
+
+  final Widget Function({required bool visible}) builder;
+
+  @override
+  State<_RevealTrailing> createState() => _RevealTrailingState();
+}
+
+class _RevealTrailingState extends State<_RevealTrailing> {
+  bool _hovered = false;
+  bool _focused = false;
+
+  @override
+  Widget build(BuildContext context) => MouseRegion(
+    onEnter: (_) => setState(() => _hovered = true),
+    onExit: (_) => setState(() => _hovered = false),
+    child: Focus(
+      canRequestFocus: false,
+      skipTraversal: true,
+      onFocusChange: (value) => setState(() => _focused = value),
+      child: widget.builder(visible: _hovered || _focused),
+    ),
+  );
 }
 
 class WgSectionLabel extends StatelessWidget {

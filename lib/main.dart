@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:warpgate/app/app.dart';
 import 'package:warpgate/app/router.dart';
+import 'package:warpgate/core/data/app_data_migration.dart';
 import 'package:warpgate/core/data/app_database.dart';
 import 'package:warpgate/core/data/storage_providers.dart';
 import 'package:warpgate/core/platform/platform_info.dart';
@@ -38,9 +39,17 @@ Future<void> main() async {
       ),
     );
   }
+  if (!PlatformInfo.isWeb) {
+    try {
+      final support = await getApplicationSupportDirectory();
+      await AppDataMigration.run(support.path);
+    } on Object catch (error) {
+      debugPrint('Could not copy data from the previous app folder: $error');
+    }
+  }
   final database = AppDatabase(
     driftDatabase(
-      name: 'warpgate',
+      name: AppIdentity.databaseName,
       native: const DriftNativeOptions(
         databaseDirectory: getApplicationSupportDirectory,
       ),

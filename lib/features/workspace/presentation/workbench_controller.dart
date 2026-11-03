@@ -156,6 +156,7 @@ class WorkbenchController extends Notifier<WorkbenchState> {
           hostId: content.hostId,
           directory: content.directory,
           tmuxSession: 'wg-${Ids.short()}',
+          files: content.files,
         );
       }
     }
@@ -501,6 +502,29 @@ class WorkbenchController extends Notifier<WorkbenchState> {
       location.tab.id,
       (tab) => tab.copyWith(
         panes: {...tab.panes, paneId: location.pane.withContent(content)},
+      ),
+    );
+  }
+
+  void updateAttachedFiles(
+    String paneId,
+    AttachedFiles Function(AttachedFiles files) change,
+  ) {
+    final location = state.locate(paneId);
+    final content = location?.pane.content;
+    if (location == null || content is! TerminalContent) return;
+    final next = change(content.files);
+    if (next == content.files) return;
+    updatePane(paneId, content.withFiles(next));
+  }
+
+  void setPaneFontSize(String paneId, double? size) {
+    final location = state.locate(paneId);
+    if (location == null || location.pane.fontSize == size) return;
+    _updateTab(
+      location.tab.id,
+      (tab) => tab.copyWith(
+        panes: {...tab.panes, paneId: location.pane.withFontSize(size)},
       ),
     );
   }

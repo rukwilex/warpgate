@@ -34,12 +34,13 @@ abstract final class TransferActions {
     required String? toHostId,
     required String toDirectory,
     required String Function(String directory, String name) join,
+    bool move = false,
   }) async {
     if (entries.isEmpty) return 0;
     var mode = TransferMode.stream;
     final hostToHost =
         fromHostId != null && toHostId != null && fromHostId != toHostId;
-    if (hostToHost && ref.read(settingsProvider).offerDirectMode) {
+    if (!move && hostToHost && ref.read(settingsProvider).offerDirectMode) {
       final chosen = await showDialog<TransferMode>(
         context: context,
         builder: (_) => _ModeDialog(
@@ -62,6 +63,7 @@ abstract final class TransferActions {
         name: entry.name,
         isDirectory: entry.isDirectory,
         mode: mode,
+        move: move,
       );
     }
     return entries.length;

@@ -34,15 +34,15 @@ class McpActivityScreen extends ConsumerWidget {
                 unawaited(ref.read(mcpActivityProvider.notifier).clear()),
           ),
       ],
-      child: entries.isEmpty
-          ? Padding(
-              padding: EdgeInsets.only(top: context.space.huge),
-              child: const WgEmptyState(
-                icon: WgIcons.bot,
-                title: 'No activity yet',
-                body: 'Every tool call from Claude Code appears here with its time, arguments and result.',
-              ),
+      empty: entries.isEmpty
+          ? const WgEmptyState(
+              icon: WgIcons.bot,
+              title: 'No activity yet',
+              body: 'Every tool call from Claude Code appears here with its time, arguments and result.',
             )
+          : null,
+      child: entries.isEmpty
+          ? null
           : Column(
               children: [
                 for (final entry in entries)

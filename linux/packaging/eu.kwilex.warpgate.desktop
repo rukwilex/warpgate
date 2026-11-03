@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Warpgate
+GenericName=SSH and SFTP client
+Comment=Terminals and files for many servers at once
+Exec=warpgate %U
+Icon=eu.kwilex.warpgate
+Terminal=false
+Categories=Network;RemoteAccess;Development;
+Keywords=ssh;sftp;terminal;server;
+StartupWMClass=eu.kwilex.warpgate
+StartupNotify=true

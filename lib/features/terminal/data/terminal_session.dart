@@ -10,9 +10,12 @@ import 'package:warpgate/features/connection/data/ssh_errors.dart';
 import 'package:warpgate/features/connection/domain/link_state.dart';
 import 'package:warpgate/features/hosts/domain/host.dart';
 import 'package:warpgate/features/keys/data/key_codec.dart';
+import 'package:warpgate/features/terminal/domain/terminal_geometry.dart';
+import 'package:warpgate/features/terminal/domain/terminal_reflow.dart';
 import 'package:xterm/xterm.dart';
 
 abstract interface class TerminalBackend {
+  int? get pid;
   Stream<Uint8List> get output;
   Future<void> get done;
   bool get connectionLost;
@@ -26,6 +29,9 @@ class SshShellBackend implements TerminalBackend {
 
   final SSHClient _client;
   final SSHSession _session;
+
+  @override
+  int? get pid => null;
 
   @override
   Stream<Uint8List> get output =>
@@ -51,6 +57,9 @@ class LocalPtyBackend implements TerminalBackend {
   new(this._pty);
 
   final Pty _pty;
+
+  @override
+  int? get pid => _pty.pid;
 
   @override
   Stream<Uint8List> get output => _pty.output;
@@ -107,6 +116,69 @@ abstract final class StreamGroup {
   }
 }
 
+enum FolderHookResult { installed, unsupported, failed }
+
+enum FolderShell {
+  bash('~/.bashrc'),
+  zsh('~/.zshrc'),
+  fish('~/.config/fish/conf.d/warpgate.fish');
+
+  new(this.rcFile);
+
+  final String rcFile;
+
+  static FolderShell? parse(String name) =>
+      values.where((shell) => shell.name == name).firstOrNull;
+
+  String get hook => switch (this) {
+    FolderShell.bash => r'__wg_osc7() { printf "\033]7;file://%s%s\033\\" "${HOSTNAME:-$(hostname)}" "$PWD"; }; [[ "$PROMPT_COMMAND" == *__wg_osc7* ]] || PROMPT_COMMAND="__wg_osc7${PROMPT_COMMAND:+;$PROMPT_COMMAND}"',
+    FolderShell.zsh => r'__wg_osc7() { printf "\033]7;file://%s%s\033\\" "$HOST" "$PWD"; }; autoload -Uz add-zsh-hook && add-zsh-hook precmd __wg_osc7',
+    FolderShell.fish => r'function __wg_osc7 --on-event fish_prompt; printf "\e]7;file://%s%s\e\\" (hostname) $PWD; end',
+  };
+}
+
+abstract final class FolderTracking {
+  static const paneVariable = 'LC_WARPGATE_PANE';
+
+  static final _osc7 = RegExp(
+    r'\x1b\]7;file://[^/\x07\x1b]*(/[^\x07\x1b]*)(?:\x07|\x1b\\)',
+  );
+
+  static String? parseOsc7(String data) {
+    final matches = _osc7.allMatches(data);
+    if (matches.isEmpty) return null;
+    final raw = matches.last.group(1)!;
+    try {
+      return Uri.decodeComponent(raw);
+    } on Object {
+      return raw;
+    }
+  }
+
+  static String? parseLsof(String output) {
+    for (final line in output.split('\n')) {
+      if (line.startsWith('n/')) return line.substring(1);
+    }
+    return null;
+  }
+
+  static String procScript(String paneId) {
+    final needle = KeyCodec.shellQuote('$paneVariable=$paneId');
+    const find = '/proc/[0-9]*/environ 2>/dev/null | cut -d/ -f3); ';
+    const pick =
+        r'for p in $ids; do pp=$(cut -d" " -f4 /proc/$p/stat 2>/dev/null); '
+        r'case " $ids " in *" $pp "*) ;; *) readlink /proc/$p/cwd; exit 0;; esac; done';
+    return '${r'ids=$(grep -lzx '}$needle $find$pick';
+  }
+
+  static String installScript(FolderShell shell) {
+    final rc = shell.rcFile.replaceFirst('~', r'$HOME');
+    final line = KeyCodec.shellQuote(shell.hook);
+    return 'mkdir -p "\$(dirname "$rc")" && touch "$rc" && '
+        '(grep -q __wg_osc7 "$rc" || printf "\\n%s\\n" $line >> "$rc")';
+  }
+}
+
 sealed class SessionTarget {
   const new();
 }
@@ -134,9 +206,11 @@ class TerminalSession {
     required this._pool,
     this.maxLines = 10000,
     this.autoReconnect = true,
+    this.resizeInterval = const Duration(milliseconds: 80),
     String? restoredScrollback,
   }) : terminal = Terminal(maxLines: maxLines) {
     terminal
+      ..reflowEnabled = false
       ..onOutput = _handleUserInput
       ..onResize = _handleResize
       ..onTitleChange = (value) => title.value = value;
@@ -150,7 +224,16 @@ class TerminalSession {
   final String id;
   final int maxLines;
   final bool autoReconnect;
+  final Duration resizeInterval;
   final Terminal terminal;
+  late final _resizeThrottle = ResizeThrottle(
+    interval: resizeInterval,
+    send: (columns, rows) {
+      _columns = columns;
+      _rows = rows;
+      _backend?.resize(columns, rows);
+    },
+  );
   final ConnectionPool _pool;
   final SessionTarget _target;
 
@@ -199,7 +282,7 @@ class TerminalSession {
       }
       _backend = backend;
       _attempt = 0;
-      backend.resize(_columns, _rows);
+      backend.resize(terminal.viewWidth, terminal.viewHeight);
       _output = backend.output
           .cast<List<int>>()
           .transform(const Utf8Decoder(allowMalformed: true))
@@ -222,6 +305,8 @@ class TerminalSession {
         final shell =
             Platform.environment['SHELL'] ??
             (Platform.isWindows ? 'powershell.exe' : '/bin/bash');
+        _columns = terminal.viewWidth;
+        _rows = terminal.viewHeight;
         final pty = Pty.start(
           shell,
           arguments: Platform.isWindows ? const [] : const ['-l'],
@@ -233,6 +318,8 @@ class TerminalSession {
         return LocalPtyBackend(pty);
       case SshTarget(:final host, :final tmuxSession, :final directory):
         final client = await _pool.client(host.id);
+        _columns = terminal.viewWidth;
+        _rows = terminal.viewHeight;
         if (!_retained) {
           _pool.retain(host.id);
           _retained = true;
@@ -258,7 +345,10 @@ class TerminalSession {
           notice.value =
               'tmux is not installed on ${host.label}, so this pane uses a plain shell. Programs stop when the connection drops.';
         }
-        final session = await client.shell(pty: pty);
+        final session = await client.shell(
+          pty: pty,
+          environment: {FolderTracking.paneVariable: id},
+        );
         final backend = SshShellBackend(client, session);
         final start = directory ?? host.startDirectory;
         if (start != null && start.isNotEmpty) {
@@ -274,9 +364,75 @@ class TerminalSession {
   }
 
   void _trackDirectory(String data) {
-    final match = RegExp(r'\x1b\]7;file://[^/]*(/[^\x07\x1b]*)')
-        .firstMatch(data);
-    if (match != null) cwd.value = Uri.decodeComponent(match.group(1)!);
+    final path = FolderTracking.parseOsc7(data);
+    if (path == null) return;
+    reportsFolder = true;
+    cwd.value = path;
+  }
+
+  bool reportsFolder = false;
+
+  Future<String?> probeFolder() async {
+    try {
+      switch (_target) {
+        case SshTarget(:final host):
+          if (_backend == null) return null;
+          final result = await _pool.exec(
+            host.id,
+            FolderTracking.procScript(id),
+            timeout: const Duration(seconds: 5),
+          );
+          final path = result.stdout.trim();
+          return path.startsWith('/') ? path : null;
+        case LocalTarget():
+          final pid = _backend?.pid;
+          if (pid == null) return null;
+          if (Platform.isLinux) {
+            return await Link('/proc/$pid/cwd').target();
+          }
+          if (Platform.isMacOS) {
+            final result = await Process.run('lsof', [
+              '-a',
+              '-p',
+              '$pid',
+              '-d',
+              'cwd',
+              '-Fn',
+            ]);
+            return FolderTracking.parseLsof(result.stdout as String);
+          }
+          return null;
+      }
+    } on Object {
+      return null;
+    }
+  }
+
+  Future<String?> pollFolder() async {
+    if (reportsFolder) return cwd.value;
+    final path = await probeFolder();
+    if (path != null && !_disposed && path != cwd.value) cwd.value = path;
+    return path;
+  }
+
+  Future<FolderHookResult> installFolderHook({bool applyNow = true}) async {
+    final target = _target;
+    if (target is! SshTarget) return FolderHookResult.unsupported;
+    final probe = await _pool.exec(
+      target.host.id,
+      r'basename "${SHELL:-sh}"',
+      timeout: const Duration(seconds: 8),
+    );
+    final shell = FolderShell.parse(probe.stdout.trim());
+    if (shell == null) return FolderHookResult.unsupported;
+    final install = await _pool.exec(
+      target.host.id,
+      FolderTracking.installScript(shell),
+      timeout: const Duration(seconds: 8),
+    );
+    if (!install.succeeded) return FolderHookResult.failed;
+    if (applyNow && _backend != null) send(' ${shell.hook}\r');
+    return FolderHookResult.installed;
   }
 
   void _handleUserInput(String data) {
@@ -301,10 +457,43 @@ class TerminalSession {
   void paste(String text) => terminal.paste(text);
 
   void _handleResize(int columns, int rows, int pixelWidth, int pixelHeight) {
-    _columns = columns;
-    _rows = rows;
-    _backend?.resize(columns, rows);
+    if (_backend == null) {
+      _columns = columns;
+      _rows = rows;
+    }
+    _resizeThrottle.request(columns, rows);
   }
+
+  List<int>? resize(int columns, int rows) {
+    if (columns < TerminalGrid.minColumns || rows < TerminalGrid.minRows) {
+      return null;
+    }
+    final oldWidth = terminal.viewWidth;
+    if (columns == oldWidth && rows == terminal.viewHeight) return null;
+    final main = terminal.mainBuffer;
+    ReflowResult? result;
+    if (columns != oldWidth) {
+      final lines = main.lines;
+      result = TerminalReflow.reflow(
+        lines: [for (var i = 0; i < lines.length; i++) lines[i]],
+        oldWidth: oldWidth,
+        newWidth: columns,
+        newHeight: rows,
+        cursorX: main.cursorX,
+        cursorRow: main.absoluteCursorY,
+        maxLines: maxLines,
+      );
+    }
+    terminal.resize(columns, rows);
+    if (result != null) {
+      main.lines.replaceWith(result.lines);
+      main.setCursor(result.cursorX, result.cursorScreenY);
+      terminal.notifyListeners();
+    }
+    return result?.rowMap;
+  }
+
+  void settleSize() => _resizeThrottle.settle();
 
   void _handleEnded(TerminalBackend backend) {
     if (!identical(_backend, backend)) return;
@@ -396,6 +585,7 @@ class TerminalSession {
 
   void dispose() {
     _disposed = true;
+    _resizeThrottle.dispose();
     _retryTimer?.cancel();
     _backend?.close();
     _teardown();

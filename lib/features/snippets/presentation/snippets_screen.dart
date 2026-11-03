@@ -39,22 +39,22 @@ class SnippetsScreen extends ConsumerWidget {
           ),
         ],
       ],
+      empty: snippets != null && snippets.isEmpty
+          ? WgEmptyState(
+              icon: WgIcons.snippet,
+              title: 'No snippets yet',
+              body: 'Save commands you run often. Write {{name}} for a part that changes, or {{name|default}} to prefill it.',
+              action: WgButton.primary(
+                label: 'Add snippet',
+                icon: WgIcons.plus,
+                onPressed: () => unawaited(_edit(context)),
+              ),
+            )
+          : null,
       child: snippets == null
           ? const WgSkeletonList(rows: 4)
           : snippets.isEmpty
-          ? Padding(
-              padding: EdgeInsets.only(top: context.space.huge),
-              child: WgEmptyState(
-                icon: WgIcons.snippet,
-                title: 'No snippets yet',
-                body: 'Save commands you run often. Write {{name}} for a part that changes, or {{name|default}} to prefill it.',
-                action: WgButton.primary(
-                  label: 'Add snippet',
-                  icon: WgIcons.plus,
-                  onPressed: () => unawaited(_edit(context)),
-                ),
-              ),
-            )
+          ? null
           : Column(
               children: [
                 for (final snippet in snippets)
@@ -73,6 +73,7 @@ class SnippetsScreen extends ConsumerWidget {
                     ),
                     trailing: WgMenuButton(
                       icon: WgIcons.more,
+                      compact: true,
                       label: 'More for ${snippet.name}',
                       entries: () => [
                         WgMenuEntry(

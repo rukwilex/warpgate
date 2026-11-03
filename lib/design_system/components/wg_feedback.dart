@@ -75,12 +75,14 @@ class WgEmptyState extends StatelessWidget {
     required this.title,
     super.key,
     this.icon,
+    this.mark,
     this.body,
     this.action,
     this.secondary,
   });
 
   final IconData? icon;
+  final Widget? mark;
   final String title;
   final String? body;
   final Widget? action;
@@ -90,50 +92,64 @@ class WgEmptyState extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.colors;
     final space = context.space;
-    return Center(
-      child: SingleChildScrollView(
-        padding: EdgeInsets.all(space.xxl),
-        child: ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: context.sizes.dialog),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (icon != null) ...[
-                Icon(
-                  icon,
-                  size: context.sizes.iconLarge,
-                  color: colors.textMuted,
-                ),
-                SizedBox(height: space.lg),
-              ],
-              Text(
-                title,
-                textAlign: TextAlign.center,
-                style: context.type.title,
-              ),
-              if (body != null) ...[
-                SizedBox(height: space.sm),
-                Text(
-                  body!,
-                  textAlign: TextAlign.center,
-                  style: context.type.body.copyWith(
-                    color: colors.textSecondary,
-                  ),
-                ),
-              ],
-              if (action != null || secondary != null) ...[
-                SizedBox(height: space.xl),
-                Wrap(
-                  spacing: space.sm,
-                  runSpacing: space.sm,
-                  alignment: WrapAlignment.center,
-                  children: [?action, ?secondary],
-                ),
-              ],
-            ],
-          ),
-        ),
+    final content = ConstrainedBox(
+      constraints: BoxConstraints(maxWidth: context.sizes.emptyText),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (mark != null) ...[
+            SizedBox.square(dimension: context.sizes.logoLarge, child: mark),
+            SizedBox(height: space.lg),
+          ] else if (icon != null) ...[
+            Icon(icon, size: context.sizes.iconLarge, color: colors.textMuted),
+            SizedBox(height: space.lg),
+          ],
+          Text(title, textAlign: TextAlign.center, style: context.type.title),
+          if (body != null) ...[
+            SizedBox(height: space.sm),
+            Text(
+              body!,
+              textAlign: TextAlign.center,
+              style: context.type.body.copyWith(color: colors.textSecondary),
+            ),
+          ],
+          if (action != null || secondary != null) ...[
+            SizedBox(height: space.xl),
+            Wrap(
+              spacing: space.sm,
+              runSpacing: space.sm,
+              alignment: WrapAlignment.center,
+              children: [?action, ?secondary],
+            ),
+          ],
+        ],
       ),
+    );
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final padded = Padding(
+          padding: EdgeInsets.all(space.xxl),
+          child: content,
+        );
+        if (!constraints.hasBoundedHeight) {
+          return Align(alignment: Alignment.topCenter, child: padded);
+        }
+        return SizedBox(
+          width: constraints.hasBoundedWidth ? constraints.maxWidth : null,
+          height: constraints.maxHeight,
+          child: SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minHeight: constraints.maxHeight,
+                minWidth: constraints.hasBoundedWidth
+                    ? constraints.maxWidth
+                    : 0,
+              ),
+              child: Center(child: padded),
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -176,7 +192,16 @@ class WgSkeletonList extends StatelessWidget {
         builder: (context, constraints) => Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            for (var i = 0; i < rows; i++)
+            for (
+              var i = 0;
+              i <
+                  (constraints.hasBoundedHeight
+                      ? (constraints.maxHeight / context.sizes.row)
+                            .floor()
+                            .clamp(0, rows)
+                      : rows);
+              i++
+            )
               SizedBox(
                 height: context.sizes.row,
                 child: Row(

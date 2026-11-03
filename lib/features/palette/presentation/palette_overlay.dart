@@ -11,6 +11,7 @@ import 'package:warpgate/features/hosts/domain/host.dart';
 import 'package:warpgate/features/hosts/presentation/hosts_controller.dart';
 import 'package:warpgate/features/palette/domain/app_command.dart';
 import 'package:warpgate/features/palette/presentation/command_registry.dart';
+import 'package:warpgate/features/sftp/application/file_places.dart';
 import 'package:warpgate/features/shell/presentation/ui_state.dart';
 import 'package:warpgate/features/terminal/presentation/terminal_sessions.dart';
 import 'package:warpgate/features/workspace/domain/pane.dart';
@@ -33,9 +34,10 @@ class _PaneChoice extends _Choice {
 }
 
 class _HostChoice extends _Choice {
-  const new(this.host);
+  const new(this.host, this.mode);
 
   final Host host;
+  final HostOpenMode mode;
 }
 
 class PaletteOverlay extends ConsumerWidget {
@@ -120,6 +122,7 @@ class _Palette extends ConsumerWidget {
     if (mode == PaletteMode.switcher) {
       final open = _sessions(ref, query);
       final catalog = ref.watch(hostsProvider).value ?? const HostsCatalog();
+      final registry = ref.read(commandRegistryProvider);
       final q = query.toLowerCase();
       return [
         ...open,
@@ -127,13 +130,25 @@ class _Palette extends ConsumerWidget {
           if (q.isEmpty ||
               host.label.toLowerCase().contains(q) ||
               host.address.toLowerCase().contains(q))
-            WgSearchItem(
-              value: _HostChoice(host),
-              title: 'Connect to ${host.label}',
-              subtitle: host.endpoint,
-              section: 'Hosts',
-              leading: const Icon(WgIcons.server),
-            ),
+            for (final mode in [
+              registry.lastOpenMode(host.id),
+              if (q.isNotEmpty)
+                ...HostOpenMode.values.where(
+                  (mode) => mode != registry.lastOpenMode(host.id),
+                ),
+            ])
+              WgSearchItem(
+                value: _HostChoice(host, mode),
+                title: host.label,
+                subtitle: host.endpoint,
+                meta: mode.label,
+                section: 'Open a host',
+                leading: Icon(switch (mode) {
+                  HostOpenMode.terminal => WgIcons.terminal,
+                  HostOpenMode.files => WgIcons.folder,
+                  HostOpenMode.both => WgIcons.filesPanel,
+                }),
+              ),
       ];
     }
     final commands = ref.read(commandRegistryProvider).commands();
@@ -185,23 +200,8 @@ class _Palette extends ConsumerWidget {
             case _PaneChoice(:final paneId):
               GoRouter.of(context).go(Routes.workbench);
               ref.read(workbenchProvider.notifier).reveal(paneId);
-            case _HostChoice(:final host):
-              GoRouter.of(context).go(Routes.workbench);
-              final existing = ref
-                  .read(workbenchProvider)
-                  .allPanes
-                  .firstWhereOrNull(
-                    (location) =>
-                        location.pane.content is SshTerminalContent &&
-                        location.pane.content.hostId == host.id,
-                  );
-              if (existing != null) {
-                ref.read(workbenchProvider.notifier).reveal(existing.pane.id);
-              } else {
-                ref
-                    .read(workbenchProvider.notifier)
-                    .openPane(SshTerminalContent(hostId: host.id));
-              }
+            case _HostChoice(:final host, :final mode):
+              ref.read(commandRegistryProvider).openHost(host.id, mode: mode);
           }
         },
       ),

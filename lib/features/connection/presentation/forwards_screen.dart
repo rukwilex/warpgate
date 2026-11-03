@@ -23,15 +23,15 @@ class ForwardsScreen extends ConsumerWidget {
     return WgPage(
       title: 'Port forwards',
       subtitle: 'Forwards are set per host. Start them here or have them start when the host connects',
-      child: hosts.isEmpty
-          ? Padding(
-              padding: EdgeInsets.only(top: context.space.huge),
-              child: const WgEmptyState(
-                icon: WgIcons.forward,
-                title: 'No port forwards',
-                body: 'Open a host in Hosts, choose Edit, and add a local, remote or SOCKS forward.',
-              ),
+      empty: hosts.isEmpty
+          ? const WgEmptyState(
+              icon: WgIcons.forward,
+              title: 'No port forwards',
+              body: 'Open a host in Hosts, choose Edit, and add a local, remote or SOCKS forward.',
             )
+          : null,
+      child: hosts.isEmpty
+          ? null
           : Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [

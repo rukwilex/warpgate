@@ -109,6 +109,22 @@ class WgSizes extends ThemeExtension<WgSizes> {
     this.captionButton = 46,
     this.captionGlyph = 10,
     this.trafficLights = 80,
+    this.emptyText = 400,
+    this.columnName = 200,
+    this.columnMin = 56,
+    this.columnSize = 88,
+    this.columnModified = 136,
+    this.columnPermissions = 104,
+    this.columnOwner = 96,
+    this.treeWidth = 220,
+    this.treeIndent = 14,
+    this.dragLabel = 300,
+    this.filesPanelMin = 240,
+    this.terminalMin = 160,
+    this.terminalPadding = 6,
+    this.completionList = 240,
+    this.logoMark = 18,
+    this.logoLarge = 40,
   });
 
   factory forDensity(WgDensity density, {required bool touch}) {
@@ -161,6 +177,22 @@ class WgSizes extends ThemeExtension<WgSizes> {
   final double captionButton;
   final double captionGlyph;
   final double trafficLights;
+  final double emptyText;
+  final double columnName;
+  final double columnMin;
+  final double columnSize;
+  final double columnModified;
+  final double columnPermissions;
+  final double columnOwner;
+  final double treeWidth;
+  final double treeIndent;
+  final double dragLabel;
+  final double filesPanelMin;
+  final double terminalMin;
+  final double terminalPadding;
+  final double completionList;
+  final double logoMark;
+  final double logoLarge;
 
   @override
   WgSizes copyWith() => this;
@@ -177,6 +209,10 @@ class WgMotion extends ThemeExtension<WgMotion> {
     this.slow = const Duration(milliseconds: 360),
     this.tooltipWait = const Duration(milliseconds: 500),
     this.live = const Duration(milliseconds: 1200),
+    this.resizeThrottle = const Duration(milliseconds: 80),
+    this.hoverSwitch = const Duration(milliseconds: 600),
+    this.typeAhead = const Duration(milliseconds: 900),
+    this.cwdPoll = const Duration(milliseconds: 1500),
     this.curve = const Cubic(0.22, 1, 0.36, 1),
   });
 
@@ -185,13 +221,21 @@ class WgMotion extends ThemeExtension<WgMotion> {
   final Duration slow;
   final Duration tooltipWait;
   final Duration live;
+  final Duration resizeThrottle;
+  final Duration hoverSwitch;
+  final Duration typeAhead;
+  final Duration cwdPoll;
   final Curve curve;
 
-  WgMotion reduced() => const WgMotion(
+  WgMotion reduced() => WgMotion(
     fast: Duration.zero,
     medium: Duration.zero,
     slow: Duration.zero,
     live: Duration.zero,
+    resizeThrottle: resizeThrottle,
+    hoverSwitch: hoverSwitch,
+    typeAhead: typeAhead,
+    cwdPoll: cwdPoll,
   );
 
   @override
@@ -199,6 +243,14 @@ class WgMotion extends ThemeExtension<WgMotion> {
 
   @override
   WgMotion lerp(WgMotion? other, double t) => other ?? this;
+}
+
+abstract final class WgTerminalZoom {
+  static const double min = 8;
+  static const double max = 36;
+  static const double step = 1;
+
+  static double clamp(double value) => value.clamp(min, max).roundToDouble();
 }
 
 abstract final class WgBreakpoints {

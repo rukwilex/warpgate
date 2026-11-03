@@ -4,6 +4,7 @@ export 'components/wg_controls.dart';
 export 'components/wg_feedback.dart';
 export 'components/wg_icons.dart';
 export 'components/wg_keycap.dart';
+export 'components/wg_logo.dart';
 export 'components/wg_overlays.dart';
 export 'components/wg_page.dart';
 export 'components/wg_pressable.dart';

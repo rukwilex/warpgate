@@ -42,12 +42,9 @@ class TitleBar extends ConsumerWidget {
                     width: inset ? sizes.trafficLights : space.sm,
                   ),
                   Expanded(
-                    child: Align(
-                      alignment: AlignmentDirectional.centerStart,
-                      child: SessionTabs(
-                        embedded: true,
-                        onWorkbench: onWorkbench,
-                      ),
+                    child: SessionTabs(
+                      embedded: true,
+                      onWorkbench: onWorkbench,
                     ),
                   ),
                   SizedBox(width: space.sm),

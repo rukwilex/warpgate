@@ -4,16 +4,11 @@ An SSH and SFTP workbench for people who run many servers and VMs at once. Many 
 
 ## Setup
 
-Requirements: Flutter 3.47 or later (Dart 3.13), and CocoaPods for macOS and iOS (`brew install cocoapods`).
+The full guide to requirements, running, tests, release builds, signing, packaging and CI is [docs/BUILD.md](docs/BUILD.md). The short version:
 
 ```sh
 flutter pub get
 flutter run -d macos          # or windows, linux, an iOS or Android device
-```
-
-Checks:
-
-```sh
 flutter analyze               # zero issues
 flutter test                  # unit, widget, golden, accessibility and screen tests
 ```
@@ -38,17 +33,6 @@ EOF
 WARPGATE_TEST_KEY=/tmp/wg/client_key WARPGATE_TEST_PORT=2222 flutter test test/integration
 ```
 
-Builds:
-
-```sh
-flutter build macos --release
-flutter build ios --release --no-codesign
-flutter build apk --release
-flutter build windows --release
-flutter build linux --release
-flutter build web -t lib/main_web.dart
-```
-
 ## Platform notes
 
 | Platform | Notes |
@@ -57,6 +41,25 @@ flutter build web -t lib/main_web.dart
 | Windows, Linux | Local terminal through a PTY. Ctrl+Shift is the primary modifier, so Ctrl+C, Ctrl+D and Ctrl+W still go to the shell. Secrets in Credential Manager or libsecret. |
 | iOS, Android | Bottom bar, full-screen sessions, swipe between sessions, pinch to zoom the terminal, an extra key row (Esc, Tab, sticky Ctrl and Alt, arrows, `|`, `~`, `/`, `-`, Paste). The OS suspends network sockets when the app goes to the background. A note under the content says so while sessions or transfers are active, and sessions reconnect when you return. No local terminal. |
 | Web | Not supported: a clean screen explains why. Browsers cannot open raw TCP sockets, and a WebSocket-to-SSH proxy would move every key and password through a server you would also have to run and secure. That defeats the point of a local workbench, so the web build (`lib/main_web.dart`) only shows that notice. |
+
+## Window title bar
+
+On macOS and Windows the native title bar is hidden and the app draws its own, merged with the tab bar. It is a 40 row (36 in compact density) in the same color as the sidebar, holding the workspace switcher, the session tabs, New terminal and the command palette. Empty parts of the row move the window. Tabs keep their clicks, context menus and drag to reorder. The window title is still set for the OS (`Warpgate — <workspace>`), so the Dock, the taskbar, the task switcher and screen readers see it. When the window loses focus, its text and icons fade to the muted color.
+
+| Platform | What you get |
+|---|---|
+| macOS | Full-size content view with a transparent, hidden title bar. The native traffic lights stay, centered in the 40 row, with an inset so tabs never sit under them. In full screen the inset slides away. Double-clicking the bar follows System Settings → Desktop & Dock → "Double-click a window's title bar to" (zoom, minimize or do nothing; "Fill" falls back to zoom). Window snapping, Mission Control, Stage Manager, native full screen and the menu bar are unchanged. The window background follows the theme, so there is no white flash on launch or resize. |
+| Windows | The title bar is hidden but the native frame stays. Resizing from every edge and corner, Aero Snap, Win+Arrow, the drop shadow and Windows 11 rounded corners all keep working, and a maximized window fits the work area without covering the taskbar. The app draws minimize, maximize/restore and close (46×40, 10px glyphs at the icon stroke weight). Close turns red on hover. They stay usable above dialogs and the lock screen. Right-click the bar for the system menu, or press Alt+Space. **Snap Layouts on hover over maximize is not supported.** Windows only shows that flyout when the window answers `WM_NCHITTEST` with `HTMAXBUTTON`, and neither `window_manager` nor `bitsdojo_window` does that for a button drawn in Flutter. Win+Z and dragging the window to the top of the screen still open Snap Layouts. |
+| Linux | The native title bar stays. GNOME and KDE draw decorations differently, and on Wayland a client-drawn frame must handle resize edges, shadows and dragging itself. `window_manager`'s hidden title bar does not resize reliably from the edges on both desktops, so Linux keeps the system frame and shows the tabs in the tab bar under it. |
+| iOS, Android, web | Unchanged. |
+
+**Packages.** One package, `window_manager` (already used for the window title, size and focus), plus a small method channel in `macos/Runner/MainFlutterWindow.swift`:
+
+- `window_manager` hides the title bar on both platforms, moves and maximizes the window, opens the Windows system menu, reports focus, maximize and full-screen changes, and sets the window background.
+- It cannot move the macOS traffic lights or read the macOS double-click preference. `macos_window_utils` can position the buttons, but its setup replaces the Flutter view controller and adds a second package that changes the same `NSWindow`. The `warpgate/window` channel in the existing window class does both jobs with less risk.
+- `bitsdojo_window` is not needed. `window_manager`'s hidden style keeps the native Windows frame (resize, snap, shadow, rounded corners, correct maximized bounds), which a frameless `bitsdojo_window` window would have to rebuild.
+
+On Windows the runner no longer shows the window on the first frame. `window_manager` shows it once the hidden title bar is applied, so the native caption never flashes.
 
 ## Multitasking
 
@@ -72,7 +75,33 @@ The architecture is built around many sessions at once.
 - **Snippets** with `{{variables}}` and `{{name|default}}`, sent to the focused pane or to everything in a broadcast.
 - **Port forwards** (local, remote, dynamic SOCKS) per host, started by hand or when the host connects, with live connection counts.
 - **Jump hosts**, chained to any depth. The editor shows the route and refuses loops.
-- **Quick switcher** (⌘P / Ctrl+Shift+P) across every pane in every workspace, plus "connect to" for saved hosts.
+- **Quick switcher** (⌘P / Ctrl+Shift+P) across every pane in every workspace, plus every saved host as Terminal, Files or Terminal + Files.
+- **Opening a host** from the sidebar, the hosts page or the switcher uses the way you last opened that host (Terminal, Files, or Terminal + Files). The row menu offers all three.
+- **Host groups** fold open and closed, can be renamed in place (double-click the name), and take hosts dragged onto them.
+
+## Terminal and files together
+
+Every terminal pane, SSH or local, can show its files next to it. Turn the panel on with the files button in the pane header or ⌘⇧F (Ctrl+Shift+Alt+F). It sits on the right by default; the pane menu moves it below the terminal. The divider drags, and both the side and the divider position are saved with the pane. The panel uses the terminal's SSH connection, so there is no second login.
+
+- **Follow the terminal**: with the target button on, the panel goes wherever the shell goes. The folder comes from OSC 7 when the shell emits it. "Set up folder tracking…" in the pane menu adds a one-line prompt hook to `.bashrc`, `.zshrc` or fish `conf.d` on the host and runs it in the current shell. Without either, the panel asks the server for `/proc/<pid>/cwd` of the shell every 1.5 s (Linux hosts; local terminals use `/proc` or `lsof`). With following off, "Go to terminal folder" jumps once.
+- **From the files panel**: "Change the terminal to this folder" (`cd` in the attached terminal), "Open a new terminal here" and "Copy path".
+- **From the terminal**: select a path, right-click, "Show in files". Relative paths resolve against the shell's folder; a file is selected in its folder.
+- A tab can hold any mix: several sessions side by side with their own panels, standalone file panes (one or two sides) and local terminals.
+
+**Folders**
+
+- Path bar: breadcrumbs; click it (or ⌘L / Ctrl+L) to type a path, with suggestions from the server and Tab completion. Enter goes there, Esc cancels.
+- Folder tree on the left (tree button), loaded lazily, opened along the current path.
+- Favorites (star) and recent folders per host, and ⌘P / Ctrl+P inside a panel to jump to any of them or to a subfolder.
+- Columns: name, size, modified, permissions, owner. Click a header to sort, drag its left edge to resize (saved), folders always first, sizes in tabular figures. Columns drop from the right when the panel is narrow.
+- Filter (⌘F / Ctrl+F), show hidden files, refresh, and an automatic refresh after any change made in the app, including finished transfers into or out of the folder.
+
+**Moving files between sessions**
+
+- Drag files or folders to another files panel, onto a folder row, or onto a terminal (copies into that terminal's folder). Hover a dragged item over a tab for 600 ms to switch to it. A label near the cursor names the target folder and host and whether it copies or moves. Option/Alt flips between them: the default is move within one host and copy between hosts.
+- Cut, copy and paste with ⌘X / ⌘C / ⌘V (Ctrl+X / C / V) work across panels and hosts. Pasting on another host starts a host-to-host transfer.
+- Drop files from Finder, Explorer or the Linux file manager onto a panel or a terminal.
+- Everything goes through the transfer queue. A move between hosts deletes the source only after each file's size matches on the target and, when both sides have `sha256sum` (this device always does), the checksums match. If a check fails, the transfer stops and the original stays.
 
 ### Shortcuts
 
@@ -85,7 +114,7 @@ On macOS the primary modifier is ⌘. On Windows and Linux it is Ctrl+Shift, so 
 | New terminal | ⌘T | Ctrl+Shift+T |
 | New local terminal | ⌘⇧T | Ctrl+Shift+Alt+T |
 | Browse files | ⌘O | Ctrl+Shift+O |
-| Open files at the terminal's folder | ⌘⇧F | Ctrl+Shift+Alt+F |
+| Show or hide files next to the terminal | ⌘⇧F | Ctrl+Shift+Alt+F |
 | Split right / down | ⌘D / ⌘⇧D | Ctrl+Shift+D / Ctrl+Shift+Alt+D |
 | Close pane | ⌘W | Ctrl+Shift+W |
 | Maximize or restore pane | ⌘⇧↩ | Ctrl+Shift+Alt+Enter |
@@ -100,9 +129,9 @@ On macOS the primary modifier is ⌘. On Windows and Linux it is Ctrl+Shift, so 
 | Save layout | ⌘⇧L | Ctrl+Shift+Alt+L |
 | Toggle sidebar | ⌘B | Ctrl+Shift+B |
 | Settings | ⌘, | Ctrl+Shift+, |
-| Terminal text size | ⌘= / ⌘- | Ctrl+Shift+= / Ctrl+Shift+- |
+| Text size of the focused terminal, reset | ⌘= / ⌘- / ⌘0 | Ctrl+Shift+= / Ctrl+Shift+- / Ctrl+Shift+0 |
 | Copy / paste in a terminal | ⌘C / ⌘V | Ctrl+Shift+C / Ctrl+Shift+V |
-| In file panes | ↑ ↓ ↩, ⌫ up, Delete, F2 rename, F5 copy to the other side | same |
+| In file panes | ↑ ↓ (⇧ extends), Home / End, ↩ open, ⌘↓ open, ⌫ or ⌘↑ up, type to find, Space quick look, F2 rename, Delete (asks first), ⌘X/C/V, ⌘L path, ⌘P jump, ⌘F filter, F5 copy to the other side | Ctrl instead of ⌘ |
 
 ## Persistence and tmux
 
@@ -119,11 +148,19 @@ On macOS the primary modifier is ⌘. On Windows and Linux it is Ctrl+Shift, so 
 - **Direct mode**: when copying between two hosts, Warpgate can check whether the source can reach the target by itself. It looks for rsync or scp on the source and tries a batch-mode SSH login. Only if that works does it offer to run `rsync -a --partial` (or `scp -rp`) on the source, which is faster for large data. It never assumes it.
 - **Queue**: one global queue for all workspaces, with a configurable concurrency limit (3 by default). It shows progress, speed and time left, and supports pause, resume, cancel and retry. Pausing keeps the partial file, so large files resume from their offset, and folders resume from the files they had not finished. Conflicts follow the policy you choose: ask, overwrite, skip, or keep both. The "ask" dialog offers resume when the target is a shorter copy.
 - Transfers run in the background while you work in other panes. The status bar indicator opens the queue. Interrupted transfers are re-queued on the next launch.
-- "Open files here" in a terminal opens a file pane at the shell's current folder. This works when the shell reports it with OSC 7, which most modern shell prompts do; otherwise the pane opens at the home folder. "Open terminal here" on any folder opens a terminal in that folder.
+- "Open files in a new pane" in a terminal's menu opens a separate file pane at the shell's folder. "Open terminal here" on any folder opens a terminal in that folder.
+
+## Terminal size and zoom
+
+- The grid is sized from the real cell of the current font: columns and rows are rounded down and the leftover pixels become even padding, so there is never a partial column or a clipped last row. Cells are snapped to device pixels, which keeps text sharp and recomputes correctly when the window moves between a Retina and a non-Retina screen.
+- Resizing reflows the normal screen like iTerm2 or Ghostty: wrapped lines join and rewrap, hard line breaks stay, wide characters (CJK, emoji) never split, trailing spaces are kept and the cursor stays on its character. The alternate screen (vim, htop, less, tmux) is not reflowed; the program redraws at the new size.
+- If you were at the bottom you stay there; if you had scrolled up, the same line stays at the top.
+- The new size goes to the server at most every 80 ms while you drag and once more when you let go. A size below 2 columns is never sent.
+- ⌘= / ⌘- / ⌘0 (Ctrl+Shift with =, -, 0) zoom only the focused pane and keep the cursor line in view; trackpad and touch pinch do the same. The default size is in Settings → Appearance.
 
 ## Security model
 
-- Passwords, private keys, key passphrases, the app PIN hash and the MCP token are stored only in the system's secure storage (Keychain, Credential Manager, libsecret, Android Keystore). The database holds no secrets.
+- One random 256-bit master key lives in the system's secure storage (Keychain, Credential Manager, libsecret, Android Keystore). It is read once per launch and kept in memory. Passwords, private keys, key passphrases, the app PIN hash and the MCP token are encrypted with it (AES-256-GCM, bound to their name) in the local database. On macOS a properly signed build therefore never asks for keychain access; see [docs/BUILD.md](docs/BUILD.md#macos-keychain).
 - **Host keys**: unknown keys open a dialog showing the SHA-256 fingerprint, with "Trust and save", "Trust once" and "Disconnect". A key that differs from the saved one gets a red warning showing both fingerprints. Saved keys can be reviewed and forgotten in Settings → Security.
 - **Keys**: generate Ed25519 or RSA (3072 or 4096) with an optional passphrase. Import from a file or by pasting OpenSSH or PEM. Copy or save the public key, and install it on a host with one action (appended to `authorized_keys` only if it is missing).
 - **App lock**: PIN (PBKDF2-SHA256, 120,000 rounds) and optional biometrics, locking after 1, 5, 15 or 60 minutes of inactivity or in the background. Sessions keep running behind the lock.
@@ -192,4 +229,5 @@ lib/
 test/                  unit, data, widget, golden, accessibility, screens, integration
 tool/mcp_stdio/        stdio bridge for Claude Code
 docs/design-system.md  direction, tokens, components, patterns, audit
+docs/BUILD.md          requirements, running, release builds, signing, packaging, CI
 ```

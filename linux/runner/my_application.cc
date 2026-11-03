@@ -45,14 +45,25 @@ static void my_application_activate(GApplication* application) {
   if (use_header_bar) {
     GtkHeaderBar* header_bar = GTK_HEADER_BAR(gtk_header_bar_new());
     gtk_widget_show(GTK_WIDGET(header_bar));
-    gtk_header_bar_set_title(header_bar, "warpgate");
+    gtk_header_bar_set_title(header_bar, "Warpgate");
     gtk_header_bar_set_show_close_button(header_bar, TRUE);
     gtk_window_set_titlebar(window, GTK_WIDGET(header_bar));
   } else {
-    gtk_window_set_title(window, "warpgate");
+    gtk_window_set_title(window, "Warpgate");
   }
 
   gtk_window_set_default_size(window, 1280, 720);
+
+  g_autofree gchar* executable = g_file_read_link("/proc/self/exe", nullptr);
+  if (executable != nullptr) {
+    g_autofree gchar* directory = g_path_get_dirname(executable);
+    g_autofree gchar* icon = g_build_filename(
+        directory, "share", "icons", "hicolor", "256x256", "apps",
+        APPLICATION_ID ".png", nullptr);
+    if (g_file_test(icon, G_FILE_TEST_EXISTS)) {
+      gtk_window_set_icon_from_file(window, icon, nullptr);
+    }
+  }
 
   g_autoptr(FlDartProject) project = fl_dart_project_new();
   fl_dart_project_set_dart_entrypoint_arguments(

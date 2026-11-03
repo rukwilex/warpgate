@@ -8,11 +8,14 @@ import 'package:warpgate/core/platform/platform_info.dart';
 import 'package:warpgate/core/routing/routes.dart';
 import 'package:warpgate/core/shortcuts/shortcut_codec.dart';
 import 'package:warpgate/design_system/components/wg_icons.dart';
+import 'package:warpgate/design_system/components/wg_overlays.dart';
+import 'package:warpgate/design_system/tokens/wg_metrics.dart';
 import 'package:warpgate/features/hosts/presentation/host_picker.dart';
 import 'package:warpgate/features/hosts/presentation/hosts_controller.dart';
 import 'package:warpgate/features/palette/domain/app_command.dart';
 import 'package:warpgate/features/security/presentation/app_lock_controller.dart';
 import 'package:warpgate/features/settings/presentation/settings_controller.dart';
+import 'package:warpgate/features/sftp/application/file_places.dart';
 import 'package:warpgate/features/shell/presentation/prompts.dart';
 import 'package:warpgate/features/shell/presentation/ui_state.dart';
 import 'package:warpgate/features/snippets/presentation/snippet_runner.dart';
@@ -85,6 +88,7 @@ abstract final class DefaultShortcuts {
     'layout.save': _p(LogicalKeyboardKey.keyL, shift: true),
     'terminal.zoomIn': _p(LogicalKeyboardKey.equal),
     'terminal.zoomOut': _p(LogicalKeyboardKey.minus),
+    'terminal.zoomReset': _p(LogicalKeyboardKey.digit0),
     'app.lock': _p(LogicalKeyboardKey.keyL, alt: true),
     for (var i = 1; i <= 9; i++)
       'workspace.$i': PlatformInfo.isApple
@@ -158,6 +162,73 @@ class CommandRegistry {
     );
   }
 
+  void toggleFiles() {
+    final pane = _ref.read(workbenchProvider).focusedPane;
+    if (pane == null || pane.content is! TerminalContent) {
+      openSftpHere();
+      return;
+    }
+    _bench.updateAttachedFiles(
+      pane.id,
+      (files) => files.copyWith(open: !files.open),
+    );
+  }
+
+  HostOpenMode lastOpenMode(String hostId) {
+    final saved = _ref.read(settingsProvider).hostOpenModes[hostId];
+    return HostOpenMode.values
+            .where((mode) => mode.name == saved)
+            .firstOrNull ??
+        HostOpenMode.terminal;
+  }
+
+  void openHost(
+    String hostId, {
+    HostOpenMode? mode,
+    PanePlacement placement = PanePlacement.newTab,
+  }) {
+    final chosen = mode ?? lastOpenMode(hostId);
+    if (mode != null) {
+      final modes = _ref.read(settingsProvider).hostOpenModes;
+      if (modes[hostId] != mode.name) {
+        _ref.read(settingsProvider.notifier).update({
+          'hostOpenModes': {...modes, hostId: mode.name},
+        });
+      }
+    }
+    _go(Routes.workbench);
+    _bench.openPane(switch (chosen) {
+      HostOpenMode.terminal => SshTerminalContent(hostId: hostId),
+      HostOpenMode.files => SftpContent(
+        left: SftpSide(
+          hostId: hostId,
+          path: _ref.read(settingsProvider).defaultRemotePath,
+        ),
+      ),
+      HostOpenMode.both => SshTerminalContent(
+        hostId: hostId,
+        files: const AttachedFiles(open: true),
+      ),
+    }, placement: placement);
+  }
+
+  List<WgMenuEntry> openHostEntries(String hostId) {
+    final last = lastOpenMode(hostId);
+    return [
+      for (final mode in HostOpenMode.values)
+        WgMenuEntry(
+          label: 'Open ${mode.label.toLowerCase()}',
+          icon: switch (mode) {
+            HostOpenMode.terminal => WgIcons.terminal,
+            HostOpenMode.files => WgIcons.folder,
+            HostOpenMode.both => WgIcons.filesPanel,
+          },
+          trailing: mode == last ? 'Last used' : null,
+          onSelected: () => openHost(hostId, mode: mode),
+        ),
+    ];
+  }
+
   void openSftpHere() {
     final pane = _ref.read(workbenchProvider).focusedPane;
     final content = pane?.content;
@@ -199,12 +270,18 @@ class CommandRegistry {
     }
   }
 
-  void _zoom(double delta) {
-    final size = (_ref.read(settingsProvider).terminalFontSize + delta).clamp(
-      8,
-      32,
-    );
-    _ref.read(settingsProvider.notifier).update({'terminalFontSize': size});
+  void zoom(double? delta, {String? paneId}) {
+    final state = _ref.read(workbenchProvider);
+    final id = paneId ?? state.focusedPane?.id;
+    final pane = id == null ? null : state.locate(id)?.pane;
+    if (pane == null) return;
+    final fallback = _ref.read(settingsProvider).terminalFontSize;
+    if (delta == null) {
+      _bench.setPaneFontSize(pane.id, null);
+      return;
+    }
+    final next = WgTerminalZoom.clamp((pane.fontSize ?? fallback) + delta);
+    _bench.setPaneFontSize(pane.id, next == fallback ? null : next);
   }
 
   Future<void> _newWorkspace() async {
@@ -344,7 +421,15 @@ class CommandRegistry {
       ),
       c(
         'sftp.here',
-        'Open files at terminal folder',
+        'Show or hide files next to the terminal',
+        CommandCategory.files,
+        toggleFiles,
+        icon: WgIcons.filesPanel,
+        keywords: const ['sftp', 'cwd', 'panel', 'attach'],
+      ),
+      c(
+        'sftp.split',
+        'Open files at terminal folder in a new pane',
         CommandCategory.files,
         openSftpHere,
         icon: WgIcons.folderOpen,
@@ -607,15 +692,22 @@ class CommandRegistry {
         'terminal.zoomIn',
         'Larger terminal text',
         CommandCategory.general,
-        () => _zoom(1),
+        () => zoom(WgTerminalZoom.step),
         icon: WgIcons.zoomIn,
       ),
       c(
         'terminal.zoomOut',
         'Smaller terminal text',
         CommandCategory.general,
-        () => _zoom(-1),
+        () => zoom(-WgTerminalZoom.step),
         icon: WgIcons.zoomOut,
+      ),
+      c(
+        'terminal.zoomReset',
+        'Default terminal text size',
+        CommandCategory.general,
+        () => zoom(null),
+        keywords: const ['zoom', 'font'],
       ),
       if (_ref.read(settingsProvider).appLock)
         c(

@@ -16,6 +16,7 @@ class PaneFrame extends ConsumerStatefulWidget {
     super.key,
     this.subtitle,
     this.menu = const [],
+    this.actions = const [],
     this.compact = false,
   });
 
@@ -25,6 +26,7 @@ class PaneFrame extends ConsumerStatefulWidget {
   final WgDotState dot;
   final Widget child;
   final List<WgMenuEntry> menu;
+  final List<Widget> actions;
   final bool compact;
 
   @override
@@ -79,7 +81,7 @@ class _PaneFrameState extends ConsumerState<PaneFrame> {
                       '${widget.title} pane${focused ? ', focused' : ''}${broadcasting ? ', receiving broadcast' : ''}',
                   child: Container(
                     height: sizes.rowCompact,
-                    padding: EdgeInsets.only(left: space.sm, right: space.xs),
+                    padding: EdgeInsets.symmetric(horizontal: space.sm),
                     decoration: BoxDecoration(
                       color: focused ? colors.surface : colors.canvasDeep,
                       border: Border(
@@ -94,93 +96,109 @@ class _PaneFrameState extends ConsumerState<PaneFrame> {
                     ),
                     child: Row(
                       children: [
-                        WgStatusDot(state: widget.dot, subject: widget.title),
-                        SizedBox(width: space.sm),
-                        Flexible(
-                          child: Text(
-                            widget.title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: context.type.label.copyWith(
-                              color: focused
-                                  ? colors.textPrimary
-                                  : colors.textSecondary,
-                            ),
-                          ),
-                        ),
-                        if (widget.subtitle != null) ...[
-                          SizedBox(width: space.sm),
-                          Flexible(
-                            child: Text(
-                              widget.subtitle!,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: context.type.monoSmall.copyWith(
-                                color: colors.textMuted,
+                        Expanded(
+                          key: const ValueKey('pane-title'),
+                          child: Row(
+                            children: [
+                              WgStatusDot(
+                                state: widget.dot,
+                                subject: widget.title,
                               ),
-                            ),
-                          ),
-                        ],
-                        if (broadcasting) ...[
-                          SizedBox(width: space.sm),
-                          WgTag('Broadcast', tone: colors.accentInk),
-                        ],
-                        if (widget.pane.origin == PaneOrigin.claudeCode) ...[
-                          SizedBox(width: space.sm),
-                          const WgTag('Claude Code'),
-                        ],
-                        const Spacer(),
-                        if (showActions) ...[
-                          WgIconButton(
-                            icon: WgIcons.splitHorizontal,
-                            label: 'Split right',
-                            compact: true,
-                            shortcut: keys['pane.splitRight'],
-                            onPressed: () => ref
-                                .read(commandRegistryProvider)
-                                .run('pane.splitRight'),
-                          ),
-                          WgIconButton(
-                            icon: WgIcons.splitVertical,
-                            label: 'Split down',
-                            compact: true,
-                            shortcut: keys['pane.splitDown'],
-                            onPressed: () => ref
-                                .read(commandRegistryProvider)
-                                .run('pane.splitDown'),
-                          ),
-                          if (multiple)
-                            WgIconButton(
-                              icon: maximized
-                                  ? WgIcons.minimize
-                                  : WgIcons.maximize,
-                              label: maximized
-                                  ? 'Restore pane'
-                                  : 'Maximize pane',
-                              compact: true,
-                              shortcut: keys['pane.maximize'],
-                              onPressed: () =>
-                                  controller.toggleMaximize(widget.pane.id),
-                            ),
-                          WgMenuButton(
-                            icon: WgIcons.more,
-                            label: 'Pane actions',
-                            entries: () => [
-                              ...widget.menu,
-                              if (widget.menu.isNotEmpty)
-                                const WgMenuEntry.divider(),
-                              ..._layoutEntries(context, multiple: multiple),
+                              SizedBox(width: space.sm),
+                              Flexible(
+                                child: Text(
+                                  widget.title,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: context.type.label.copyWith(
+                                    color: focused
+                                        ? colors.textPrimary
+                                        : colors.textSecondary,
+                                  ),
+                                ),
+                              ),
+                              if (widget.subtitle != null) ...[
+                                SizedBox(width: space.sm),
+                                Flexible(
+                                  child: Text(
+                                    widget.subtitle!,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: context.type.monoSmall.copyWith(
+                                      color: colors.textMuted,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                              if (broadcasting) ...[
+                                SizedBox(width: space.sm),
+                                WgTag('Broadcast', tone: colors.accentInk),
+                              ],
+                              if (widget.pane.origin ==
+                                  PaneOrigin.claudeCode) ...[
+                                SizedBox(width: space.sm),
+                                const WgTag('Claude Code'),
+                              ],
                             ],
                           ),
-                          WgIconButton(
-                            icon: WgIcons.close,
-                            label: 'Close pane',
-                            compact: true,
-                            shortcut: keys['pane.close'],
-                            onPressed: () =>
-                                controller.closePane(widget.pane.id),
-                          ),
-                        ],
+                        ),
+                        SizedBox(width: space.sm),
+                        _HeaderActions(
+                          visible: showActions,
+                          children: [
+                            ...widget.actions,
+                            WgIconButton(
+                              icon: WgIcons.splitHorizontal,
+                              label: 'Split right',
+                              compact: true,
+                              shortcut: keys['pane.splitRight'],
+                              onPressed: () => ref
+                                  .read(commandRegistryProvider)
+                                  .run('pane.splitRight'),
+                            ),
+                            WgIconButton(
+                              icon: WgIcons.splitVertical,
+                              label: 'Split down',
+                              compact: true,
+                              shortcut: keys['pane.splitDown'],
+                              onPressed: () => ref
+                                  .read(commandRegistryProvider)
+                                  .run('pane.splitDown'),
+                            ),
+                            if (multiple)
+                              WgIconButton(
+                                icon: maximized
+                                    ? WgIcons.minimize
+                                    : WgIcons.maximize,
+                                label: maximized
+                                    ? 'Restore pane'
+                                    : 'Maximize pane',
+                                compact: true,
+                                shortcut: keys['pane.maximize'],
+                                onPressed: () =>
+                                    controller.toggleMaximize(widget.pane.id),
+                              ),
+                            WgMenuButton(
+                              icon: WgIcons.more,
+                              label: 'Pane actions',
+                              compact: true,
+                              entries: () => [
+                                ...widget.menu,
+                                if (widget.menu.isNotEmpty)
+                                  const WgMenuEntry.divider(),
+                                ..._layoutEntries(context, multiple: multiple),
+                              ],
+                            ),
+                            WgIconButton(
+                              icon: WgIcons.close,
+                              label: 'Close pane',
+                              compact: true,
+                              shortcut: keys['pane.close'],
+                              onPressed: () =>
+                                  controller.closePane(widget.pane.id),
+                            ),
+                          ],
+                        ),
                       ],
                     ),
                   ),
@@ -244,5 +262,37 @@ class _PaneFrameState extends ConsumerState<PaneFrame> {
         onSelected: () => controller.closePane(id),
       ),
     ];
+  }
+}
+
+class _HeaderActions extends StatelessWidget {
+  const new({required this.visible, required this.children});
+
+  final bool visible;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    final gap = context.space.hair;
+    return AnimatedOpacity(
+      key: const ValueKey('pane-actions'),
+      opacity: visible ? 1 : 0,
+      duration: context.motion.fast,
+      child: IgnorePointer(
+        ignoring: !visible,
+        child: ExcludeSemantics(
+          excluding: !visible,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (final (index, child) in children.indexed) ...[
+                if (index > 0) SizedBox(width: gap),
+                child,
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

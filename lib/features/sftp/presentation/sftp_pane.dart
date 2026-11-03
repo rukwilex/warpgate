@@ -30,7 +30,7 @@ class SftpPane extends ConsumerWidget {
     final right = content.right;
     final title = right == null
         ? 'Files · ${_label(ref, left)}'
-        : '${_label(ref, left)} ⇄ ${_label(ref, right)}';
+        : '${_label(ref, left)} and ${_label(ref, right)}';
     final dot = left.hostId == null
         ? (right?.hostId == null
               ? WgDotState.connected

@@ -14,8 +14,10 @@ import 'package:warpgate/features/connection/presentation/connection_providers.d
 import 'package:warpgate/features/connection/presentation/link_dot.dart';
 import 'package:warpgate/features/hosts/domain/host.dart';
 import 'package:warpgate/features/hosts/presentation/host_editor.dart';
+import 'package:warpgate/features/hosts/presentation/host_groups.dart';
 import 'package:warpgate/features/hosts/presentation/hosts_controller.dart';
 import 'package:warpgate/features/palette/presentation/command_registry.dart';
+import 'package:warpgate/features/sftp/application/file_places.dart';
 import 'package:warpgate/features/shell/presentation/prompts.dart';
 import 'package:warpgate/features/workspace/domain/pane.dart';
 import 'package:warpgate/features/workspace/presentation/workbench_controller.dart';
@@ -115,20 +117,7 @@ class _HostsScreenState extends ConsumerState<HostsScreen> {
   }
 
   List<WgMenuEntry> _hostMenu(Host host) => [
-    WgMenuEntry(
-      label: 'Open terminal',
-      icon: WgIcons.terminal,
-      onSelected: () => _open(SshTerminalContent(hostId: host.id)),
-    ),
-    WgMenuEntry(
-      label: 'Browse files',
-      icon: WgIcons.folder,
-      onSelected: () => _open(
-        SftpContent(
-          left: SftpSide(hostId: host.id, path: '~'),
-        ),
-      ),
-    ),
+    ...ref.read(commandRegistryProvider).openHostEntries(host.id),
     WgMenuEntry(
       label: 'Tail a log file',
       icon: WgIcons.scrollText,
@@ -199,85 +188,87 @@ class _HostsScreenState extends ConsumerState<HostsScreen> {
           'Claude: ${host.mcpPermission.label.toLowerCase()}',
         ...host.tags.map((tag) => '#$tag'),
       ].join('  ');
-      return WgListRow(
-        title: host.label,
-        subtitle: host.endpoint,
-        meta: meta.isEmpty ? null : meta,
-        leading: WgStatusDot(state: state.dot, subject: host.label),
-        semanticLabel:
-            '${host.label}, ${host.endpoint}, ${state.dot.label.toLowerCase()}',
-        onPressed: () => _open(SshTerminalContent(hostId: host.id)),
-        onSecondaryTapDown: (details) => unawaited(
-          showWgMenu(
-            context,
-            position: details.globalPosition,
-            entries: _hostMenu(host),
+      final mode = registry.lastOpenMode(host.id);
+      return draggableHost(
+        context,
+        host,
+        WgListRow(
+          title: host.label,
+          subtitle: host.endpoint,
+          meta: meta.isEmpty ? null : meta,
+          leading: WgStatusDot(state: state.dot, subject: host.label),
+          semanticLabel:
+              '${host.label}, ${host.endpoint}, ${state.dot.label.toLowerCase()}. Opens ${mode.label.toLowerCase()}',
+          onPressed: () => registry.openHost(host.id),
+          onSecondaryTapDown: (details) => unawaited(
+            showWgMenu(
+              context,
+              position: details.globalPosition,
+              entries: _hostMenu(host),
+            ),
           ),
-        ),
-        onLongPress: PlatformInfo.isMobile
-            ? () => unawaited(
-                showWgMenu(
-                  context,
-                  position: MediaQuery.sizeOf(context).center(Offset.zero),
-                  entries: _hostMenu(host),
+          onLongPress: PlatformInfo.isMobile
+              ? () => unawaited(
+                  showWgMenu(
+                    context,
+                    position: MediaQuery.sizeOf(context).center(Offset.zero),
+                    entries: _hostMenu(host),
+                  ),
+                )
+              : null,
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (link?.state == LinkState.dropped && link?.message != null)
+                Tooltip(
+                  message: link!.message,
+                  child: Icon(
+                    WgIcons.warning,
+                    size: context.sizes.icon,
+                    color: colors.negative,
+                    semanticLabel: link.message,
+                  ),
                 ),
-              )
-            : null,
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (link?.state == LinkState.dropped && link?.message != null)
-              Tooltip(
-                message: link!.message,
-                child: Icon(
-                  WgIcons.warning,
-                  size: context.sizes.icon,
-                  color: colors.negative,
-                  semanticLabel: link.message,
-                ),
+              WgIconButton(
+                icon: WgIcons.folder,
+                label: 'Browse files on ${host.label}',
+                compact: true,
+                onPressed: () =>
+                    registry.openHost(host.id, mode: HostOpenMode.files),
               ),
-            WgIconButton(
-              icon: WgIcons.folder,
-              label: 'Browse files on ${host.label}',
-              compact: true,
-              onPressed: () => _open(
-                SftpContent(
-                  left: SftpSide(hostId: host.id, path: '~'),
-                ),
+              SizedBox(width: context.space.hair),
+              WgMenuButton(
+                icon: WgIcons.more,
+                label: 'More for ${host.label}',
+                compact: true,
+                entries: () => _hostMenu(host),
               ),
-            ),
-            WgMenuButton(
-              icon: WgIcons.more,
-              label: 'More for ${host.label}',
-              entries: () => _hostMenu(host),
-            ),
-          ],
+            ],
+          ),
         ),
       );
     }
 
-    final Widget body;
+    Widget? body;
+    Widget? empty;
     if (catalog == null) {
       body = const WgSkeletonList(rows: 8, label: 'Loading hosts');
     } else if (catalog.hosts.isEmpty) {
-      body = Padding(
-        padding: EdgeInsets.only(top: context.space.huge),
-        child: WgEmptyState(
-          icon: WgIcons.server,
-          title: 'No hosts yet',
-          body: 'A host is a saved server: address, user and how to sign in. Add one, or import the ones in your SSH config.',
-          action: WgButton.primary(
-            label: 'Add host',
-            icon: WgIcons.plus,
-            onPressed: () => unawaited(showHostEditor(context)),
-          ),
-          secondary: PlatformInfo.supportsSshConfigImport
-              ? WgButton.ghost(
-                  label: 'Import ~/.ssh/config',
-                  onPressed: () => unawaited(_import()),
-                )
-              : null,
+      empty = WgEmptyState(
+        icon: WgIcons.server,
+        title: 'No hosts yet',
+        body: 'A host is a saved server: address, user and how to sign in. Add one, or import the ones in your SSH config.',
+        action: WgButton.primary(
+          label: 'Add host',
+          icon: WgIcons.plus,
+          onPressed: () => unawaited(showHostEditor(context)),
         ),
+        secondary: PlatformInfo.supportsSshConfigImport
+            ? WgButton.ghost(
+                label: 'Import ~/.ssh/config',
+                onPressed: () => unawaited(_import()),
+              )
+            : null,
       );
     } else {
       final ungrouped = catalog.ungrouped.where(matches).toList();
@@ -289,13 +280,22 @@ class _HostsScreenState extends ConsumerState<HostsScreen> {
             leadingIcon: WgIcons.search,
             onChanged: (value) => setState(() => _query = value.trim()),
           ),
-          if (ungrouped.isNotEmpty) ...[
-            const WgSectionLabel('Ungrouped'),
-            for (final host in ungrouped) hostRow(host),
+          if (ungrouped.isNotEmpty || catalog.groups.isNotEmpty) ...[
+            HostGroupHeader(
+              groupKey: ungroupedKey,
+              name: 'Ungrouped',
+              count: ungrouped.length,
+              renamable: false,
+            ),
+            if (!isGroupCollapsed(ref, ungroupedKey))
+              for (final host in ungrouped) hostRow(host),
           ],
           for (final group in catalog.groups) ...[
-            WgSectionLabel(
-              group.name,
+            HostGroupHeader(
+              groupKey: group.id,
+              groupId: group.id,
+              name: group.name,
+              count: catalog.inGroup(group.id).length,
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -310,9 +310,11 @@ class _HostsScreenState extends ConsumerState<HostsScreen> {
                               host.id,
                           ], title: group.name),
                   ),
+                  SizedBox(width: context.space.hair),
                   WgMenuButton(
                     icon: WgIcons.more,
                     label: 'More for group ${group.name}',
+                    compact: true,
                     entries: () => [
                       WgMenuEntry(
                         label: 'Rename group',
@@ -347,16 +349,18 @@ class _HostsScreenState extends ConsumerState<HostsScreen> {
                 ],
               ),
             ),
-            if (catalog.inGroup(group.id).isEmpty)
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: context.space.sm),
-                child: Text(
-                  "No hosts in this group. Pick it in a host's settings.",
-                  style: context.type.caption,
+            if (!isGroupCollapsed(ref, group.id)) ...[
+              if (catalog.inGroup(group.id).isEmpty)
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: context.space.sm),
+                  child: Text(
+                    'No hosts in this group. Drag a host here.',
+                    style: context.type.caption,
+                  ),
                 ),
-              ),
-            for (final host in catalog.inGroup(group.id).where(matches))
-              hostRow(host),
+              for (final host in catalog.inGroup(group.id).where(matches))
+                hostRow(host),
+            ],
           ],
         ],
       );
@@ -386,6 +390,7 @@ class _HostsScreenState extends ConsumerState<HostsScreen> {
             onPressed: () => unawaited(showHostEditor(context)),
           ),
       ],
+      empty: empty,
       child: body,
     );
   }

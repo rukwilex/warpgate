@@ -12,6 +12,7 @@ import 'package:warpgate/features/connection/domain/link_state.dart';
 import 'package:warpgate/features/connection/presentation/connection_providers.dart';
 import 'package:warpgate/features/connection/presentation/link_dot.dart';
 import 'package:warpgate/features/hosts/domain/host.dart';
+import 'package:warpgate/features/hosts/presentation/host_groups.dart';
 import 'package:warpgate/features/hosts/presentation/hosts_controller.dart';
 import 'package:warpgate/features/mcp/presentation/mcp_service.dart';
 import 'package:warpgate/features/palette/presentation/command_registry.dart';
@@ -21,7 +22,6 @@ import 'package:warpgate/features/shell/presentation/title_bar.dart';
 import 'package:warpgate/features/shell/presentation/window_chrome.dart';
 import 'package:warpgate/features/transfers/domain/transfer_job.dart';
 import 'package:warpgate/features/transfers/presentation/transfer_queue.dart';
-import 'package:warpgate/features/workspace/domain/pane.dart';
 import 'package:warpgate/features/workspace/presentation/workbench_controller.dart';
 
 enum ShellLayout { phone, tablet, desktop }
@@ -264,11 +264,19 @@ class _Sidebar extends ConsumerWidget {
                 children: [
                   if (!rail) ...[
                     SizedBox(width: space.sm),
-                    Semantics(
-                      header: true,
-                      child: Text('Warpgate', style: context.type.title),
+                    const WgLogoMark(),
+                    SizedBox(width: space.sm),
+                    Expanded(
+                      child: Semantics(
+                        header: true,
+                        child: Text(
+                          'Warpgate',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: context.type.title,
+                        ),
+                      ),
                     ),
-                    const Spacer(),
                     if (paletteButton)
                       WgIconButton(
                         icon: WgIcons.search,
@@ -319,79 +327,65 @@ class _HostList extends ConsumerWidget {
       return const WgSkeletonList(rows: 5, label: 'Loading hosts');
     }
     final registry = ref.read(commandRegistryProvider);
-    final bench = ref.read(workbenchProvider.notifier);
+    ref.watch(settingsProvider.select((s) => s.hostOpenModes));
     Widget row(Host host) {
       final state = links[host.id]?.state ?? LinkState.idle;
-      return WgListRow(
-        title: host.label,
-        dense: true,
-        leading: WgStatusDot(state: state.dot, subject: host.label),
-        semanticLabel:
-            '${host.label}, ${state.dot.label.toLowerCase()}. Open terminal',
-        onPressed: () {
-          GoRouter.of(context).go(Routes.workbench);
-          bench.openPane(SshTerminalContent(hostId: host.id));
-        },
-        onSecondaryTapDown: (details) => unawaited(
-          showWgMenu(
-            context,
-            position: details.globalPosition,
-            entries: [
-              WgMenuEntry(
-                label: 'Open terminal',
-                icon: WgIcons.terminal,
-                onSelected: () {
-                  GoRouter.of(context).go(Routes.workbench);
-                  bench.openPane(SshTerminalContent(hostId: host.id));
-                },
-              ),
-              WgMenuEntry(
-                label: 'Open beside current pane',
-                icon: WgIcons.splitHorizontal,
-                onSelected: () {
-                  GoRouter.of(context).go(Routes.workbench);
-                  bench.openPane(
-                    SshTerminalContent(hostId: host.id),
-                    placement: PanePlacement.splitRight,
-                  );
-                },
-              ),
-              WgMenuEntry(
-                label: 'Browse files',
-                icon: WgIcons.folder,
-                onSelected: () {
-                  GoRouter.of(context).go(Routes.workbench);
-                  bench.openPane(
-                    SftpContent(
-                      left: SftpSide(hostId: host.id, path: '~'),
-                    ),
-                  );
-                },
-              ),
-              WgMenuEntry(
-                label: 'Edit host',
-                icon: WgIcons.edit,
-                onSelected: () =>
-                    GoRouter.of(context).go(Routes.hosts, extra: host.id),
-              ),
-              if (links[host.id]?.isUsable ?? false)
-                WgMenuEntry(
-                  label: 'Disconnect',
-                  icon: WgIcons.close,
-                  onSelected: () => unawaited(
-                    ref.read(connectionPoolProvider).disconnect(host.id),
-                  ),
-                ),
-            ],
+      final mode = registry.lastOpenMode(host.id);
+      List<WgMenuEntry> entries() => [
+        ...registry.openHostEntries(host.id),
+        WgMenuEntry(
+          label: 'Open beside current pane',
+          icon: WgIcons.splitHorizontal,
+          onSelected: () =>
+              registry.openHost(host.id, placement: PanePlacement.splitRight),
+        ),
+        const WgMenuEntry.divider(),
+        WgMenuEntry(
+          label: 'Edit host',
+          icon: WgIcons.edit,
+          onSelected: () =>
+              GoRouter.of(context).go(Routes.hosts, extra: host.id),
+        ),
+        if (links[host.id]?.isUsable ?? false)
+          WgMenuEntry(
+            label: 'Disconnect',
+            icon: WgIcons.close,
+            onSelected: () =>
+                unawaited(ref.read(connectionPoolProvider).disconnect(host.id)),
+          ),
+      ];
+      return draggableHost(
+        context,
+        host,
+        WgListRow(
+          title: host.label,
+          dense: true,
+          leading: WgStatusDot(state: state.dot, subject: host.label),
+          semanticLabel:
+              '${host.label}, ${state.dot.label.toLowerCase()}. Open ${mode.label.toLowerCase()}',
+          onPressed: () => registry.openHost(host.id),
+          revealTrailing: true,
+          trailing: WgMenuButton(
+            icon: WgIcons.more,
+            label: 'Open ${host.label} as',
+            compact: true,
+            entries: entries,
+          ),
+          onSecondaryTapDown: (details) => unawaited(
+            showWgMenu(
+              context,
+              position: details.globalPosition,
+              entries: entries(),
+            ),
           ),
         ),
       );
     }
 
-    final groups = value.groups.where(
-      (group) => value.inGroup(group.id).isNotEmpty,
-    );
+    final groups = value.groups;
+    final ungroupedCollapsed = isGroupCollapsed(ref, ungroupedKey);
     return ListView(
+      padding: EdgeInsets.only(bottom: context.space.sm),
       children: [
         WgSectionLabel(
           'Hosts',
@@ -413,20 +407,36 @@ class _HostList extends ConsumerWidget {
               ),
             ),
           ),
-        for (final host in value.ungrouped) row(host),
-        for (final group in groups) ...[
-          WgSectionLabel(
-            group.name,
-            trailing: WgIconButton(
-              icon: WgIcons.grid,
-              label: 'Open ${group.name} in a grid',
-              compact: true,
-              onPressed: () => registry.openHostsInGrid([
-                for (final host in value.inGroup(group.id)) host.id,
-              ], title: group.name),
-            ),
+        if (groups.isNotEmpty && value.ungrouped.isNotEmpty)
+          HostGroupHeader(
+            groupKey: ungroupedKey,
+            name: 'Ungrouped',
+            count: value.ungrouped.length,
+            renamable: false,
+            dense: true,
           ),
-          for (final host in value.inGroup(group.id)) row(host),
+        if (!ungroupedCollapsed || groups.isEmpty)
+          for (final host in value.ungrouped) row(host),
+        for (final group in groups) ...[
+          HostGroupHeader(
+            groupKey: group.id,
+            groupId: group.id,
+            name: group.name,
+            count: value.inGroup(group.id).length,
+            dense: true,
+            trailing: value.inGroup(group.id).isEmpty
+                ? null
+                : WgIconButton(
+                    icon: WgIcons.grid,
+                    label: 'Open ${group.name} in a grid',
+                    compact: true,
+                    onPressed: () => registry.openHostsInGrid([
+                      for (final host in value.inGroup(group.id)) host.id,
+                    ], title: group.name),
+                  ),
+          ),
+          if (!isGroupCollapsed(ref, group.id))
+            for (final host in value.inGroup(group.id)) row(host),
         ],
       ],
     );

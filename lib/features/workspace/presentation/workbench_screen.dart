@@ -12,6 +12,7 @@ import 'package:warpgate/features/connection/presentation/connection_providers.d
 import 'package:warpgate/features/connection/presentation/link_dot.dart';
 import 'package:warpgate/features/hosts/presentation/hosts_controller.dart';
 import 'package:warpgate/features/palette/presentation/command_registry.dart';
+import 'package:warpgate/features/sftp/presentation/file_drop.dart';
 import 'package:warpgate/features/sftp/presentation/sftp_pane.dart';
 import 'package:warpgate/features/shell/presentation/window_chrome.dart';
 import 'package:warpgate/features/terminal/presentation/log_tail_pane.dart';
@@ -89,7 +90,7 @@ class _EmptyWorkbench extends ConsumerWidget {
     final none = hosts.value?.hosts.isEmpty ?? true;
     if (none) {
       return WgEmptyState(
-        icon: WgIcons.server,
+        mark: const WgLogoMark(),
         title: 'Add a host to start',
         body: 'Save a server once with its address, user and key. Then open as many terminals and file panes on it as you need.',
         action: WgButton.primary(
@@ -129,13 +130,75 @@ class _TabStrip extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
     height: context.sizes.tabBar,
-    padding: EdgeInsets.symmetric(horizontal: context.space.xs),
+    padding: EdgeInsets.symmetric(horizontal: context.space.sm),
     decoration: BoxDecoration(
       color: context.colors.canvasDeep,
       border: Border(bottom: BorderSide(color: context.colors.hairline)),
     ),
     child: const SessionTabs(),
   );
+}
+
+abstract final class TabSizing {
+  static double width({
+    required double available,
+    required int count,
+    required double min,
+    required double max,
+  }) {
+    if (count <= 0) return max;
+    return (available / count).floorToDouble().clamp(min, max);
+  }
+}
+
+class _TabScroller extends StatefulWidget {
+  const new({
+    required this.activeIndex,
+    required this.tabWidth,
+    required this.builder,
+  });
+
+  final int activeIndex;
+  final double tabWidth;
+  final Widget Function(ScrollController scroll) builder;
+
+  @override
+  State<_TabScroller> createState() => _TabScrollerState();
+}
+
+class _TabScrollerState extends State<_TabScroller> {
+  final _scroll = ScrollController();
+
+  @override
+  void didUpdateWidget(_TabScroller oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.activeIndex != widget.activeIndex ||
+        oldWidget.tabWidth != widget.tabWidth) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _reveal());
+    }
+  }
+
+  void _reveal() {
+    if (!mounted || !_scroll.hasClients || widget.activeIndex < 0) return;
+    final position = _scroll.position;
+    final start = widget.activeIndex * widget.tabWidth;
+    final end = start + widget.tabWidth;
+    final viewport = position.viewportDimension;
+    var target = position.pixels;
+    if (start < target) target = start;
+    if (end > target + viewport) target = end - viewport;
+    target = target.clamp(0, position.maxScrollExtent);
+    if (target != position.pixels) _scroll.jumpTo(target);
+  }
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.builder(_scroll);
 }
 
 class SessionTabs extends ConsumerWidget {
@@ -153,7 +216,7 @@ class SessionTabs extends ConsumerWidget {
         catalog?.host(hostId)?.label ?? 'Removed host',
       LocalTerminalContent() => 'Local',
       SftpContent(:final left, :final right) when right != null =>
-        '${left.isLocal ? 'This device' : catalog?.host(left.hostId)?.label} ⇄ ${right.isLocal ? 'This device' : catalog?.host(right.hostId)?.label}',
+        '${left.isLocal ? 'This device' : catalog?.host(left.hostId)?.label} and ${right.isLocal ? 'This device' : catalog?.host(right.hostId)?.label}',
       SftpContent(:final left) =>
         'Files · ${left.isLocal ? 'This device' : catalog?.host(left.hostId)?.label}',
       LogTailContent(:final path) => 'tail ${path.split('/').last}',
@@ -186,10 +249,17 @@ class SessionTabs extends ConsumerWidget {
       if (!onWorkbench) GoRouter.of(context).go(Routes.workbench);
     }
 
-    final tabs = ReorderableListView.builder(
+    Widget tabStrip(
+      double tabWidth,
+      ScrollController scroll, {
+      required bool fits,
+    }) => ReorderableListView.builder(
+      scrollController: scroll,
       scrollDirection: Axis.horizontal,
-      shrinkWrap: embedded,
       buildDefaultDragHandles: false,
+      clipBehavior: fits ? Clip.none : Clip.hardEdge,
+      physics: fits ? const NeverScrollableScrollPhysics() : null,
+      itemExtent: tabWidth,
       itemCount: workspace.tabs.length,
       onReorderItem: (from, to) =>
           controller.moveTab(workspace.tabs[from].id, to),
@@ -211,51 +281,54 @@ class SessionTabs extends ConsumerWidget {
           index: index,
           child: Padding(
             padding: EdgeInsets.symmetric(horizontal: space.hair),
-            child: Center(
-              child: WgTabChip(
-                label: title,
-                selected: selected,
-                marker: broadcasting ? colors.accent : null,
-                leading: WgStatusDot(state: state.dot, subject: title),
-                trailing: byClaude
-                    ? Tooltip(
-                        message: 'Opened by Claude Code',
-                        child: Icon(
-                          WgIcons.bot,
-                          size: context.sizes.icon,
-                          color: colors.textMuted,
-                          semanticLabel: 'Opened by Claude Code',
+            child: DragHoverSwitch(
+              onSwitch: () => select(tab.id),
+              child: Align(
+                child: WgTabChip(
+                  label: title,
+                  selected: selected,
+                  marker: broadcasting ? colors.accent : null,
+                  leading: WgStatusDot(state: state.dot, subject: title),
+                  trailing: byClaude
+                      ? Tooltip(
+                          message: 'Opened by Claude Code',
+                          child: Icon(
+                            WgIcons.bot,
+                            size: context.sizes.icon,
+                            color: colors.textMuted,
+                            semanticLabel: 'Opened by Claude Code',
+                          ),
+                        )
+                      : null,
+                  onPressed: () => select(tab.id),
+                  onClose: () => controller.closeTab(tab.id),
+                  onSecondaryTapDown: (details) => unawaited(
+                    showWgMenu(
+                      context,
+                      position: details.globalPosition,
+                      entries: [
+                        WgMenuEntry(
+                          label: 'Rename tab',
+                          icon: WgIcons.edit,
+                          onSelected: () =>
+                              unawaited(_renameTab(context, ref, tab, title)),
                         ),
-                      )
-                    : null,
-                onPressed: () => select(tab.id),
-                onClose: () => controller.closeTab(tab.id),
-                onSecondaryTapDown: (details) => unawaited(
-                  showWgMenu(
-                    context,
-                    position: details.globalPosition,
-                    entries: [
-                      WgMenuEntry(
-                        label: 'Rename tab',
-                        icon: WgIcons.edit,
-                        onSelected: () =>
-                            unawaited(_renameTab(context, ref, tab, title)),
-                      ),
-                      WgMenuEntry(
-                        label: 'Broadcast to this tab',
-                        icon: WgIcons.broadcast,
-                        onSelected: () {
-                          select(tab.id);
-                          controller.toggleBroadcastForTab();
-                        },
-                      ),
-                      WgMenuEntry(
-                        label: 'Close tab',
-                        icon: WgIcons.close,
-                        destructive: true,
-                        onSelected: () => controller.closeTab(tab.id),
-                      ),
-                    ],
+                        WgMenuEntry(
+                          label: 'Broadcast to this tab',
+                          icon: WgIcons.broadcast,
+                          onSelected: () {
+                            select(tab.id);
+                            controller.toggleBroadcastForTab();
+                          },
+                        ),
+                        WgMenuEntry(
+                          label: 'Close tab',
+                          icon: WgIcons.close,
+                          destructive: true,
+                          onSelected: () => controller.closeTab(tab.id),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -265,19 +338,57 @@ class SessionTabs extends ConsumerWidget {
       },
     );
 
+    final plus = WgIconButton(
+      key: const ValueKey('new-tab'),
+      icon: WgIcons.plus,
+      label: 'New terminal',
+      compact: true,
+      shortcut: keys['session.new'],
+      onPressed: () =>
+          unawaited(ref.read(commandRegistryProvider).newSession()),
+    );
+    final sizes = context.sizes;
+    final activeIndex = workspace.tabs.indexWhere(
+      (tab) => tab.id == workspace.activeTab?.id,
+    );
     return Row(
-      mainAxisSize: embedded ? MainAxisSize.min : MainAxisSize.max,
       children: [
         _WorkspaceSwitcher(workspace: workspace),
         SizedBox(width: space.xs),
-        if (embedded) Flexible(child: tabs) else Expanded(child: tabs),
-        WgIconButton(
-          icon: WgIcons.plus,
-          label: 'New terminal',
-          compact: true,
-          shortcut: keys['session.new'],
-          onPressed: () =>
-              unawaited(ref.read(commandRegistryProvider).newSession()),
+        Expanded(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final plusWidth = sizes.rowCompact - space.sm + space.xs;
+              final available = (constraints.maxWidth - plusWidth).clamp(
+                0.0,
+                double.infinity,
+              );
+              final count = workspace.tabs.length;
+              final tabWidth = TabSizing.width(
+                available: available,
+                count: count,
+                min: sizes.tabMin,
+                max: sizes.tabMax,
+              );
+              final fits = tabWidth * count <= available;
+              return _TabScroller(
+                activeIndex: activeIndex,
+                tabWidth: tabWidth,
+                builder: (scroll) => Row(
+                  children: [
+                    SizedBox(
+                      key: const ValueKey('tab-strip'),
+                      width: fits ? tabWidth * count : available,
+                      height: constraints.maxHeight,
+                      child: tabStrip(tabWidth, scroll, fits: fits),
+                    ),
+                    SizedBox(width: space.xs),
+                    plus,
+                  ],
+                ),
+              );
+            },
+          ),
         ),
       ],
     );
@@ -547,11 +658,17 @@ class _PhoneSessionStrip extends ConsumerWidget {
               horizontal: context.space.hair,
               vertical: context.space.xs,
             ),
-            child: WgTabChip(
-              label: label,
-              selected: index == current,
-              leading: WgStatusDot(state: state.dot, subject: label),
-              onPressed: () => onSelect(index),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minWidth: context.sizes.tabMin,
+                maxWidth: context.sizes.tabMax,
+              ),
+              child: WgTabChip(
+                label: label,
+                selected: index == current,
+                leading: WgStatusDot(state: state.dot, subject: label),
+                onPressed: () => onSelect(index),
+              ),
             ),
           );
         },

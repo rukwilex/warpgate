@@ -83,6 +83,17 @@ abstract final class WgIcons {
   static const IconData export = LucideIcons300.fileOutput;
   static const IconData zoomIn = LucideIcons300.zoomIn;
   static const IconData zoomOut = LucideIcons300.zoomOut;
+  static const IconData filesPanel = LucideIcons300.panelRight;
+  static const IconData dockRight = LucideIcons300.panelRight;
+  static const IconData dockBottom = LucideIcons300.panelBottom;
+  static const IconData folderTree = LucideIcons300.folderTree;
+  static const IconData star = LucideIcons300.star;
+  static const IconData starOff = LucideIcons300.starOff;
+  static const IconData follow = LucideIcons300.locateFixed;
+  static const IconData followOff = LucideIcons300.locateOff;
+  static const IconData cut = LucideIcons300.scissors;
+  static const IconData goTo = LucideIcons300.cornerDownRight;
+  static const IconData textCursor = LucideIcons300.textCursorInput;
 }
 
 class WgIcon extends StatelessWidget {

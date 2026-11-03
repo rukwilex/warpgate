@@ -9,10 +9,12 @@ import 'package:warpgate/core/util/ids.dart';
 import 'package:warpgate/features/connection/data/ssh_errors.dart';
 import 'package:warpgate/features/connection/presentation/connection_providers.dart';
 import 'package:warpgate/features/hosts/presentation/hosts_controller.dart';
+import 'package:warpgate/features/keys/data/key_codec.dart';
 import 'package:warpgate/features/settings/presentation/settings_controller.dart';
 import 'package:warpgate/features/sftp/domain/file_endpoint.dart';
 import 'package:warpgate/features/sftp/presentation/endpoint_providers.dart';
 import 'package:warpgate/features/transfers/data/direct_transfer.dart';
+import 'package:warpgate/features/transfers/data/file_checksum.dart';
 import 'package:warpgate/features/transfers/data/transfer_engine.dart';
 import 'package:warpgate/features/transfers/domain/transfer_job.dart';
 
@@ -80,8 +82,10 @@ class TransferQueue extends Notifier<List<TransferJob>> {
     bool isDirectory = false,
     TransferMode mode = TransferMode.stream,
     String origin = 'user',
+    bool move = false,
   }) {
     final job = TransferJob(
+      move: move,
       id: Ids.next(),
       source: source,
       target: target,
@@ -184,7 +188,24 @@ class TransferQueue extends Notifier<List<TransferJob>> {
   TransferEngine get _engine => TransferEngine(
     endpointFor: ref.read(endpointResolverProvider).resolve,
     askConflict: ref.read(interactionBrokerProvider).ask,
+    checksum: _checksum,
   );
+
+  final Map<String, bool> _hasSha256 = {};
+
+  Future<String?> _checksum(String? hostId, String path) async {
+    if (hostId == null) return await FileChecksum.local(path);
+    final pool = ref.read(connectionPoolProvider);
+    if (_hasSha256[hostId] == false) return null;
+    final result = await pool.exec(
+      hostId,
+      'command -v sha256sum >/dev/null 2>&1 && sha256sum -- ${KeyCodec.shellQuote(path)}',
+      timeout: const Duration(minutes: 30),
+    );
+    final digest = FileChecksum.parse(result.stdout);
+    _hasSha256[hostId] = digest != null;
+    return digest;
+  }
 
   Future<void> _runDirect(TransferJob job, CancelToken token) async {
     final hosts = ref.read(hostsProvider).value;

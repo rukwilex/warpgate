@@ -67,38 +67,38 @@ class _TransfersScreenState extends ConsumerState<TransfersScreen> {
             onPressed: queue.clearFinished,
           ),
       ],
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (jobs.isNotEmpty) ...[
-            WgSegmented<_Filter>(
-              label: 'Show',
-              value: _filter,
-              onChanged: (value) => setState(() => _filter = value),
-              segments: [
-                WgSegment(_Filter.all, 'All ${jobs.length}'),
-                WgSegment(_Filter.active, 'Active $active'),
-                WgSegment(_Filter.failed, 'Failed $failed'),
-                const WgSegment(_Filter.done, 'Done'),
+      empty: jobs.isEmpty
+          ? const WgEmptyState(
+              icon: WgIcons.transfer,
+              title: 'No transfers',
+              body: 'Drag files between two file panes, or between a pane and your desktop. Copies between hosts stream through here without touching this disk.',
+            )
+          : null,
+      child: jobs.isEmpty
+          ? null
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (jobs.isNotEmpty) ...[
+                  WgSegmented<_Filter>(
+                    label: 'Show',
+                    value: _filter,
+                    onChanged: (value) => setState(() => _filter = value),
+                    segments: [
+                      WgSegment(_Filter.all, 'All ${jobs.length}'),
+                      WgSegment(_Filter.active, 'Active $active'),
+                      WgSegment(_Filter.failed, 'Failed $failed'),
+                      const WgSegment(_Filter.done, 'Done'),
+                    ],
+                  ),
+                  SizedBox(height: context.space.lg),
+                ],
+                if (visible.isEmpty)
+                  const WgEmptyState(title: 'Nothing in this view')
+                else
+                  for (final job in visible) _JobRow(job: job),
               ],
             ),
-            SizedBox(height: context.space.lg),
-          ],
-          if (jobs.isEmpty)
-            Padding(
-              padding: EdgeInsets.only(top: context.space.huge),
-              child: const WgEmptyState(
-                icon: WgIcons.transfer,
-                title: 'No transfers',
-                body: 'Drag files between two file panes, or between a pane and your desktop. Copies between hosts stream through here without touching this disk.',
-              ),
-            )
-          else if (visible.isEmpty)
-            const WgEmptyState(title: 'Nothing in this view')
-          else
-            for (final job in visible) _JobRow(job: job),
-        ],
-      ),
     );
   }
 }
@@ -117,7 +117,8 @@ class _JobRow extends ConsumerWidget {
     String where(TransferRef ref) => ref.isLocal
         ? 'This device'
         : catalog?.host(ref.hostId)?.label ?? 'Removed host';
-    final route = '${where(job.source)} → ${where(job.target)}';
+    final route =
+        '${where(job.source)} → ${where(job.target)}${job.move ? ' · moving' : ''}';
     final tone = switch (job.status) {
       TransferStatus.failed => colors.negative,
       TransferStatus.completed => colors.positive,
