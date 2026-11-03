@@ -1,0 +1,13 @@
+List saved port forwards
+
+Usage:
+  warpgate forward list [flags]
+
+Flags:
+      --host <HOST>  Only this host
+
+Examples:
+  warpgate forward list
+  warpgate forward list --host prod --json
+
+Run warpgate --help for flags that work on every command.

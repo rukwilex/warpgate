@@ -1,0 +1,10 @@
+Remove finished transfers from the list
+
+Usage:
+  warpgate transfers clear
+
+Examples:
+  warpgate transfers clear
+  warpgate transfers clear --json
+
+Run warpgate --help for flags that work on every command.

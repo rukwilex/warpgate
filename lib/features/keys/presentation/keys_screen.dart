@@ -7,14 +7,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:warpgate/core/platform/platform_info.dart';
 import 'package:warpgate/core/util/clipboard_guard.dart';
-import 'package:warpgate/core/util/format.dart';
 import 'package:warpgate/design_system/design_system.dart';
 import 'package:warpgate/features/connection/presentation/connection_providers.dart';
 import 'package:warpgate/features/hosts/presentation/host_picker.dart';
-import 'package:warpgate/features/keys/data/key_codec.dart';
-import 'package:warpgate/features/keys/domain/ssh_key.dart';
 import 'package:warpgate/features/keys/presentation/keys_controller.dart';
 import 'package:warpgate/features/shell/presentation/prompts.dart';
+import 'package:warpgate_core/core/util/format.dart';
+import 'package:warpgate_core/features/keys/data/key_codec.dart';
+import 'package:warpgate_core/features/keys/domain/ssh_key.dart';
 
 class KeysScreen extends ConsumerWidget {
   const new({super.key});

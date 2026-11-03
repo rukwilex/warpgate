@@ -1,0 +1,13 @@
+Reset one setting, or all of them
+
+Usage:
+  warpgate settings reset [key]
+
+Arguments:
+  key  Setting name. Leave out to reset all
+
+Examples:
+  warpgate settings reset accent
+  warpgate settings reset --yes
+
+Run warpgate --help for flags that work on every command.

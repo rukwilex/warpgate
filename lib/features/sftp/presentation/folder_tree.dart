@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:warpgate/design_system/design_system.dart';
-import 'package:warpgate/features/sftp/domain/file_endpoint.dart';
+import 'package:warpgate_core/features/sftp/domain/file_endpoint.dart';
 
 class FolderTree extends StatefulWidget {
   const new({

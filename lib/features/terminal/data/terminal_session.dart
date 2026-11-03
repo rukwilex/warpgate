@@ -5,13 +5,13 @@ import 'dart:io';
 import 'package:dartssh2/dartssh2.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_pty/flutter_pty.dart';
-import 'package:warpgate/features/connection/data/connection_pool.dart';
-import 'package:warpgate/features/connection/data/ssh_errors.dart';
-import 'package:warpgate/features/connection/domain/link_state.dart';
-import 'package:warpgate/features/hosts/domain/host.dart';
-import 'package:warpgate/features/keys/data/key_codec.dart';
 import 'package:warpgate/features/terminal/domain/terminal_geometry.dart';
 import 'package:warpgate/features/terminal/domain/terminal_reflow.dart';
+import 'package:warpgate_core/features/connection/data/connection_pool.dart';
+import 'package:warpgate_core/features/connection/data/ssh_errors.dart';
+import 'package:warpgate_core/features/connection/domain/link_state.dart';
+import 'package:warpgate_core/features/hosts/domain/host.dart';
+import 'package:warpgate_core/features/keys/data/key_codec.dart';
 import 'package:xterm/xterm.dart';
 
 abstract interface class TerminalBackend {
@@ -345,10 +345,15 @@ class TerminalSession {
           notice.value =
               'tmux is not installed on ${host.label}, so this pane uses a plain shell. Programs stop when the connection drops.';
         }
-        final session = await client.shell(
-          pty: pty,
-          environment: {FolderTracking.paneVariable: id},
-        );
+        final SSHSession session;
+        try {
+          session = await client.shell(
+            pty: pty,
+            environment: {FolderTracking.paneVariable: id},
+          );
+        } on SSHChannelRequestError {
+          return await _plainShell(client, pty, host, directory);
+        }
         final backend = SshShellBackend(client, session);
         final start = directory ?? host.startDirectory;
         if (start != null && start.isNotEmpty) {
@@ -356,6 +361,20 @@ class TerminalSession {
         }
         return backend;
     }
+  }
+
+  Future<TerminalBackend> _plainShell(
+    SSHClient client,
+    SSHPtyConfig pty,
+    Host host,
+    String? directory,
+  ) async {
+    final backend = SshShellBackend(client, await client.shell(pty: pty));
+    final start = directory ?? host.startDirectory;
+    if (start != null && start.isNotEmpty) {
+      backend.write(utf8.encode('cd ${KeyCodec.shellQuote(start)}\r'));
+    }
+    return backend;
   }
 
   void _handleRemoteOutput(String data) {

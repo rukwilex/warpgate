@@ -1,0 +1,10 @@
+Print the version
+
+Usage:
+  warpgate version
+
+Examples:
+  warpgate version
+  warpgate version --json
+
+Run warpgate --help for flags that work on every command.

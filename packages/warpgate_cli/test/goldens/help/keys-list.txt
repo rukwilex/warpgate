@@ -1,0 +1,10 @@
+List saved SSH keys
+
+Usage:
+  warpgate keys list
+
+Examples:
+  warpgate keys list
+  warpgate keys list --json
+
+Run warpgate --help for flags that work on every command.

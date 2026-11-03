@@ -3,11 +3,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:warpgate/core/util/format.dart';
 import 'package:warpgate/design_system/design_system.dart';
-import 'package:warpgate/features/sftp/domain/file_endpoint.dart';
 import 'package:warpgate/features/sftp/presentation/endpoint_providers.dart';
 import 'package:warpgate/features/transfers/presentation/transfer_actions.dart';
+import 'package:warpgate_core/core/util/format.dart';
+import 'package:warpgate_core/features/sftp/domain/file_endpoint.dart';
 
 @immutable
 class DropHint {

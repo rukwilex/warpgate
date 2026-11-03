@@ -1,0 +1,13 @@
+Print a completion script for your shell
+
+Usage:
+  warpgate completion <shell>
+
+Arguments:
+  shell  Shell. One of: bash, zsh, fish, powershell
+
+Examples:
+  warpgate completion zsh > ~/.zfunc/_warpgate
+  source <(warpgate completion bash)
+
+Run warpgate --help for flags that work on every command.

@@ -2,9 +2,9 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:warpgate/features/mcp/data/mcp_protocol.dart';
-import 'package:warpgate/features/mcp/data/mcp_server.dart';
-import 'package:warpgate/features/mcp/domain/mcp_tools.dart';
+import 'package:warpgate_core/features/mcp/data/mcp_protocol.dart';
+import 'package:warpgate_core/features/mcp/data/mcp_server.dart';
+import 'package:warpgate_core/features/mcp/domain/mcp_tools.dart';
 
 void main() {
   final dispatcher = McpDispatcher(

@@ -1,0 +1,12 @@
+Open files at the folder of the focused terminal, in a new pane
+
+Usage:
+  warpgate files here
+
+Needs the app. Warpgate starts if it is not running.
+
+Examples:
+  warpgate files here
+  warpgate files here --json
+
+Run warpgate --help for flags that work on every command.

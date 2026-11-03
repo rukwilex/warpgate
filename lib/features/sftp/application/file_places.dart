@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:warpgate/core/data/app_database.dart';
 import 'package:warpgate/core/data/storage_providers.dart';
-import 'package:warpgate/features/sftp/domain/file_endpoint.dart';
+import 'package:warpgate_core/features/sftp/domain/file_endpoint.dart';
 
 @immutable
 class FilePlaces {

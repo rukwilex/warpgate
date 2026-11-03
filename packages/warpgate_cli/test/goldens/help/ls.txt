@@ -1,0 +1,22 @@
+List a remote or local folder
+
+Usage:
+  warpgate ls [flags] <path>
+
+Arguments:
+  path  host:path, or a local path
+
+Flags:
+  -l, --long          Show size, owner and modified time
+  -a, --all           Include hidden files
+      --tree          Show folders as a tree
+      --sort <FIELD>  Sort order. One of: name, size, time. Default: name
+
+Also: warpgate files ls
+
+Examples:
+  warpgate ls prod:/var/log
+  warpgate ls -la prod:~
+  warpgate ls --tree --sort size staging:/srv/app
+
+Run warpgate --help for flags that work on every command.

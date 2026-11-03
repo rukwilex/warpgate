@@ -3,11 +3,11 @@ import 'dart:async';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:local_auth/local_auth.dart';
-import 'package:warpgate/core/data/secret_store.dart';
 import 'package:warpgate/core/data/storage_providers.dart';
 import 'package:warpgate/core/platform/platform_info.dart';
-import 'package:warpgate/features/security/data/pin_hasher.dart';
 import 'package:warpgate/features/settings/presentation/settings_controller.dart';
+import 'package:warpgate_core/core/data/secret_store.dart';
+import 'package:warpgate_core/features/security/data/pin_hasher.dart';
 
 final appLockProvider = NotifierProvider<AppLockController, bool>(
   AppLockController.new,

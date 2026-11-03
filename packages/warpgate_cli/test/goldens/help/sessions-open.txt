@@ -1,0 +1,18 @@
+Open a terminal on a host in the app
+
+Usage:
+  warpgate sessions open [flags] [host]
+
+Arguments:
+  host  Host label, id or user@host[:port]
+
+Flags:
+      --workspace <NAME>  Workspace to open it in
+
+Needs the app. Warpgate starts if it is not running.
+
+Examples:
+  warpgate sessions open prod
+  warpgate sessions open prod --workspace ops
+
+Run warpgate --help for flags that work on every command.

@@ -1,0 +1,15 @@
+warpgate panes
+
+Usage:
+  warpgate panes <command> [flags]
+
+Commands:
+  split     Split the focused pane
+  close     Close the focused pane
+  maximize  Maximize or restore the focused pane
+  focus     Move focus to a neighboring pane
+  grow      Move the divider of the focused pane
+  swap      Swap the focused pane with a neighbor
+  to-tab    Move the focused pane to a new tab
+
+Run warpgate panes <command> --help for details.

@@ -33,7 +33,7 @@ void main() {
 
   setUp(() {
     FlutterSecureStorage.setMockInitialValues({});
-    store = DocumentStore(AppDatabase(NativeDatabase.memory()));
+    store = DriftDocumentStore(AppDatabase(NativeDatabase.memory()));
   });
 
   test('secrets round trip and are not stored in clear text', () async {
@@ -112,7 +112,7 @@ void main() {
       final secrets = VaultSecretStore(
         store: store,
         master: MasterKeySource(primary: CountingVault()),
-        legacy: legacy,
+        legacy: const SecureStorageLegacy(legacy),
       );
       expect(await secrets.read('host.h1.password'), 'old-pass');
       expect(await secrets.read('key.k1.private'), 'PEM');
@@ -121,7 +121,7 @@ void main() {
       final again = VaultSecretStore(
         store: store,
         master: MasterKeySource(primary: CountingVault()),
-        legacy: legacy,
+        legacy: const SecureStorageLegacy(legacy),
       );
       expect(await again.read('late'), isNull);
     },

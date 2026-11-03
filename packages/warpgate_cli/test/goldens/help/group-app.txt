@@ -1,0 +1,12 @@
+warpgate app
+
+Usage:
+  warpgate app <command> [flags]
+
+Commands:
+  palette  Open the command palette in the app
+  sidebar  Show or hide the sidebar
+  lock     Lock Warpgate
+  zoom     Change the text size of the focused terminal
+
+Run warpgate app <command> --help for details.

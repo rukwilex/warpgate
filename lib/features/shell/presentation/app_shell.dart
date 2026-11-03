@@ -5,13 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:warpgate/core/platform/platform_info.dart';
 import 'package:warpgate/core/routing/routes.dart';
-import 'package:warpgate/core/util/format.dart';
 import 'package:warpgate/design_system/design_system.dart';
-import 'package:warpgate/features/connection/data/port_forwarder.dart';
-import 'package:warpgate/features/connection/domain/link_state.dart';
 import 'package:warpgate/features/connection/presentation/connection_providers.dart';
 import 'package:warpgate/features/connection/presentation/link_dot.dart';
-import 'package:warpgate/features/hosts/domain/host.dart';
 import 'package:warpgate/features/hosts/presentation/host_groups.dart';
 import 'package:warpgate/features/hosts/presentation/hosts_controller.dart';
 import 'package:warpgate/features/mcp/presentation/mcp_service.dart';
@@ -20,9 +16,13 @@ import 'package:warpgate/features/palette/presentation/palette_overlay.dart';
 import 'package:warpgate/features/settings/presentation/settings_controller.dart';
 import 'package:warpgate/features/shell/presentation/title_bar.dart';
 import 'package:warpgate/features/shell/presentation/window_chrome.dart';
-import 'package:warpgate/features/transfers/domain/transfer_job.dart';
 import 'package:warpgate/features/transfers/presentation/transfer_queue.dart';
 import 'package:warpgate/features/workspace/presentation/workbench_controller.dart';
+import 'package:warpgate_core/core/util/format.dart';
+import 'package:warpgate_core/features/connection/data/port_forwarder.dart';
+import 'package:warpgate_core/features/connection/domain/link_state.dart';
+import 'package:warpgate_core/features/hosts/domain/host.dart';
+import 'package:warpgate_core/features/transfers/domain/transfer_job.dart';
 
 enum ShellLayout { phone, tablet, desktop }
 

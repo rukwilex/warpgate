@@ -1,0 +1,13 @@
+Print the value of one setting
+
+Usage:
+  warpgate settings get <key>
+
+Arguments:
+  key  Setting name
+
+Examples:
+  warpgate settings get transferConcurrency
+  warpgate settings get accent --json
+
+Run warpgate --help for flags that work on every command.

@@ -4,14 +4,14 @@ import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:warpgate/core/util/ids.dart';
 import 'package:warpgate/design_system/design_system.dart';
-import 'package:warpgate/features/connection/data/port_forwarder.dart';
 import 'package:warpgate/features/connection/presentation/connection_providers.dart';
-import 'package:warpgate/features/hosts/domain/host.dart';
 import 'package:warpgate/features/hosts/presentation/hosts_controller.dart';
 import 'package:warpgate/features/keys/presentation/keys_controller.dart';
 import 'package:warpgate/features/settings/presentation/settings_controller.dart';
+import 'package:warpgate_core/core/util/ids.dart';
+import 'package:warpgate_core/features/connection/data/port_forwarder.dart';
+import 'package:warpgate_core/features/hosts/domain/host.dart';
 
 Future<Host?> showHostEditor(BuildContext context, {Host? host}) =>
     showDialog<Host>(
@@ -320,6 +320,11 @@ class _HostEditorState extends ConsumerState<HostEditor> {
                 ],
                 empty: 'No keys yet. Add one in Keys',
                 onChanged: (value) => setState(() => _keyId = value),
+              ),
+            if (_auth == AuthMethod.agent)
+              Text(
+                'Uses the keys loaded in ssh-agent or Pageant. Asks for a password if none of them work.',
+                style: context.type.caption,
               ),
             if (_auth == AuthMethod.keyboardInteractive)
               Text(

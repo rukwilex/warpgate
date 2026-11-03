@@ -1,0 +1,10 @@
+List saved layouts and presets
+
+Usage:
+  warpgate layouts list
+
+Examples:
+  warpgate layouts list
+  warpgate layouts list --json
+
+Run warpgate --help for flags that work on every command.

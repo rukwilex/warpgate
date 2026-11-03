@@ -1,8 +1,9 @@
 import 'dart:convert';
 
 import 'package:drift/drift.dart';
+import 'package:warpgate_core/core/data/document_store.dart';
 
-typedef JsonMap = Map<String, Object?>;
+export 'package:warpgate_core/core/data/document_store.dart';
 
 class AppDatabase extends GeneratedDatabase {
   new(super.executor);
@@ -32,14 +33,19 @@ class AppDatabase extends GeneratedDatabase {
         'ON documents (collection, updated_at)',
       );
     },
+    beforeOpen: (_) async {
+      await customSelect('PRAGMA journal_mode = WAL').get();
+      await customSelect('PRAGMA busy_timeout = 5000').get();
+    },
   );
 }
 
-class DocumentStore {
+class DriftDocumentStore implements DocumentStore {
   new(this._db);
 
   final AppDatabase _db;
 
+  @override
   Future<List<JsonMap>> all(
     String collection, {
     bool newestFirst = false,
@@ -57,6 +63,7 @@ class DocumentStore {
     return [for (final row in rows) _decode(row.read<String>('body'))];
   }
 
+  @override
   Future<JsonMap?> get(String collection, String id) async {
     final row = await _db
         .customSelect(
@@ -67,6 +74,7 @@ class DocumentStore {
     return row == null ? null : _decode(row.read<String>('body'));
   }
 
+  @override
   Future<void> put(
     String collection,
     String id,
@@ -83,6 +91,7 @@ class DocumentStore {
     ],
   );
 
+  @override
   Future<void> putAll(String collection, Map<String, JsonMap> bodies) =>
       _db.transaction(() async {
         for (final MapEntry(:key, :value) in bodies.entries) {
@@ -90,22 +99,34 @@ class DocumentStore {
         }
       });
 
+  @override
   Future<void> delete(String collection, String id) => _db.customStatement(
     'DELETE FROM documents WHERE collection = ? AND id = ?',
     [collection, id],
   );
 
+  @override
   Future<void> clear(String collection) => _db.customStatement(
     'DELETE FROM documents WHERE collection = ?',
     [collection],
   );
 
+  @override
   Future<void> trim(String collection, int keep) => _db.customStatement(
     'DELETE FROM documents WHERE collection = ? AND id NOT IN ( '
     'SELECT id FROM documents WHERE collection = ? '
     'ORDER BY updated_at DESC LIMIT ?)',
     [collection, collection, keep],
   );
+
+  @override
+  Future<T> transaction<T>(Future<T> Function() body) => _db.transaction(body);
+
+  @override
+  Future<int> dataVersion() async {
+    final row = await _db.customSelect('PRAGMA data_version').getSingle();
+    return row.read<int>('data_version');
+  }
 
   JsonMap _decode(String body) =>
       (jsonDecode(body) as Map).cast<String, Object?>();

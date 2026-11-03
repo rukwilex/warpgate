@@ -1,0 +1,10 @@
+List workspaces
+
+Usage:
+  warpgate workspaces list
+
+Examples:
+  warpgate workspaces list
+  warpgate workspaces list --json
+
+Run warpgate --help for flags that work on every command.

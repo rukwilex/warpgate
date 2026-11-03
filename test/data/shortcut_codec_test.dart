@@ -2,7 +2,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:warpgate/core/shortcuts/shortcut_codec.dart';
-import 'package:warpgate/features/settings/domain/app_settings.dart';
+import 'package:warpgate_core/features/settings/domain/app_settings.dart';
 
 void main() {
   test('shortcut encode and decode round trip', () {

@@ -1,0 +1,12 @@
+Go to the previous tab
+
+Usage:
+  warpgate tabs previous
+
+Needs the app. Warpgate starts if it is not running.
+
+Examples:
+  warpgate tabs previous
+  warpgate tabs previous --json
+
+Run warpgate --help for flags that work on every command.

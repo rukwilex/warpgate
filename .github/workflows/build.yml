@@ -26,6 +26,37 @@ jobs:
       - run: flutter pub get
       - run: flutter analyze
       - run: flutter test
+      - run: dart pub get
+        working-directory: packages/warpgate_core
+      - run: dart analyze --fatal-infos
+        working-directory: packages/warpgate_core
+      - run: dart test
+        working-directory: packages/warpgate_core
+      - run: dart pub get
+        working-directory: packages/warpgate_cli
+      - run: dart analyze --fatal-infos
+        working-directory: packages/warpgate_cli
+      - run: dart test --exclude-tags integration
+        working-directory: packages/warpgate_cli
+
+  cli-integration:
+    needs: check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+      - name: Install SQLite
+        run: sudo apt-get update && sudo apt-get install -y libsqlite3-0
+      - name: Start the SSH test server
+        run: tool/cli_test_server.sh "$RUNNER_TEMP/cli" >> "$GITHUB_ENV"
+      - run: dart pub get
+        working-directory: packages/warpgate_cli
+      - run: dart test --tags integration --concurrency=1
+        working-directory: packages/warpgate_cli
 
   android:
     needs: check

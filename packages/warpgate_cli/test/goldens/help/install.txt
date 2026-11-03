@@ -1,0 +1,10 @@
+Add warpgate to your PATH
+
+Usage:
+  warpgate install
+
+Examples:
+  warpgate-cli --install
+  warpgate install
+
+Run warpgate --help for flags that work on every command.

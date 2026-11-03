@@ -1,16 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:warpgate/design_system/tokens/wg_palette.dart';
+import 'package:warpgate_core/features/settings/domain/appearance.dart';
 import 'package:xterm/xterm.dart';
 
-enum WgTerminalScheme {
-  followApp('Follow app'),
-  graphiteNight('Graphite night'),
-  graphiteDay('Graphite day');
+export 'package:warpgate_core/features/settings/domain/appearance.dart';
 
-  new(this.label);
-
-  final String label;
-
+extension WgTerminalSchemeThemes on WgTerminalScheme {
   TerminalTheme resolve(Brightness appBrightness, Color accent) {
     final night = switch (this) {
       WgTerminalScheme.followApp => appBrightness == Brightness.dark,

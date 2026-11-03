@@ -1,0 +1,13 @@
+Create a host group
+
+Usage:
+  warpgate groups add <name>
+
+Arguments:
+  name  Group name
+
+Examples:
+  warpgate groups add web
+  warpgate groups add "EU data"
+
+Run warpgate --help for flags that work on every command.

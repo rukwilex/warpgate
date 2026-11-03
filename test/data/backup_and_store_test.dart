@@ -1,15 +1,15 @@
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:warpgate/core/data/app_database.dart';
-import 'package:warpgate/core/data/secret_store.dart';
-import 'package:warpgate/features/security/data/backup_codec.dart';
-import 'package:warpgate/features/security/data/backup_service.dart';
-import 'package:warpgate/features/security/data/pin_hasher.dart';
+import 'package:warpgate_core/core/data/secret_store.dart';
+import 'package:warpgate_core/features/security/data/backup_codec.dart';
+import 'package:warpgate_core/features/security/data/backup_service.dart';
+import 'package:warpgate_core/features/security/data/pin_hasher.dart';
 
 void main() {
   test('document store put, get, list, trim and delete', () async {
     final db = AppDatabase(NativeDatabase.memory());
-    final store = DocumentStore(db);
+    final store = DriftDocumentStore(db);
     for (var i = 0; i < 5; i++) {
       await store.put('c', 'id$i', {'n': i}, at: DateTime(2026, 1, 1, 0, i));
     }
@@ -24,7 +24,7 @@ void main() {
 
   test('backup round trip with and without secrets', () async {
     final db = AppDatabase(NativeDatabase.memory());
-    final store = DocumentStore(db);
+    final store = DriftDocumentStore(db);
     final secrets = MemorySecretStore();
     await store.put('hosts', 'h', {
       'id': 'h',
@@ -47,7 +47,7 @@ void main() {
     expect(withSecrets, isNot(contains('PEM')));
 
     final targetDb = AppDatabase(NativeDatabase.memory());
-    final targetStore = DocumentStore(targetDb);
+    final targetStore = DriftDocumentStore(targetDb);
     final targetSecrets = MemorySecretStore();
     final restored = await BackupService(
       targetStore,

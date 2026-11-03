@@ -1,0 +1,13 @@
+warpgate forward
+
+Usage:
+  warpgate forward <command> [flags]
+
+Commands:
+  list   List saved port forwards
+  add    Save a port forward on a host
+  rm     Remove a saved port forward
+  start  Start a saved port forward in the app
+  stop   Stop a running port forward in the app
+
+Run warpgate forward <command> --help for details.

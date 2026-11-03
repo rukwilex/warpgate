@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:warpgate/core/util/format.dart';
 import 'package:warpgate/design_system/design_system.dart';
-import 'package:warpgate/features/sftp/domain/file_endpoint.dart';
+import 'package:warpgate_core/core/util/format.dart';
+import 'package:warpgate_core/features/sftp/domain/file_endpoint.dart';
 
 enum SortKey { name, size, modified, permissions, owner }
 

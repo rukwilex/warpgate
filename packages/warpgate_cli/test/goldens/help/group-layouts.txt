@@ -1,0 +1,11 @@
+warpgate layouts
+
+Usage:
+  warpgate layouts <command> [flags]
+
+Commands:
+  list   List saved layouts and presets
+  apply  Arrange the active tab with a preset, or open a saved layout
+  save   Save the active tab as a layout
+
+Run warpgate layouts <command> --help for details.

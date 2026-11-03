@@ -7,14 +7,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:warpgate/core/platform/platform_info.dart';
 import 'package:warpgate/design_system/design_system.dart';
-import 'package:warpgate/features/connection/domain/link_state.dart';
 import 'package:warpgate/features/connection/presentation/link_dot.dart';
 import 'package:warpgate/features/hosts/presentation/hosts_controller.dart';
-import 'package:warpgate/features/keys/data/key_codec.dart';
 import 'package:warpgate/features/palette/presentation/command_registry.dart';
-import 'package:warpgate/features/settings/domain/app_settings.dart';
 import 'package:warpgate/features/settings/presentation/settings_controller.dart';
-import 'package:warpgate/features/sftp/domain/file_endpoint.dart';
 import 'package:warpgate/features/sftp/presentation/endpoint_providers.dart';
 import 'package:warpgate/features/sftp/presentation/file_browser.dart';
 import 'package:warpgate/features/sftp/presentation/file_drop.dart';
@@ -22,10 +18,14 @@ import 'package:warpgate/features/terminal/data/terminal_session.dart';
 import 'package:warpgate/features/terminal/presentation/mobile_key_row.dart';
 import 'package:warpgate/features/terminal/presentation/terminal_sessions.dart';
 import 'package:warpgate/features/terminal/presentation/terminal_surface.dart';
-import 'package:warpgate/features/workspace/domain/pane.dart';
 import 'package:warpgate/features/workspace/presentation/layout_view.dart';
 import 'package:warpgate/features/workspace/presentation/pane_frame.dart';
 import 'package:warpgate/features/workspace/presentation/workbench_controller.dart';
+import 'package:warpgate_core/features/connection/domain/link_state.dart';
+import 'package:warpgate_core/features/keys/data/key_codec.dart';
+import 'package:warpgate_core/features/settings/domain/app_settings.dart';
+import 'package:warpgate_core/features/sftp/domain/file_endpoint.dart';
+import 'package:warpgate_core/features/workspace/domain/pane.dart';
 import 'package:xterm/xterm.dart';
 
 class TerminalPane extends ConsumerStatefulWidget {
@@ -641,7 +641,12 @@ class _TerminalPaneState extends ConsumerState<TerminalPane> {
                           focusNode: _focus,
                           autofocus: focused,
                           theme: theme,
-                          cursorType: settings.cursorShape.type,
+                          cursorType: switch (settings.cursorShape) {
+                            CursorShape.block => TerminalCursorType.block,
+                            CursorShape.underline =>
+                              TerminalCursorType.underline,
+                            CursorShape.bar => TerminalCursorType.verticalBar,
+                          },
                           fontSize:
                               widget.pane.fontSize ?? settings.terminalFontSize,
                           onFontSize: (size) => ref

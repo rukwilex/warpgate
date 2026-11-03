@@ -1,0 +1,15 @@
+warpgate workspaces
+
+Usage:
+  warpgate workspaces <command> [flags]
+
+Commands:
+  list    List workspaces
+  open    Switch to a workspace in the app
+  save    Save the active tab so it can be opened again
+  rm      Delete a workspace and close its tabs
+  new     Create a workspace
+  rename  Rename the active workspace
+  switch  Switch to a workspace by position
+
+Run warpgate workspaces <command> --help for details.

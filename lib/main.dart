@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:drift_flutter/drift_flutter.dart';
 import 'package:flutter/material.dart';
@@ -6,15 +7,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:warpgate/app/app.dart';
 import 'package:warpgate/app/router.dart';
-import 'package:warpgate/core/data/app_data_migration.dart';
 import 'package:warpgate/core/data/app_database.dart';
 import 'package:warpgate/core/data/storage_providers.dart';
 import 'package:warpgate/core/platform/platform_info.dart';
+import 'package:warpgate/features/cli/presentation/cli_bridge.dart';
 import 'package:warpgate/features/palette/presentation/command_registry.dart';
 import 'package:warpgate/features/settings/presentation/settings_controller.dart';
 import 'package:warpgate/features/shell/presentation/window_chrome.dart';
 import 'package:warpgate/features/transfers/presentation/transfer_queue.dart';
 import 'package:warpgate/features/workspace/presentation/workbench_controller.dart';
+import 'package:warpgate_core/core/data/app_data_migration.dart';
+import 'package:warpgate_core/core/platform/app_paths.dart';
+import 'package:warpgate_core/features/sftp/data/endpoints.dart';
 import 'package:window_manager/window_manager.dart';
 
 Future<void> main() async {
@@ -42,20 +46,33 @@ Future<void> main() async {
   if (!PlatformInfo.isWeb) {
     try {
       final support = await getApplicationSupportDirectory();
-      await AppDataMigration.run(support.path);
+      if (AppPaths.resolve(platformRoot: support.path).root == support.path) {
+        await AppDataMigration.run(support.path);
+      }
     } on Object catch (error) {
       debugPrint('Could not copy data from the previous app folder: $error');
     }
   }
+  LocalEndpoint.mobileHome = () async =>
+      (await getApplicationDocumentsDirectory()).path;
+  AppPaths? paths;
+  if (!PlatformInfo.isWeb) {
+    paths = AppPaths.resolve(
+      platformRoot: (await getApplicationSupportDirectory()).path,
+    );
+  }
+  final root = paths?.root;
   final database = AppDatabase(
     driftDatabase(
       name: AppIdentity.databaseName,
-      native: const DriftNativeOptions(
-        databaseDirectory: getApplicationSupportDirectory,
+      native: DriftNativeOptions(
+        databaseDirectory: root == null
+            ? getApplicationSupportDirectory
+            : () async => Directory(root)..createSync(recursive: true),
       ),
     ),
   );
-  final store = DocumentStore(database);
+  final store = DriftDocumentStore(database);
   final settings = await SettingsController.load(store);
   final workbench = await WorkbenchController.load(store);
   final transfers = await TransferQueue.load(store);
@@ -63,6 +80,9 @@ Future<void> main() async {
     ProviderScope(
       overrides: [
         databaseProvider.overrideWithValue(database),
+        appPathsProvider.overrideWithValue(
+          PlatformInfo.isDesktop ? paths : null,
+        ),
         initialSettingsProvider.overrideWithValue(settings),
         initialWorkbenchProvider.overrideWithValue(workbench),
         initialTransfersProvider.overrideWithValue(transfers),

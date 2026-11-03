@@ -1,0 +1,13 @@
+Print saved hosts as an OpenSSH config, without secrets
+
+Usage:
+  warpgate hosts export [flags]
+
+Flags:
+      --format <FORMAT>  Output format. One of: ssh-config, json. Default: ssh-config
+
+Examples:
+  warpgate hosts export > hosts.conf
+  warpgate hosts export --format json
+
+Run warpgate --help for flags that work on every command.

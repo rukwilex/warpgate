@@ -1,0 +1,15 @@
+List saved hosts
+
+Usage:
+  warpgate hosts list [flags]
+
+Flags:
+  -g, --group <GROUP>  Only hosts in this group
+      --tag <TAG>      Only hosts with this tag
+
+Examples:
+  warpgate hosts list
+  warpgate hosts list --group web
+  warpgate hosts list --json
+
+Run warpgate --help for flags that work on every command.

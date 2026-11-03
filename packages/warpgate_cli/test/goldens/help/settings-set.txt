@@ -1,0 +1,14 @@
+Change one setting
+
+Usage:
+  warpgate settings set <key> <value>
+
+Arguments:
+  key    Setting name
+  value  New value
+
+Examples:
+  warpgate settings set transferConcurrency 5
+  warpgate settings set themeMode dark
+
+Run warpgate --help for flags that work on every command.

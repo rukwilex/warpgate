@@ -5,8 +5,8 @@ import 'package:warpgate/core/routing/routes.dart';
 import 'package:warpgate/features/hosts/presentation/hosts_controller.dart';
 import 'package:warpgate/features/palette/presentation/command_registry.dart';
 import 'package:warpgate/features/shell/presentation/ui_state.dart';
-import 'package:warpgate/features/workspace/domain/layout.dart';
 import 'package:warpgate/features/workspace/presentation/workbench_controller.dart';
+import 'package:warpgate_core/features/workspace/domain/layout.dart';
 
 import '../helpers/harness.dart';
 

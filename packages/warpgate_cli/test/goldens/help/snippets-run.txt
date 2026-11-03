@@ -1,0 +1,19 @@
+Run a snippet on hosts
+
+Usage:
+  warpgate snippets run [flags] <snippet>
+
+Arguments:
+  snippet  Snippet name or id
+
+Flags:
+      --on <TARGETS>    Hosts: a label, @group, or a comma-separated list
+      --var <K=V>       Variable as key=value. Can be repeated
+  -p, --parallel <N>    Hosts to run at once. Default: 8
+  -t, --timeout <TIME>  Stop waiting after this long. Default: 60s
+
+Examples:
+  warpgate snippets run restart --on prod --var service=nginx
+  warpgate snippets run cleanup --on @web --parallel 2
+
+Run warpgate --help for flags that work on every command.

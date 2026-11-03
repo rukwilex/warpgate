@@ -1,0 +1,15 @@
+Bring a session to the front in the app
+
+Usage:
+  warpgate sessions focus [session]
+
+Arguments:
+  session  Session id. Run warpgate sessions list to see them
+
+Needs the app. Warpgate starts if it is not running.
+
+Examples:
+  warpgate sessions focus 3f2a
+  warpgate sessions focus
+
+Run warpgate --help for flags that work on every command.

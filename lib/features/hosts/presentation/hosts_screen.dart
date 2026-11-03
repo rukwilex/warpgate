@@ -6,21 +6,21 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:warpgate/core/platform/platform_info.dart';
 import 'package:warpgate/core/routing/routes.dart';
-import 'package:warpgate/core/util/format.dart';
-import 'package:warpgate/core/util/ids.dart';
 import 'package:warpgate/design_system/design_system.dart';
-import 'package:warpgate/features/connection/domain/link_state.dart';
 import 'package:warpgate/features/connection/presentation/connection_providers.dart';
 import 'package:warpgate/features/connection/presentation/link_dot.dart';
-import 'package:warpgate/features/hosts/domain/host.dart';
 import 'package:warpgate/features/hosts/presentation/host_editor.dart';
 import 'package:warpgate/features/hosts/presentation/host_groups.dart';
 import 'package:warpgate/features/hosts/presentation/hosts_controller.dart';
 import 'package:warpgate/features/palette/presentation/command_registry.dart';
 import 'package:warpgate/features/sftp/application/file_places.dart';
 import 'package:warpgate/features/shell/presentation/prompts.dart';
-import 'package:warpgate/features/workspace/domain/pane.dart';
 import 'package:warpgate/features/workspace/presentation/workbench_controller.dart';
+import 'package:warpgate_core/core/util/format.dart';
+import 'package:warpgate_core/core/util/ids.dart';
+import 'package:warpgate_core/features/connection/domain/link_state.dart';
+import 'package:warpgate_core/features/hosts/domain/host.dart';
+import 'package:warpgate_core/features/workspace/domain/pane.dart';
 
 class HostsScreen extends ConsumerStatefulWidget {
   const new({super.key, this.intent});

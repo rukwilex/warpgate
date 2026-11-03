@@ -3,9 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:warpgate/core/platform/platform_info.dart';
 import 'package:warpgate/design_system/design_system.dart';
 import 'package:warpgate/features/palette/presentation/command_registry.dart';
-import 'package:warpgate/features/workspace/domain/layout.dart';
-import 'package:warpgate/features/workspace/domain/pane.dart';
 import 'package:warpgate/features/workspace/presentation/workbench_controller.dart';
+import 'package:warpgate_core/features/workspace/domain/layout.dart';
+import 'package:warpgate_core/features/workspace/domain/pane.dart';
 
 class PaneFrame extends ConsumerStatefulWidget {
   const new({

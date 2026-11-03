@@ -1,0 +1,13 @@
+Connect to a host and report how long it took
+
+Usage:
+  warpgate hosts test <host>
+
+Arguments:
+  host  Host label, id or user@host[:port]
+
+Examples:
+  warpgate hosts test prod
+  warpgate hosts test deploy@10.0.0.5 --json
+
+Run warpgate --help for flags that work on every command.

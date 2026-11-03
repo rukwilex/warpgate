@@ -1,0 +1,12 @@
+Close the focused pane
+
+Usage:
+  warpgate panes close
+
+Needs the app. Warpgate starts if it is not running.
+
+Examples:
+  warpgate panes close
+  warpgate panes close --yes
+
+Run warpgate --help for flags that work on every command.

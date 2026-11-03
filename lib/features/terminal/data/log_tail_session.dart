@@ -3,10 +3,10 @@ import 'dart:convert';
 
 import 'package:dartssh2/dartssh2.dart';
 import 'package:flutter/foundation.dart';
-import 'package:warpgate/features/connection/data/connection_pool.dart';
-import 'package:warpgate/features/connection/data/ssh_errors.dart';
-import 'package:warpgate/features/connection/domain/link_state.dart';
-import 'package:warpgate/features/keys/data/key_codec.dart';
+import 'package:warpgate_core/features/connection/data/connection_pool.dart';
+import 'package:warpgate_core/features/connection/data/ssh_errors.dart';
+import 'package:warpgate_core/features/connection/domain/link_state.dart';
+import 'package:warpgate_core/features/keys/data/key_codec.dart';
 import 'package:xterm/xterm.dart';
 
 class LogTailSession {

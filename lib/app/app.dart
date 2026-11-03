@@ -33,7 +33,7 @@ class WarpgateApp extends ConsumerWidget {
       routerConfig: router,
       theme: theme(Brightness.light),
       darkTheme: theme(Brightness.dark),
-      themeMode: settings.themeMode,
+      themeMode: ThemeMode.values.byName(settings.themeMode.name),
       builder: (context, child) => AppEffects(
         child: WindowChromeEffects(
           child: NativeMenus(

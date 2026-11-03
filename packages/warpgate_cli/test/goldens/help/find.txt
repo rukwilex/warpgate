@@ -1,0 +1,19 @@
+Find files by name under a folder
+
+Usage:
+  warpgate find [flags] <path> <pattern>
+
+Arguments:
+  path     host:path or a local path
+  pattern  Name pattern, with * and ?
+
+Flags:
+      --max <N>  Stop after this many matches. Default: 1000
+
+Also: warpgate files find
+
+Examples:
+  warpgate find prod:/var/log "*.gz"
+  warpgate find prod:/srv "config.*" --max 20
+
+Run warpgate --help for flags that work on every command.

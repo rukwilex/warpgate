@@ -1,0 +1,10 @@
+Check the install, PATH, secure storage, app and ssh-agent
+
+Usage:
+  warpgate doctor
+
+Examples:
+  warpgate doctor
+  warpgate doctor --json
+
+Run warpgate --help for flags that work on every command.

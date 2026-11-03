@@ -1,0 +1,19 @@
+Save a port forward on a host
+
+Usage:
+  warpgate forward add [flags] <host>
+
+Arguments:
+  host  Host label, id or user@host[:port]
+
+Flags:
+  -L, --local <SPEC>    Local forward: [bind:]port:host:hostport
+  -R, --remote <SPEC>   Remote forward: port:host:hostport
+  -D, --dynamic <SPEC>  SOCKS proxy: [bind:]port
+      --auto-start      Start it when the app connects to the host
+
+Examples:
+  warpgate forward add prod -L 8080:localhost:80
+  warpgate forward add prod -D 1080 --auto-start
+
+Run warpgate --help for flags that work on every command.

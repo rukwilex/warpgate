@@ -4,9 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:warpgate/design_system/design_system.dart';
 import 'package:warpgate/features/palette/presentation/command_registry.dart';
-import 'package:warpgate/features/snippets/domain/snippet.dart';
 import 'package:warpgate/features/snippets/presentation/snippet_runner.dart';
 import 'package:warpgate/features/snippets/presentation/snippets_controller.dart';
+import 'package:warpgate_core/features/snippets/domain/snippet.dart';
 
 class SnippetsScreen extends ConsumerWidget {
   const new({super.key});

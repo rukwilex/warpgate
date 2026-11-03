@@ -1,0 +1,78 @@
+warpgate: SSH and SFTP for people who run many servers at once.
+
+Usage:
+  warpgate <command> [args] [flags]
+
+Connect:
+  ssh   Open an interactive shell on a host, or run one command
+  exec  Run a command on one host or many in parallel
+  open  Open or focus the app at a host
+
+Files:
+  ls     List a remote or local folder
+  cat    Print a remote file
+  get    Download from a host to this device
+  put    Upload from this device to a host
+  cp     Copy between any two places, including two hosts
+  mv     Rename or move within one host
+  rm     Delete a file or folder
+  mkdir  Create a folder
+  chmod  Change the permissions of a file or folder
+  stat   Show details of a file or folder
+  edit   Open a remote file in $EDITOR and upload it on save
+  find   Find files by name under a folder
+  du     Add up the size of a folder
+
+Manage:
+  hosts        Saved hosts
+  groups       Host groups
+  keys         SSH keys
+  known-hosts  Trusted host keys
+  transfers    The transfer queue
+  forward      Saved port forwards
+  snippets     Saved commands
+  sessions     Terminals open in the app
+  broadcast    Type into several terminals
+  workspaces   Workspaces in the app
+  layouts      Saved layouts and presets
+  panes        Panes in the app
+  tabs         Tabs in the app
+  files        Files in the app, and every file command
+  app          The app window
+  settings     App settings
+  backup       Encrypted backups
+  mcp          Claude Code access
+
+Other:
+  go          Show a screen in the app
+  completion  Print a completion script for your shell
+  doctor      Check the install, PATH, secure storage, app and ssh-agent
+  version     Print the version
+  help        Show help for a command
+  install     Add warpgate to your PATH
+  uninstall   Remove warpgate from your PATH
+
+Flags for every command:
+  -h, --help            Show help
+      --version         Print the version
+      --json            Print stable JSON on stdout
+      --quiet           Print only what was asked for
+      --no-color        Turn off color. NO_COLOR also works
+  -y, --yes             Skip confirmations
+  -v, --verbose         Print more detail on stderr
+      --profile <NAME>  Use a separate set of hosts, keys and settings
+      --no-app          Do not talk to the running app
+
+Exit codes:
+  0    Success
+  1    General error
+  2    Usage error
+  3    Not found
+  4    Authentication failed
+  5    Host key mismatch or not trusted
+  6    Connection failed
+  7    Partial failure on a multi-host command
+  130  Interrupted
+
+Hosts can be a label, an id, user@host[:port], or @group. Remote paths are host:path.
+Run warpgate <command> --help for details and examples.

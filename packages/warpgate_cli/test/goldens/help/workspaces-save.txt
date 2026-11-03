@@ -1,0 +1,15 @@
+Save the active tab so it can be opened again
+
+Usage:
+  warpgate workspaces save <name>
+
+Arguments:
+  name  Name to save it under
+
+Needs the app. Warpgate starts if it is not running.
+
+Examples:
+  warpgate workspaces save incident
+  warpgate workspaces save "web grid"
+
+Run warpgate --help for flags that work on every command.

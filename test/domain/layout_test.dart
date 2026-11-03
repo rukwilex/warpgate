@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:warpgate/features/workspace/domain/layout.dart';
+import 'package:warpgate_core/features/workspace/domain/layout.dart';
 
 void main() {
   var counter = 0;

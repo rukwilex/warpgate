@@ -1,0 +1,15 @@
+Show a screen in the app
+
+Usage:
+  warpgate go <screen>
+
+Arguments:
+  screen  Screen to show. One of: hosts, keys, sessions, transfers, forwards, snippets, multi-exec, settings, activity
+
+Needs the app. Warpgate starts if it is not running.
+
+Examples:
+  warpgate go transfers
+  warpgate go settings
+
+Run warpgate --help for flags that work on every command.

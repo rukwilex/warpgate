@@ -1,0 +1,24 @@
+Save a new host
+
+Usage:
+  warpgate hosts add [flags] <label> <target>
+
+Arguments:
+  label   Name to show for this host
+  target  Address as user@host[:port]
+
+Flags:
+      --auth <METHOD>   How to sign in. One of: password, key, keyboardInteractive, agent. Default: agent
+  -i, --key <KEY>       Saved key to sign in with
+  -g, --group <GROUP>   Group to put it in
+      --tag <TAG>       Tag. Can be repeated
+  -J, --jump <HOST>     Jump host
+      --password-stdin  Read the password from stdin
+      --tmux            Keep sessions alive in tmux
+
+Examples:
+  warpgate hosts add prod deploy@10.0.0.5
+  warpgate hosts add db root@db.local:2222 --auth key --key work -g data
+  printf %s "$PW" | warpgate hosts add lab me@lab --auth password --password-stdin
+
+Run warpgate --help for flags that work on every command.

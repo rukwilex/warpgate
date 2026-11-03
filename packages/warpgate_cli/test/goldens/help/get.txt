@@ -1,0 +1,22 @@
+Download from a host to this device
+
+Usage:
+  warpgate get [flags] <source> [target]
+
+Arguments:
+  source  host:path
+  target  Local path. Defaults to the current folder
+
+Flags:
+  -r, --recursive  Include folders
+      --resume     Continue a partial file
+      --verify     Compare sha256 after each file
+
+Also: warpgate files get
+
+Examples:
+  warpgate get prod:/var/log/app.log
+  warpgate get -r prod:/srv/app ./backup
+  warpgate get --resume prod:/data/big.tar .
+
+Run warpgate --help for flags that work on every command.

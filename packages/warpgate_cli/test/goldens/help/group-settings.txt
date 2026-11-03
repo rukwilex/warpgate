@@ -1,0 +1,12 @@
+warpgate settings
+
+Usage:
+  warpgate settings <command> [flags]
+
+Commands:
+  list   List every setting and its value
+  get    Print the value of one setting
+  set    Change one setting
+  reset  Reset one setting, or all of them
+
+Run warpgate settings <command> --help for details.

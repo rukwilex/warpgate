@@ -4,12 +4,12 @@ import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:warpgate/core/data/app_database.dart';
 import 'package:warpgate/core/data/storage_providers.dart';
-import 'package:warpgate/core/util/ids.dart';
 import 'package:warpgate/features/hosts/presentation/hosts_controller.dart';
 import 'package:warpgate/features/settings/presentation/settings_controller.dart';
-import 'package:warpgate/features/workspace/domain/layout.dart';
-import 'package:warpgate/features/workspace/domain/pane.dart';
-import 'package:warpgate/features/workspace/domain/workspace.dart';
+import 'package:warpgate_core/core/util/ids.dart';
+import 'package:warpgate_core/features/workspace/domain/layout.dart';
+import 'package:warpgate_core/features/workspace/domain/pane.dart';
+import 'package:warpgate_core/features/workspace/domain/workspace.dart';
 
 enum PanePlacement { newTab, splitRight, splitDown, replaceFocused }
 

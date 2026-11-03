@@ -1,0 +1,13 @@
+Print the public half of a key
+
+Usage:
+  warpgate keys export-public <key>
+
+Arguments:
+  key  Key name or id
+
+Examples:
+  warpgate keys export-public work
+  warpgate keys export-public work >> authorized_keys
+
+Run warpgate --help for flags that work on every command.

@@ -28,6 +28,8 @@ dependencies:
   pointycastle: ^4.0.0
   sqlite3: ^3.8.0
   uuid: ^4.6.0
+  warpgate_core:
+    path: packages/warpgate_core
   window_manager: ^0.5.1
   xterm: ^4.0.0
 

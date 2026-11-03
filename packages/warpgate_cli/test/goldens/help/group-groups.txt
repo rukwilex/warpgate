@@ -1,0 +1,13 @@
+warpgate groups
+
+Usage:
+  warpgate groups <command> [flags]
+
+Commands:
+  list  List host groups
+  add   Create a host group
+  rm    Remove a group. Its hosts stay saved, ungrouped
+  move  Move hosts into a group, or out with "none"
+  open  Open every host in a group in a grid in the app
+
+Run warpgate groups <command> --help for details.

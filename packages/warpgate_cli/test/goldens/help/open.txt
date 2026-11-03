@@ -1,0 +1,22 @@
+Open or focus the app at a host
+
+Usage:
+  warpgate open [flags] [host]
+
+Arguments:
+  host  Host label, id or user@host[:port]
+
+Flags:
+      --files             Open files instead of a terminal
+      --local             Open a local terminal
+      --split <SIDE>      Split the focused pane instead of a new tab. One of: right, down
+      --workspace <NAME>  Workspace to open it in
+
+Needs the app. Warpgate starts if it is not running.
+
+Examples:
+  warpgate open
+  warpgate open prod --files
+  warpgate open staging --split right --workspace ops
+
+Run warpgate --help for flags that work on every command.

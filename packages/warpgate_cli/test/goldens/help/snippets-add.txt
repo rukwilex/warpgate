@@ -1,0 +1,14 @@
+Save a snippet. Use {{name}} or {{name|default}} for variables
+
+Usage:
+  warpgate snippets add <name> [body]
+
+Arguments:
+  name  Snippet name
+  body  Command text. Reads stdin when left out
+
+Examples:
+  warpgate snippets add restart "sudo systemctl restart {{service}}"
+  warpgate snippets add cleanup < cleanup.sh
+
+Run warpgate --help for flags that work on every command.

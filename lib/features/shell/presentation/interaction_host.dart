@@ -5,8 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:warpgate/core/interaction/interaction_broker.dart';
 import 'package:warpgate/core/routing/routes.dart';
-import 'package:warpgate/core/util/format.dart';
 import 'package:warpgate/design_system/design_system.dart';
+import 'package:warpgate_core/core/util/format.dart';
 
 class InteractionHost extends ConsumerStatefulWidget {
   const new({required this.child, super.key});

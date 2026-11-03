@@ -1,0 +1,12 @@
+Open a two-pane file browser in the app
+
+Usage:
+  warpgate files dual
+
+Needs the app. Warpgate starts if it is not running.
+
+Examples:
+  warpgate files dual
+  warpgate files dual --json
+
+Run warpgate --help for flags that work on every command.

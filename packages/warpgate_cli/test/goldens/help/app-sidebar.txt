@@ -1,0 +1,12 @@
+Show or hide the sidebar
+
+Usage:
+  warpgate app sidebar
+
+Needs the app. Warpgate starts if it is not running.
+
+Examples:
+  warpgate app sidebar
+  warpgate app sidebar --json
+
+Run warpgate --help for flags that work on every command.

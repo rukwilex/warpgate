@@ -1,0 +1,16 @@
+Type text into a session. Use \r for Enter
+
+Usage:
+  warpgate sessions send <session> <text>
+
+Arguments:
+  session  Session id. Run warpgate sessions list to see them
+  text     Text to type
+
+Needs the app. Warpgate starts if it is not running.
+
+Examples:
+  warpgate sessions send 3f2a "ls -la\r"
+  warpgate sessions send 3f2a "exit\r"
+
+Run warpgate --help for flags that work on every command.

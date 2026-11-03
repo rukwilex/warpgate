@@ -1,0 +1,16 @@
+Type the same text into several sessions
+
+Usage:
+  warpgate broadcast <sessions...> -- <text...>
+
+Arguments:
+  sessions  Session ids, then --
+  text      Text to type, after --
+
+Needs the app. Warpgate starts if it is not running.
+
+Examples:
+  warpgate broadcast 3f2a 9c1d -- "uptime\r"
+  warpgate broadcast 3f2a 9c1d 77ab -- "exit\r"
+
+Run warpgate --help for flags that work on every command.

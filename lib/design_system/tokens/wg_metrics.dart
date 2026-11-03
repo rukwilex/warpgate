@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:warpgate_core/features/settings/domain/appearance.dart';
 
-enum WgDensity { compact, comfortable }
+export 'package:warpgate_core/features/settings/domain/appearance.dart' show WgDensity;
 
 @immutable
 class WgSpace extends ThemeExtension<WgSpace> {

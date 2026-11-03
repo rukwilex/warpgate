@@ -3,6 +3,7 @@ import 'package:lucide_icons_flutter/lucide_icons_300.dart';
 
 abstract final class WgIcons {
   static const IconData terminal = LucideIcons300.squareTerminal;
+  static const IconData commandLine = LucideIcons300.terminal;
   static const IconData server = LucideIcons300.server;
   static const IconData folder = LucideIcons300.folder;
   static const IconData folderOpen = LucideIcons300.folderOpen;

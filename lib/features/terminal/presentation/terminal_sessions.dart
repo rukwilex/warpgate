@@ -7,9 +7,9 @@ import 'package:warpgate/features/connection/presentation/connection_providers.d
 import 'package:warpgate/features/hosts/presentation/hosts_controller.dart';
 import 'package:warpgate/features/settings/presentation/settings_controller.dart';
 import 'package:warpgate/features/terminal/data/terminal_session.dart';
-import 'package:warpgate/features/workspace/domain/pane.dart';
-import 'package:warpgate/features/workspace/domain/workspace.dart';
 import 'package:warpgate/features/workspace/presentation/workbench_controller.dart';
+import 'package:warpgate_core/features/workspace/domain/pane.dart';
+import 'package:warpgate_core/features/workspace/domain/workspace.dart';
 
 final sessionAutoStartProvider = Provider<bool>((ref) => true);
 

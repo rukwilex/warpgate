@@ -1,5 +1,5 @@
 import 'package:warpgate/design_system/components/wg_status_dot.dart';
-import 'package:warpgate/features/connection/domain/link_state.dart';
+import 'package:warpgate_core/features/connection/domain/link_state.dart';
 
 extension LinkDot on LinkState {
   WgDotState get dot => switch (this) {

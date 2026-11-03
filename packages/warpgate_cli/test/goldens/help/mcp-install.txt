@@ -1,0 +1,13 @@
+Print the claude mcp add command, or run it
+
+Usage:
+  warpgate mcp install [flags]
+
+Flags:
+      --run  Run the command instead of printing it
+
+Examples:
+  warpgate mcp install
+  warpgate mcp install --run
+
+Run warpgate --help for flags that work on every command.

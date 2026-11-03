@@ -1,22 +1,16 @@
 import 'dart:async';
 
-import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:warpgate/core/data/app_database.dart';
 import 'package:warpgate/core/data/storage_providers.dart';
 import 'package:warpgate/core/interaction/interaction_broker.dart';
-import 'package:warpgate/core/util/ids.dart';
-import 'package:warpgate/features/connection/data/ssh_errors.dart';
 import 'package:warpgate/features/connection/presentation/connection_providers.dart';
 import 'package:warpgate/features/hosts/presentation/hosts_controller.dart';
-import 'package:warpgate/features/keys/data/key_codec.dart';
 import 'package:warpgate/features/settings/presentation/settings_controller.dart';
-import 'package:warpgate/features/sftp/domain/file_endpoint.dart';
 import 'package:warpgate/features/sftp/presentation/endpoint_providers.dart';
-import 'package:warpgate/features/transfers/data/direct_transfer.dart';
-import 'package:warpgate/features/transfers/data/file_checksum.dart';
-import 'package:warpgate/features/transfers/data/transfer_engine.dart';
-import 'package:warpgate/features/transfers/domain/transfer_job.dart';
+import 'package:warpgate_core/core/data/document_store.dart';
+import 'package:warpgate_core/core/platform/native.dart';
+import 'package:warpgate_core/features/transfers/data/transfer_scheduler.dart';
+import 'package:warpgate_core/features/transfers/domain/transfer_job.dart';
 
 final initialTransfersProvider = Provider<List<TransferJob>>((ref) => const []);
 
@@ -24,56 +18,42 @@ final transferQueueProvider =
     NotifierProvider<TransferQueue, List<TransferJob>>(TransferQueue.new);
 
 class TransferQueue extends Notifier<List<TransferJob>> {
-  static const collection = 'transfers';
+  static const String collection = TransferScheduler.collection;
 
-  final Map<String, CancelToken> _tokens = {};
-  final Set<String> _pauseRequested = {};
-  final Map<String, DateTime> _lastPersist = {};
+  late TransferScheduler _scheduler;
 
   @override
   List<TransferJob> build() {
-    final restored = [
-      for (final job in ref.read(initialTransfersProvider))
-        if (job.status == TransferStatus.running)
-          job.copyWith(status: TransferStatus.queued)
-        else
-          job,
-    ];
-    unawaited(Future.microtask(_pump));
+    final restored = TransferScheduler.restore(
+      ref.read(initialTransfersProvider),
+      Native.isProcessAlive,
+    );
+    _scheduler = TransferScheduler(
+      store: ref.read(documentStoreProvider),
+      pool: ref.read(connectionPoolProvider),
+      resolver: ref.read(endpointResolverProvider),
+      broker: ref.read(interactionBrokerProvider),
+      hostOf: (id) => ref.read(hostsProvider).value?.host(id),
+      settings: () => ref.read(settingsProvider),
+      isAlive: Native.isProcessAlive,
+      initial: restored,
+      onChange: (jobs) => state = jobs,
+    );
+    unawaited(Future.microtask(_scheduler.pump));
     return restored;
   }
 
-  static Future<List<TransferJob>> load(DocumentStore store) async => [
-    for (final json in await store.all(collection)) TransferJob.fromJson(json),
-  ];
+  static Future<List<TransferJob>> load(DocumentStore store) =>
+      TransferScheduler.load(store);
 
-  TransferJob? byId(String id) => state.firstWhereOrNull((job) => job.id == id);
-
-  int get activeCount =>
-      state.where((job) => job.status == TransferStatus.running).length;
-
-  void _replace(
-    String id,
-    TransferJob Function(TransferJob job) change, {
-    bool persist = false,
-  }) {
-    final index = state.indexWhere((job) => job.id == id);
-    if (index < 0) return;
-    final next = change(state[index]);
-    state = [...state]..[index] = next;
-    final now = DateTime.now();
-    final last = _lastPersist[id];
-    if (persist ||
-        last == null ||
-        now.difference(last) > const Duration(seconds: 2)) {
-      _lastPersist[id] = now;
-      unawaited(
-        ref
-            .read(documentStoreProvider)
-            .put(collection, id, next.toJson(), at: next.createdAt),
-      );
-    }
+  Future<void> reload() async {
+    _scheduler.mergeStored(await load(ref.read(documentStoreProvider)));
+    _scheduler.pump();
   }
+
+  TransferJob? byId(String id) => _scheduler.byId(id);
+
+  int get activeCount => _scheduler.activeCount;
 
   String enqueue({
     required TransferRef source,
@@ -83,245 +63,29 @@ class TransferQueue extends Notifier<List<TransferJob>> {
     TransferMode mode = TransferMode.stream,
     String origin = 'user',
     bool move = false,
-  }) {
-    final job = TransferJob(
-      move: move,
-      id: Ids.next(),
-      source: source,
-      target: target,
-      name: name,
-      isDirectory: isDirectory,
-      mode: mode,
-      createdAt: DateTime.now(),
-      origin: origin,
-    );
-    state = [...state, job];
-    unawaited(
-      ref
-          .read(documentStoreProvider)
-          .put(collection, job.id, job.toJson(), at: job.createdAt),
-    );
-    _pump();
-    return job.id;
-  }
-
-  void _pump() {
-    final limit = ref.read(settingsProvider).transferConcurrency.clamp(1, 16);
-    var running = activeCount;
-    for (final job
-        in state.where((job) => job.status == TransferStatus.queued).toList()) {
-      if (running >= limit) break;
-      running += 1;
-      unawaited(_run(job.id));
-    }
-  }
-
-  Future<void> _run(String id) async {
-    final token = CancelToken();
-    _tokens[id] = token;
-    _replace(
-      id,
-      (job) => job.copyWith(
-        status: TransferStatus.running,
-        startedAt: () => job.startedAt ?? DateTime.now(),
-        error: () => null,
-      ),
-      persist: true,
-    );
-    final job = byId(id)!;
-    try {
-      if (job.mode == TransferMode.direct) {
-        await _runDirect(job, token);
-      } else {
-        await _engine.run(
-          job,
-          update: (change) => _replace(id, change),
-          cancel: token,
-          policy: ref.read(settingsProvider).conflictPolicy,
-        );
-      }
-      _replace(
-        id,
-        (job) => job.copyWith(
-          status: TransferStatus.completed,
-          doneBytes: job.totalBytes,
-          bytesPerSecond: 0,
-          finishedAt: DateTime.now,
-          currentFile: () => null,
-        ),
-        persist: true,
-      );
-    } on TransferCancelled {
-      final paused = _pauseRequested.remove(id);
-      _replace(
-        id,
-        (job) => job.copyWith(
-          status: paused ? TransferStatus.paused : TransferStatus.canceled,
-          bytesPerSecond: 0,
-          finishedAt: () => paused ? null : DateTime.now(),
-        ),
-        persist: true,
-      );
-    } on Object catch (error) {
-      <String?>{
-        job.source.hostId,
-        job.target.hostId,
-      }.nonNulls.forEach(ref.read(endpointResolverProvider).invalidate);
-      _replace(
-        id,
-        (job) => job.copyWith(
-          status: TransferStatus.failed,
-          bytesPerSecond: 0,
-          error: () => error is FileOperationException
-              ? error.message
-              : SshErrorText.describe(error),
-          finishedAt: DateTime.now,
-        ),
-        persist: true,
-      );
-    } finally {
-      _tokens.remove(id);
-      _pump();
-    }
-  }
-
-  TransferEngine get _engine => TransferEngine(
-    endpointFor: ref.read(endpointResolverProvider).resolve,
-    askConflict: ref.read(interactionBrokerProvider).ask,
-    checksum: _checksum,
+  }) => _scheduler.enqueue(
+    source: source,
+    target: target,
+    name: name,
+    isDirectory: isDirectory,
+    mode: mode,
+    origin: origin,
+    move: move,
   );
 
-  final Map<String, bool> _hasSha256 = {};
+  void pause(String id) => _scheduler.pause(id);
 
-  Future<String?> _checksum(String? hostId, String path) async {
-    if (hostId == null) return await FileChecksum.local(path);
-    final pool = ref.read(connectionPoolProvider);
-    if (_hasSha256[hostId] == false) return null;
-    final result = await pool.exec(
-      hostId,
-      'command -v sha256sum >/dev/null 2>&1 && sha256sum -- ${KeyCodec.shellQuote(path)}',
-      timeout: const Duration(minutes: 30),
-    );
-    final digest = FileChecksum.parse(result.stdout);
-    _hasSha256[hostId] = digest != null;
-    return digest;
-  }
+  void resume(String id) => _scheduler.resume(id);
 
-  Future<void> _runDirect(TransferJob job, CancelToken token) async {
-    final hosts = ref.read(hostsProvider).value;
-    final source = hosts?.host(job.source.hostId);
-    final target = hosts?.host(job.target.hostId);
-    if (source == null || target == null) {
-      throw const FileOperationException('Both hosts must still be saved');
-    }
-    final direct = DirectTransfer(ref.read(connectionPoolProvider));
-    final probe = await direct.probe(source, target);
-    if (!probe.reachable) {
-      throw FileOperationException(
-        probe.reason ?? 'Direct mode is not available',
-      );
-    }
-    final meter = SpeedMeter();
-    await ref
-        .read(connectionPoolProvider)
-        .withOperation(
-          source.id,
-          (_) => direct.run(
-            source: source,
-            target: target,
-            sourcePath: job.source.path,
-            targetPath: job.target.path,
-            tool: probe.tool!,
-            cancel: token,
-            onProgress: (fraction, speed) => _replace(
-              job.id,
-              (job) => job.copyWith(
-                totalBytes: 1000,
-                doneBytes: (fraction * 1000).round(),
-                bytesPerSecond: speed > 0
-                    ? speed
-                    : meter.add((fraction * 1000).round()),
-              ),
-            ),
-          ),
-        );
-  }
+  void cancel(String id) => _scheduler.cancel(id);
 
-  void pause(String id) {
-    final token = _tokens[id];
-    if (token == null) {
-      _replace(
-        id,
-        (job) => job.copyWith(status: TransferStatus.paused),
-        persist: true,
-      );
-      return;
-    }
-    _pauseRequested.add(id);
-    token.cancel();
-  }
+  void retry(String id) => _scheduler.retry(id);
 
-  void resume(String id) {
-    _replace(
-      id,
-      (job) => job.copyWith(status: TransferStatus.queued, error: () => null),
-      persist: true,
-    );
-    _pump();
-  }
+  void retryFailed() => _scheduler.retryFailed();
 
-  void cancel(String id) {
-    final token = _tokens[id];
-    if (token != null) {
-      token.cancel();
-      return;
-    }
-    _replace(
-      id,
-      (job) => job.copyWith(
-        status: TransferStatus.canceled,
-        finishedAt: DateTime.now,
-      ),
-      persist: true,
-    );
-  }
+  void pauseAll() => _scheduler.pauseAll();
 
-  void retry(String id) {
-    _replace(
-      id,
-      (job) => job.copyWith(
-        status: TransferStatus.queued,
-        error: () => null,
-        finishedAt: () => null,
-      ),
-      persist: true,
-    );
-    _pump();
-  }
+  void clearFinished() => _scheduler.clearFinished();
 
-  void retryFailed() {
-    for (final job
-        in state.where((job) => job.status == TransferStatus.failed).toList()) {
-      retry(job.id);
-    }
-  }
-
-  void pauseAll() {
-    for (final job in state.where((job) => job.status.isActive).toList()) {
-      pause(job.id);
-    }
-  }
-
-  void clearFinished() {
-    final finished = state
-        .where((job) => job.status.isFinished)
-        .map((job) => job.id)
-        .toList();
-    state = state.where((job) => !job.status.isFinished).toList();
-    for (final id in finished) {
-      unawaited(ref.read(documentStoreProvider).delete(collection, id));
-    }
-  }
-
-  void rescheduleAfterSettingsChange() => _pump();
+  void rescheduleAfterSettingsChange() => _scheduler.pump();
 }

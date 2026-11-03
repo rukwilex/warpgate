@@ -1,0 +1,15 @@
+Arrange the active tab with a preset, or open a saved layout
+
+Usage:
+  warpgate layouts apply [layout]
+
+Arguments:
+  layout  Preset or saved layout name
+
+Needs the app. Warpgate starts if it is not running.
+
+Examples:
+  warpgate layouts apply grid
+  warpgate layouts apply incident
+
+Run warpgate --help for flags that work on every command.

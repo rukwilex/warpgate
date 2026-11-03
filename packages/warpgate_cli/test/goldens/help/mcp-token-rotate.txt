@@ -1,0 +1,10 @@
+Replace the Claude Code access token
+
+Usage:
+  warpgate mcp token rotate
+
+Examples:
+  warpgate mcp token rotate
+  warpgate mcp token rotate --yes
+
+Run warpgate --help for flags that work on every command.

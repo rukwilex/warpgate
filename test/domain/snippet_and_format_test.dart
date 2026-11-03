@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:warpgate/core/util/format.dart';
-import 'package:warpgate/features/snippets/domain/snippet.dart';
-import 'package:warpgate/features/transfers/domain/transfer_job.dart';
+import 'package:warpgate_core/core/util/format.dart';
+import 'package:warpgate_core/features/snippets/domain/snippet.dart';
+import 'package:warpgate_core/features/transfers/domain/transfer_job.dart';
 
 void main() {
   test('snippet variables with defaults', () {

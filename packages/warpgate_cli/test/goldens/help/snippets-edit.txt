@@ -1,0 +1,17 @@
+Change a snippet, in $EDITOR when no body is given
+
+Usage:
+  warpgate snippets edit [flags] <snippet> [body]
+
+Arguments:
+  snippet  Snippet name or id
+  body     New command text
+
+Flags:
+      --name <NAME>  New name
+
+Examples:
+  warpgate snippets edit restart
+  warpgate snippets edit restart "sudo service {{service}} restart"
+
+Run warpgate --help for flags that work on every command.

@@ -1,0 +1,12 @@
+Broadcast typing to all terminals in the active tab
+
+Usage:
+  warpgate broadcast toggle
+
+Needs the app. Warpgate starts if it is not running.
+
+Examples:
+  warpgate broadcast toggle
+  warpgate broadcast toggle --json
+
+Run warpgate --help for flags that work on every command.

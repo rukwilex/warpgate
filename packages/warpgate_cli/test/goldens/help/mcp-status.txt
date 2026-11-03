@@ -1,0 +1,10 @@
+Show whether Claude Code access is on
+
+Usage:
+  warpgate mcp status
+
+Examples:
+  warpgate mcp status
+  warpgate mcp status --json
+
+Run warpgate --help for flags that work on every command.

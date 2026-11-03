@@ -3,9 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:warpgate/design_system/design_system.dart';
 import 'package:warpgate/features/terminal/presentation/terminal_sessions.dart';
-import 'package:warpgate/features/workspace/domain/layout.dart';
-import 'package:warpgate/features/workspace/domain/workspace.dart';
 import 'package:warpgate/features/workspace/presentation/workbench_controller.dart';
+import 'package:warpgate_core/features/workspace/domain/layout.dart';
+import 'package:warpgate_core/features/workspace/domain/workspace.dart';
 
 typedef PaneBuilder = Widget Function(BuildContext context, String paneId);
 

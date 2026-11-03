@@ -1,0 +1,15 @@
+Change the text size of the focused terminal
+
+Usage:
+  warpgate app zoom <direction>
+
+Arguments:
+  direction  Which way. One of: in, out, reset
+
+Needs the app. Warpgate starts if it is not running.
+
+Examples:
+  warpgate app zoom in
+  warpgate app zoom reset
+
+Run warpgate --help for flags that work on every command.

@@ -1,0 +1,10 @@
+List host groups
+
+Usage:
+  warpgate groups list
+
+Examples:
+  warpgate groups list
+  warpgate groups list --json
+
+Run warpgate --help for flags that work on every command.

@@ -1,0 +1,13 @@
+Show the settings of one host
+
+Usage:
+  warpgate hosts show <host>
+
+Arguments:
+  host  Host label, id or user@host[:port]
+
+Examples:
+  warpgate hosts show prod
+  warpgate hosts show prod --json
+
+Run warpgate --help for flags that work on every command.

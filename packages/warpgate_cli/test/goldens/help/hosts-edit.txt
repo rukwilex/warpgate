@@ -1,0 +1,28 @@
+Change the settings of a saved host
+
+Usage:
+  warpgate hosts edit [flags] <host>
+
+Arguments:
+  host  Host label, id or user@host[:port]
+
+Flags:
+      --label <NAME>       New label
+      --address <ADDRESS>  New address
+  -p, --port <N>           New port
+  -u, --user <NAME>        New user name
+      --auth <METHOD>      How to sign in. One of: password, key, keyboardInteractive, agent
+  -i, --key <KEY>          Saved key to sign in with
+  -g, --group <GROUP>      Group, or "none"
+  -J, --jump <HOST>        Jump host, or "none"
+      --tag <TAG>          Replace tags. Can be repeated
+      --mcp <LEVEL>        Claude Code access. One of: off, readOnly, full
+      --password-stdin     Read a new password from stdin
+      --clear-password     Forget the saved password
+
+Examples:
+  warpgate hosts edit prod --port 2222
+  warpgate hosts edit prod --group web --tag eu --tag live
+  warpgate hosts edit prod --mcp readOnly
+
+Run warpgate --help for flags that work on every command.

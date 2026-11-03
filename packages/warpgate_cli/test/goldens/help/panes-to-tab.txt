@@ -1,0 +1,12 @@
+Move the focused pane to a new tab
+
+Usage:
+  warpgate panes to-tab
+
+Needs the app. Warpgate starts if it is not running.
+
+Examples:
+  warpgate panes to-tab
+  warpgate panes to-tab --json
+
+Run warpgate --help for flags that work on every command.

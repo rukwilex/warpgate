@@ -1,0 +1,15 @@
+warpgate transfers
+
+Usage:
+  warpgate transfers <command> [flags]
+
+Commands:
+  list    List transfers from the app and the CLI
+  watch   Follow transfers until they finish
+  pause   Pause a transfer
+  resume  Resume a paused transfer
+  cancel  Cancel a queued or running transfer
+  retry   Run a failed or cancelled transfer again
+  clear   Remove finished transfers from the list
+
+Run warpgate transfers <command> --help for details.

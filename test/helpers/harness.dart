@@ -6,10 +6,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:warpgate/app/app.dart';
 import 'package:warpgate/app/router.dart';
 import 'package:warpgate/core/data/app_database.dart';
-import 'package:warpgate/core/data/secret_store.dart';
 import 'package:warpgate/core/data/storage_providers.dart';
 import 'package:warpgate/design_system/design_system.dart';
 import 'package:warpgate/features/palette/presentation/command_registry.dart';
+import 'package:warpgate_core/core/data/secret_store.dart';
 
 Widget themed(Widget child, {Brightness brightness = Brightness.dark}) =>
     MaterialApp(

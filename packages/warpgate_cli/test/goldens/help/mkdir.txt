@@ -1,0 +1,18 @@
+Create a folder
+
+Usage:
+  warpgate mkdir [flags] <path>
+
+Arguments:
+  path  host:path or a local path
+
+Flags:
+  -p, --parents  Create missing parent folders
+
+Also: warpgate files mkdir
+
+Examples:
+  warpgate mkdir prod:/srv/app
+  warpgate mkdir -p prod:/srv/app/releases/42
+
+Run warpgate --help for flags that work on every command.

@@ -1,0 +1,17 @@
+Write an encrypted backup. Asks for a passphrase
+
+Usage:
+  warpgate backup export [flags] <file>
+
+Arguments:
+  file  File to write
+
+Flags:
+      --with-secrets      Include private keys and passwords
+      --passphrase-stdin  Read the passphrase from stdin
+
+Examples:
+  warpgate backup export ~/warpgate.backup
+  warpgate backup export ~/full.backup --with-secrets
+
+Run warpgate --help for flags that work on every command.

@@ -1,0 +1,13 @@
+Remove a group. Its hosts stay saved, ungrouped
+
+Usage:
+  warpgate groups rm <group>
+
+Arguments:
+  group  Group name or id
+
+Examples:
+  warpgate groups rm web
+  warpgate groups rm web --yes
+
+Run warpgate --help for flags that work on every command.

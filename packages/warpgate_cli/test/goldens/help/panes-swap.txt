@@ -1,0 +1,15 @@
+Swap the focused pane with a neighbor
+
+Usage:
+  warpgate panes swap <side>
+
+Arguments:
+  side  Neighbor to swap with. One of: right, down
+
+Needs the app. Warpgate starts if it is not running.
+
+Examples:
+  warpgate panes swap right
+  warpgate panes swap down
+
+Run warpgate --help for flags that work on every command.

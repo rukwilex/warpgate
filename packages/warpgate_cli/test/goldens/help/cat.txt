@@ -1,0 +1,15 @@
+Print a remote file
+
+Usage:
+  warpgate cat <path>
+
+Arguments:
+  path  host:path
+
+Also: warpgate files cat
+
+Examples:
+  warpgate cat prod:/etc/hostname
+  warpgate cat prod:/var/log/app.log | grep ERROR
+
+Run warpgate --help for flags that work on every command.
