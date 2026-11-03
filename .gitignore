@@ -54,3 +54,6 @@ tool/mcp_stdio/.dart_tool/
 macos/Runner/Configs/Signing.xcconfig
 macos/Runner/Configs/KeychainGroup.xcconfig
 ios/Flutter/Signing.xcconfig
+
+# Local planning notes
+PLAN*.md
