@@ -231,3 +231,8 @@ tool/mcp_stdio/        stdio bridge for Claude Code
 docs/design-system.md  direction, tokens, components, patterns, audit
 docs/BUILD.md          requirements, running, release builds, signing, packaging, CI
 ```
+
+## Authors
+
+- [kwilex](https://github.com/rukwilex) — author and maintainer
+- Claude (Anthropic) — co-author, pair programming through Claude Code
