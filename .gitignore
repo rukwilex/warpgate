@@ -58,3 +58,5 @@ ios/Flutter/Signing.xcconfig
 
 # Local planning notes
 PLAN*.md
+
+/rust/target/

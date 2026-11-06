@@ -13,6 +13,7 @@ Commands marked **Verified** were run on macOS (Apple Silicon, Xcode 27.2, Flutt
 | Flutter | 3.47 or later, **stable** channel | `pubspec.yaml` asks for Dart `^3.13.5`, which ships with Flutter 3.47.x. CI pins 3.47.7. |
 | Dart | 3.13.5 or later | Bundled with Flutter. Do not install it separately. |
 | Git | any recent | |
+| Rust | stable, 1.85 or later, through **rustup** | <https://rustup.rs>. Builds the SSH and SFTP engine in `rust/`. Every platform build compiles it automatically. |
 
 Install Flutter from <https://docs.flutter.dev/get-started/install>, then:
 
@@ -371,6 +372,49 @@ It switches to `DebugProfile.Signed.entitlements` / `Release.Signed.entitlements
 
 Unsigned builds (CI, contributors without a team) keep the plain entitlement files and the login keychain. They work, but ask on every rebuild.
 
+## The Rust engine
+
+SSH, SFTP and port forwarding run in a Rust library, `rust/` (crate `warpgate_engine`, on [russh](https://crates.io/crates/russh) 0.65 and [russh-sftp](https://crates.io/crates/russh-sftp) 2.4, with the `ring` crypto backend). It replaced the pure Dart `dartssh2` engine for speed: on the same machine, a 1 GB SFTP download went from 1.6 MB/s to about 560 MB/s, and SSH encryption no longer runs on the window thread. `docs/PERFORMANCE.md` has the measurements. `dartssh2` stays in the app as a fallback engine (Settings, Diagnostics, SSH engine, or `WARPGATE_ENGINE=dart`).
+
+**How the build is wired.**
+
+| Piece | What it does |
+|---|---|
+| `rust/` | The crate. Its public API is in `rust/src/api/` (`ssh.rs`, `sftp.rs`, `util.rs`). |
+| `rust/flutter_rust_bridge.yaml` | [flutter_rust_bridge](https://cjycode.com/flutter_rust_bridge/) 2.12 settings. The Dart bindings go to `packages/warpgate_core/lib/src/engine/`. |
+| `packages/warpgate_engine/` | A Flutter FFI plugin built on [cargokit](https://github.com/irondash/cargokit). Every `flutter build` and `flutter run` compiles the crate for the target and bundles it: a static library linked into `warpgate_engine.framework` on macOS and iOS (arm64 and x86_64 on macOS), `libwarpgate_engine.so` for every Android ABI and on Linux, `warpgate_engine.dll` on Windows. |
+| `packages/warpgate_core/lib/features/connection/engine/native_ssh.dart` | Classes that implement the `dartssh2` interfaces (`SSHClient`, `SSHSession`, `SftpClient`, `SftpFile`, `SSHForwardChannel`) on top of the engine, so the app, the CLI and the MCP server use either engine through the same calls. |
+
+**Install the targets once.** cargokit adds missing targets through rustup by itself, but installing them up front makes the first build faster:
+
+```sh
+rustup target add aarch64-apple-darwin x86_64-apple-darwin          # macOS
+rustup target add aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios   # iOS
+rustup target add aarch64-linux-android armv7-linux-androideabi x86_64-linux-android i686-linux-android   # Android, needs the NDK
+rustup target add x86_64-pc-windows-msvc                              # Windows, on Windows
+rustup target add x86_64-unknown-linux-gnu                            # Linux, on Linux
+```
+
+**Change the engine API.** After editing `rust/src/api/`, regenerate the bindings. The script also removes the comments the generator writes, since the project keeps no comments in its sources:
+
+```sh
+cargo install flutter_rust_bridge_codegen --version 2.12.0 --locked
+tool/engine_codegen.sh
+```
+
+**Check it.**
+
+```sh
+cd rust
+cargo fmt --check
+cargo clippy --all-targets -- -D warnings
+cargo build --release      # rust/target/release/libwarpgate_engine.{dylib,so} or warpgate_engine.dll
+```
+
+**The command line uses the same library.** The CLI looks for the engine next to its own binary: `../Frameworks/warpgate_engine.framework` inside `Warpgate.app` on macOS, `warpgate_engine.dll` next to `warpgate-cli.exe` on Windows, `lib/libwarpgate_engine.so` in the Linux bundle. For a CLI built by hand, point at the library with `WARPGATE_ENGINE_LIBRARY=/path/to/libwarpgate_engine.dylib`. When no library is found, the CLI uses `dartssh2`, which still works, only slower.
+
+**Memory and ownership across the boundary.** Reads are pulled by Dart one batch at a time (at most 256 KB per call), so no queue between Rust and Dart can grow. When Dart stops reading, russh stops reading the connection, and the server stops sending once its window is used. SFTP keeps at most 32 reads or 16 writes of 255 KB in flight per file. Every handle (`SshClient`, `SshChannel`, `SftpSession`, `SftpFile`) is a Rust object owned by its Dart wrapper. Closing the wrapper closes it in Rust, and a Dart finalizer drops anything that was not closed. `connect` takes a `CancelToken`.
+
 ## Building the command line
 
 The CLI is a Dart program in `packages/warpgate_cli`. It shares `packages/warpgate_core` with the app and has no Flutter in it.
@@ -415,7 +459,7 @@ dart run tool/gen_docs.dart
 
 The second-to-last line accepts help text changes after review, and the last one regenerates `docs/CLI.md`. A test fails if either is out of date.
 
-Integration tests need a real SSH server. `tool/cli_test_server.sh` starts `linuxserver/openssh-server` in Docker and prints the variables to set:
+Integration tests need a real SSH server. They run against the Rust engine when the library can be found (`WARPGATE_ENGINE_LIBRARY`) and against `dartssh2` with `WARPGATE_ENGINE=dart`. CI runs both. `tool/cli_test_server.sh` starts `linuxserver/openssh-server` in Docker and prints the variables to set:
 
 ```sh
 env $(tool/cli_test_server.sh) dart test --tags integration --concurrency=1

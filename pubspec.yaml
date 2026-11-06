@@ -16,7 +16,8 @@ dependencies:
   file_selector: ^1.1.0
   flutter:
     sdk: flutter
-  flutter_pty: ^0.4.2
+  flutter_pty:
+    path: packages/flutter_pty
   flutter_riverpod: ^3.4.3
   flutter_secure_storage: ^11.2.0
   go_router: ^18.1.2
@@ -30,8 +31,11 @@ dependencies:
   uuid: ^4.6.0
   warpgate_core:
     path: packages/warpgate_core
+  warpgate_engine:
+    path: packages/warpgate_engine
   window_manager: ^0.5.1
-  xterm: ^4.0.0
+  xterm:
+    path: packages/xterm
 
 dev_dependencies:
   fake_async: ^1.3.3
@@ -39,6 +43,7 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   very_good_analysis: ^11.0.0
+  vm_service: ^15.4.0
 
 flutter:
   uses-material-design: true

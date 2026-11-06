@@ -18,11 +18,13 @@ import 'package:warpgate/features/keys/presentation/keys_controller.dart';
 import 'package:warpgate/features/mcp/presentation/mcp_service.dart';
 import 'package:warpgate/features/palette/presentation/command_registry.dart';
 import 'package:warpgate/features/security/presentation/app_lock_controller.dart';
+import 'package:warpgate/features/settings/presentation/diagnostics_panel.dart';
 import 'package:warpgate/features/settings/presentation/settings_controller.dart';
 import 'package:warpgate/features/shell/presentation/ui_state.dart';
 import 'package:warpgate/features/snippets/presentation/snippets_controller.dart';
 import 'package:warpgate/features/transfers/presentation/transfer_queue.dart';
 import 'package:warpgate_core/core/util/format.dart';
+import 'package:warpgate_core/features/connection/engine/native_ssh.dart';
 import 'package:warpgate_core/features/hosts/domain/host.dart';
 import 'package:warpgate_core/features/security/data/backup_service.dart';
 import 'package:warpgate_core/features/settings/domain/app_settings.dart';
@@ -559,6 +561,93 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           _BackupActions(),
           description: 'Hosts, snippets, workspaces and settings, locked with a passphrase you choose',
           keywords: 'export import restore',
+          stacked: true,
+        ),
+      ]),
+      _Section('diagnostics', 'Diagnostics', WgIcons.activity, [
+        const _Item(
+          'Memory',
+          DiagnosticReadout(DiagnosticText.memory, label: 'Memory'),
+          description: 'In use now, and the part held by terminal scrollback',
+          keywords: 'ram rss leak performance',
+        ),
+        _Item(
+          'SSH engine',
+          segmented(
+            s.sshEngine,
+            const [('native', 'Native'), ('dart', 'Dart')],
+            (v) => _set({'sshEngine': v}),
+            'SSH engine',
+          ),
+          description: NativeEngine.available
+              ? 'Native runs SSH and SFTP outside the window thread and is many times faster. Applies to new connections'
+              : 'The native engine could not be loaded on this device, so Dart is used',
+          keywords: 'rust russh dartssh2 performance encryption',
+        ),
+        _Item(
+          'Memory limit',
+          _Stepper(
+            value: s.memorySoftLimitMb,
+            min: 512,
+            max: 8192,
+            step: 256,
+            unit: 'MB',
+            label: 'Memory limit',
+            onChanged: (v) => _set({'memorySoftLimitMb': v}),
+          ),
+          description: 'Above this, Warpgate clears caches and shortens scrollback in panes you are not looking at',
+          keywords: 'ram soft limit trim',
+        ),
+        const _Item(
+          'CPU',
+          DiagnosticReadout(DiagnosticText.cpu, label: 'CPU'),
+          description: 'Average over the last 10 seconds',
+          keywords: 'processor load performance',
+        ),
+        const _Item(
+          'Responsiveness',
+          DiagnosticReadout(DiagnosticText.latency, label: 'Responsiveness'),
+          description: 'How late the app answered in the last minute. Under 16 ms feels instant',
+          keywords: 'latency event loop freeze lag',
+        ),
+        const _Item(
+          'Frames',
+          DiagnosticReadout(DiagnosticText.frames, label: 'Frames'),
+          description: 'Frames that took longer than one screen refresh since the app started',
+          keywords: 'jank fps smooth',
+        ),
+        const _Item(
+          'Connections',
+          DiagnosticReadout(DiagnosticText.links, label: 'Connections'),
+          description: 'Open SSH connections, terminals and running transfers',
+          keywords: 'sessions channels sockets',
+        ),
+        const _Item(
+          'Background work',
+          DiagnosticReadout(DiagnosticText.workers, label: 'Background work'),
+          description: 'Helper threads running next to the window',
+          keywords: 'isolates threads workers',
+        ),
+        const _Item(
+          'Terminals by memory',
+          SessionMemoryList(),
+          description: 'Scrollback held by each open terminal',
+          keywords: 'sessions per session memory scrollback',
+          stacked: true,
+        ),
+        const _Item(
+          'Recent stalls',
+          StallList(),
+          description:
+              'Times the app stopped answering for more than 2 seconds',
+          keywords: 'freeze hang watchdog',
+          stacked: true,
+        ),
+        const _Item(
+          'Report',
+          DiagnosticActions(),
+          description: 'Everything on this page, with recent log lines, as a JSON file for a bug report',
+          keywords: 'export free memory diagnostics',
           stacked: true,
         ),
       ]),

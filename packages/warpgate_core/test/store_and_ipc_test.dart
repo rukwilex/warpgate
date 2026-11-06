@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:path/path.dart' as p;
@@ -91,6 +92,25 @@ void main() {
       await client.close();
       await server.stop();
       expect(await IpcClient.connect(paths), isNull);
+    });
+
+    test('a request the app never answers times out instead of blocking every later call', () async {
+      final paths = AppPaths(root.path);
+      final server = IpcServer(paths, (method, params) async {
+        if (method == 'hang') await Completer<void>().future;
+        return {'ok': true};
+      });
+      await server.start();
+      final client = (await IpcClient.connect(paths))!;
+      await expectLater(
+        client.call('hang', const {}, const Duration(milliseconds: 200)),
+        throwsA(isA<IpcUnavailable>()),
+      );
+      await expectLater(client.call('ping'), throwsA(isA<IpcUnavailable>()));
+      final fresh = (await IpcClient.connect(paths))!;
+      expect((await fresh.call('ping'))['ok'], isTrue);
+      await fresh.close();
+      await server.stop();
     });
 
     test('a wrong token gets nothing', () async {

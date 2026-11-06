@@ -39,6 +39,8 @@ class SettingsStore {
     const SettingField('terminalFontSize', 'number'),
     SettingField('density', 'choice', choices: _names(WgDensity.values)),
     const SettingField('scrollbackLines', 'integer'),
+    const SettingField('memorySoftLimitMb', 'integer'),
+    const SettingField('sshEngine', 'choice', choices: ['native', 'dart']),
     SettingField('cursorShape', 'choice', choices: _names(CursorShape.values)),
     SettingField('bell', 'choice', choices: _names(BellMode.values)),
     const SettingField('copyOnSelect', 'boolean'),

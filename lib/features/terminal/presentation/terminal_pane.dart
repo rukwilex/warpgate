@@ -38,7 +38,8 @@ class TerminalPane extends ConsumerStatefulWidget {
   ConsumerState<TerminalPane> createState() => _TerminalPaneState();
 }
 
-class _TerminalPaneState extends ConsumerState<TerminalPane> {
+class _TerminalPaneState extends ConsumerState<TerminalPane>
+    with WidgetsBindingObserver {
   final _controller = TerminalController();
   final _focus = FocusNode(debugLabel: 'terminal');
   TerminalSession? _session;
@@ -55,6 +56,7 @@ class _TerminalPaneState extends ConsumerState<TerminalPane> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _session = ref.read(terminalSessionsProvider).obtain(widget.pane);
     _attach();
     _controller.addListener(_onSelection);
@@ -63,6 +65,8 @@ class _TerminalPaneState extends ConsumerState<TerminalPane> {
   void _attach() {
     _session?.terminal.onBell = _ringBell;
   }
+
+  bool _focusQueued = false;
 
   @override
   void didUpdateWidget(TerminalPane oldWidget) {
@@ -74,7 +78,19 @@ class _TerminalPaneState extends ConsumerState<TerminalPane> {
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed || !mounted) return;
+    final focused =
+        ref.read(workbenchProvider).locate(widget.pane.id)?.tab.focusedPaneId ==
+        widget.pane.id;
+    if (focused && !_focus.hasFocus && !_filesArea.hasFocus) {
+      _focus.requestFocus();
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _bellTimer?.cancel();
     _controller
       ..removeListener(_onSelection)
@@ -540,10 +556,14 @@ class _TerminalPaneState extends ConsumerState<TerminalPane> {
     final focused =
         bench.locate(widget.pane.id)?.tab.focusedPaneId == widget.pane.id;
     if (focused &&
+        !_focusQueued &&
         !_focus.hasFocus &&
         !_filesArea.hasFocus &&
+        WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed &&
         ModalRoute.of(context)?.isCurrent == true) {
+      _focusQueued = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
+        _focusQueued = false;
         if (mounted && !_focus.hasFocus && !_filesArea.hasFocus) {
           _focus.requestFocus();
         }

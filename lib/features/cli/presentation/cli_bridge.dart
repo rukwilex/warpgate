@@ -5,6 +5,7 @@ import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:warpgate/core/data/storage_providers.dart';
+import 'package:warpgate/core/diagnostics/app_health.dart';
 import 'package:warpgate/core/interaction/interaction_broker.dart';
 import 'package:warpgate/core/platform/platform_info.dart';
 import 'package:warpgate/core/routing/routes.dart';
@@ -25,6 +26,7 @@ import 'package:warpgate_core/actions/registry.dart';
 import 'package:warpgate_core/actions/runtime.dart';
 import 'package:warpgate_core/actions/targets.dart';
 import 'package:warpgate_core/core/data/document_store.dart';
+import 'package:warpgate_core/core/diagnostics/app_log.dart';
 import 'package:warpgate_core/core/errors/exit_codes.dart';
 import 'package:warpgate_core/core/platform/app_paths.dart';
 import 'package:warpgate_core/features/connection/data/port_forwarder.dart';
@@ -116,6 +118,17 @@ class CliBridge {
         'Warpgate is locked',
         hint: 'Unlock it in the app, then try again',
       );
+    }
+    switch (method) {
+      case 'diagnostics.snapshot':
+        final report = _ref.read(appHealthProvider).snapshot();
+        if (params['log'] == true) {
+          report['log_recent'] = [for (final entry in AppLog.instance.recent) entry.toJson()];
+        }
+        return report;
+      case 'diagnostics.free':
+        final trim = await _ref.read(appHealthProvider).freeMemory();
+        return trim.toJson();
     }
     final secrets = _ref.read(secretStoreProvider);
     switch (method) {

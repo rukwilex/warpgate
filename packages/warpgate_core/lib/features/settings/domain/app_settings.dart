@@ -43,6 +43,8 @@ class AppSettings {
     this.terminalFontSize = 13,
     this.density = WgDensity.comfortable,
     this.scrollbackLines = 10000,
+    this.memorySoftLimitMb = 1536,
+    this.sshEngine = 'native',
     this.cursorShape = CursorShape.block,
     this.bell = BellMode.visual,
     this.copyOnSelect = false,
@@ -89,6 +91,8 @@ class AppSettings {
           (json['terminalFontSize'] as num?)?.toDouble() ?? d.terminalFontSize,
       density: pick(WgDensity.values, 'density', d.density),
       scrollbackLines: json['scrollbackLines'] as int? ?? d.scrollbackLines,
+      memorySoftLimitMb: json['memorySoftLimitMb'] as int? ?? d.memorySoftLimitMb,
+      sshEngine: json['sshEngine'] as String? ?? d.sshEngine,
       cursorShape: pick(CursorShape.values, 'cursorShape', d.cursorShape),
       bell: pick(BellMode.values, 'bell', d.bell),
       copyOnSelect: json['copyOnSelect'] as bool? ?? d.copyOnSelect,
@@ -146,6 +150,8 @@ class AppSettings {
   final double terminalFontSize;
   final WgDensity density;
   final int scrollbackLines;
+  final int memorySoftLimitMb;
+  final String sshEngine;
   final CursorShape cursorShape;
   final BellMode bell;
   final bool copyOnSelect;
@@ -181,6 +187,8 @@ class AppSettings {
     'terminalFontSize': terminalFontSize,
     'density': density.name,
     'scrollbackLines': scrollbackLines,
+    'memorySoftLimitMb': memorySoftLimitMb,
+    'sshEngine': sshEngine,
     'cursorShape': cursorShape.name,
     'bell': bell.name,
     'copyOnSelect': copyOnSelect,

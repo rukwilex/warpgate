@@ -4807,10 +4807,14 @@ JSON schema `warpgate.completion/1`:
 Check the install, PATH, secure storage, app and ssh-agent
 
 Usage:
-  warpgate doctor
+  warpgate doctor [flags]
+
+Flags:
+      --perf  Also check memory, CPU, event loop latency and stalls of the running app
 
 Examples:
   warpgate doctor
+  warpgate doctor --perf
   warpgate doctor --json
 
 Run warpgate --help for flags that work on every command.
@@ -4977,6 +4981,45 @@ JSON schema `warpgate.uninstall/1`:
   "properties": {
     "removed": {
       "type": "boolean"
+    }
+  }
+}
+```
+
+#### warpgate diagnostics export
+
+```
+Save a performance and health report from the running app as JSON
+
+Usage:
+  warpgate diagnostics export [file]
+
+Arguments:
+  file  File to write. Default: warpgate-diagnostics-<time>.json in the current folder
+
+Examples:
+  warpgate diagnostics export
+  warpgate diagnostics export report.json
+
+Run warpgate --help for flags that work on every command.
+```
+
+Runs in the command. No app needed. Permission: read.
+
+JSON schema `warpgate.diagnostics.export/1`:
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "path": {
+      "type": "string"
+    },
+    "stalls": {
+      "type": "integer"
+    },
+    "rss_mb": {
+      "type": "integer"
     }
   }
 }

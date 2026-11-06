@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:meta/meta.dart';
 
 enum LinkState { idle, connecting, connected, busy, reconnecting, dropped }
@@ -61,6 +63,12 @@ abstract final class Backoff {
 
   static const maxAttempts = 10;
 
-  static Duration delay(int attempt) =>
-      Duration(seconds: _steps[attempt.clamp(0, _steps.length - 1)]);
+  static final _random = Random();
+
+  static Duration delay(int attempt, {double jitter = 0.2, Random? random}) {
+    final base = _steps[attempt.clamp(0, _steps.length - 1)] * 1000;
+    final spread = (base * jitter).round();
+    final offset = spread == 0 ? 0 : (random ?? _random).nextInt(spread * 2 + 1) - spread;
+    return Duration(milliseconds: base + offset);
+  }
 }

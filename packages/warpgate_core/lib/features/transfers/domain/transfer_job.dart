@@ -1,3 +1,5 @@
+import 'dart:collection';
+
 import 'package:meta/meta.dart';
 import 'package:warpgate_core/core/data/document_store.dart';
 
@@ -215,21 +217,27 @@ class TransferJob {
 }
 
 class SpeedMeter {
-  new({this.window = const Duration(seconds: 3)});
+  new({this.window = const Duration(seconds: 3), this.every = const Duration(milliseconds: 100)});
 
   final Duration window;
-  final List<(DateTime, int)> _samples = [];
+  final Duration every;
+  final ListQueue<(DateTime, int)> _samples = ListQueue();
+  double _last = 0;
 
   double add(int totalBytes, [DateTime? at]) {
     final now = at ?? DateTime.now();
-    _samples
-      ..add((now, totalBytes))
-      ..removeWhere((sample) => now.difference(sample.$1) > window);
-    if (_samples.length < 2) return 0;
+    if (_samples.isNotEmpty && now.difference(_samples.last.$1) < every) {
+      return _last;
+    }
+    _samples.add((now, totalBytes));
+    while (_samples.length > 2 && now.difference(_samples.first.$1) > window) {
+      _samples.removeFirst();
+    }
+    if (_samples.length < 2) return _last = 0;
     final first = _samples.first;
     final elapsed = now.difference(first.$1).inMicroseconds / 1e6;
-    if (elapsed <= 0) return 0;
-    return (totalBytes - first.$2) / elapsed;
+    if (elapsed <= 0) return _last;
+    return _last = (totalBytes - first.$2) / elapsed;
   }
 
   void reset() => _samples.clear();

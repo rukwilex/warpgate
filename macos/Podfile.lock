@@ -2,20 +2,26 @@ PODS:
   - flutter_pty (0.0.1):
     - FlutterMacOS
   - FlutterMacOS (1.0.0)
+  - warpgate_engine (0.0.1):
+    - FlutterMacOS
 
 DEPENDENCIES:
   - flutter_pty (from `Flutter/ephemeral/.symlinks/plugins/flutter_pty/macos`)
   - FlutterMacOS (from `Flutter/ephemeral`)
+  - warpgate_engine (from `Flutter/ephemeral/.symlinks/plugins/warpgate_engine/macos`)
 
 EXTERNAL SOURCES:
   flutter_pty:
     :path: Flutter/ephemeral/.symlinks/plugins/flutter_pty/macos
   FlutterMacOS:
     :path: Flutter/ephemeral
+  warpgate_engine:
+    :path: Flutter/ephemeral/.symlinks/plugins/warpgate_engine/macos
 
 SPEC CHECKSUMS:
   flutter_pty: 1e360feaf8b1a213d2d50da3c076005b8eef1eee
   FlutterMacOS: c232990155153907050900a2e175c7773903ba4e
+  warpgate_engine: a1e21e90bdc6bde7187bb0e89ddb4e3d60d6c878
 
 PODFILE CHECKSUM: 1e95c36afbfd1cb6423ceca4de7a8e1b256fb6ac
 

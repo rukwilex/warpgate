@@ -14,6 +14,8 @@ class WgPage extends StatelessWidget {
     this.actions = const [],
     this.subtitle,
     this.scrollable = true,
+    this.itemCount = 0,
+    this.itemBuilder,
     this.maxWidth,
     this.leading,
   }) : assert(child != null || empty != null, 'Pass a child or an empty state');
@@ -24,6 +26,8 @@ class WgPage extends StatelessWidget {
   final Widget? child;
   final Widget? empty;
   final bool scrollable;
+  final int itemCount;
+  final IndexedWidgetBuilder? itemBuilder;
   final double? maxWidth;
   final Widget? leading;
 
@@ -116,7 +120,29 @@ class WgPage extends StatelessWidget {
             child: page,
           );
         }
-        page = scrollable
+        final items = itemBuilder;
+        page = scrollable && items != null
+            ? ListView.builder(
+                itemCount: itemCount + 3,
+                itemBuilder: (context, index) {
+                  if (index == 0) return header;
+                  if (index == 1) {
+                    return Padding(
+                      key: const ValueKey('page-body'),
+                      padding: EdgeInsets.fromLTRB(gutter, 0, gutter, 0),
+                      child: child,
+                    );
+                  }
+                  if (index == itemCount + 2) {
+                    return SizedBox(height: space.xxl);
+                  }
+                  return Padding(
+                    padding: EdgeInsets.symmetric(horizontal: gutter),
+                    child: items(context, index - 2),
+                  );
+                },
+              )
+            : scrollable
             ? ListView(
                 children: [
                   header,

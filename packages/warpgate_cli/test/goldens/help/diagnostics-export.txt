@@ -1,0 +1,13 @@
+Save a performance and health report from the running app as JSON
+
+Usage:
+  warpgate diagnostics export [file]
+
+Arguments:
+  file  File to write. Default: warpgate-diagnostics-<time>.json in the current folder
+
+Examples:
+  warpgate diagnostics export
+  warpgate diagnostics export report.json
+
+Run warpgate --help for flags that work on every command.

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:ui';
 
 import 'package:drift_flutter/drift_flutter.dart';
 import 'package:flutter/material.dart';
@@ -17,7 +18,9 @@ import 'package:warpgate/features/shell/presentation/window_chrome.dart';
 import 'package:warpgate/features/transfers/presentation/transfer_queue.dart';
 import 'package:warpgate/features/workspace/presentation/workbench_controller.dart';
 import 'package:warpgate_core/core/data/app_data_migration.dart';
+import 'package:warpgate_core/core/diagnostics/app_log.dart';
 import 'package:warpgate_core/core/platform/app_paths.dart';
+import 'package:warpgate_core/features/connection/engine/native_ssh.dart';
 import 'package:warpgate_core/features/sftp/data/endpoints.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -62,6 +65,16 @@ Future<void> main() async {
     );
   }
   final root = paths?.root;
+  AppLog.instance = AppLog(directory: root == null ? null : '$root/logs');
+  final presentError = FlutterError.onError;
+  FlutterError.onError = (details) {
+    AppLog.instance.error('ui', details.exception, details.stack);
+    presentError?.call(details);
+  };
+  PlatformDispatcher.instance.onError = (error, stack) {
+    AppLog.instance.error('uncaught', error, stack);
+    return true;
+  };
   final database = AppDatabase(
     driftDatabase(
       name: AppIdentity.databaseName,
@@ -74,6 +87,15 @@ Future<void> main() async {
   );
   final store = DriftDocumentStore(database);
   final settings = await SettingsController.load(store);
+  NativeEngine.preferred = settings.sshEngine == 'dart'
+      ? SshEngineKind.dart
+      : SshEngineKind.native;
+  if (!PlatformInfo.isWeb && !await NativeEngine.ensureLoaded()) {
+    AppLog.instance.warning(
+      'engine',
+      'The native SSH engine is not available, using dartssh2: ${NativeEngine.loadError}',
+    );
+  }
   final workbench = await WorkbenchController.load(store);
   final transfers = await TransferQueue.load(store);
   runApp(

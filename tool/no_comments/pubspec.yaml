@@ -1,0 +1,7 @@
+name: no_comments
+description: Finds and removes comments in Dart and Rust sources.
+publish_to: none
+environment:
+  sdk: ^3.13.0
+dependencies:
+  analyzer: 14.7.0

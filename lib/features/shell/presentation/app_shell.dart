@@ -384,61 +384,62 @@ class _HostList extends ConsumerWidget {
 
     final groups = value.groups;
     final ungroupedCollapsed = isGroupCollapsed(ref, ungroupedKey);
-    return ListView(
-      padding: EdgeInsets.only(bottom: context.space.sm),
-      children: [
-        WgSectionLabel(
-          'Hosts',
-          trailing: WgIconButton(
-            icon: WgIcons.plus,
-            label: 'Add host',
-            compact: true,
-            onPressed: () =>
-                GoRouter.of(context).go(Routes.hosts, extra: 'new'),
-          ),
+    final items = <WidgetBuilder>[
+      (_) => WgSectionLabel(
+        'Hosts',
+        trailing: WgIconButton(
+          icon: WgIcons.plus,
+          label: 'Add host',
+          compact: true,
+          onPressed: () => GoRouter.of(context).go(Routes.hosts, extra: 'new'),
         ),
-        if (value.hosts.isEmpty)
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: context.space.sm),
-            child: Text(
-              'No hosts yet',
-              style: context.type.caption.copyWith(
-                color: context.colors.textMuted,
-              ),
+      ),
+      if (value.hosts.isEmpty)
+        (context) => Padding(
+          padding: EdgeInsets.symmetric(horizontal: context.space.sm),
+          child: Text(
+            'No hosts yet',
+            style: context.type.caption.copyWith(
+              color: context.colors.textMuted,
             ),
           ),
-        if (groups.isNotEmpty && value.ungrouped.isNotEmpty)
-          HostGroupHeader(
-            groupKey: ungroupedKey,
-            name: 'Ungrouped',
-            count: value.ungrouped.length,
-            renamable: false,
-            dense: true,
-          ),
-        if (!ungroupedCollapsed || groups.isEmpty)
-          for (final host in value.ungrouped) row(host),
-        for (final group in groups) ...[
-          HostGroupHeader(
-            groupKey: group.id,
-            groupId: group.id,
-            name: group.name,
-            count: value.inGroup(group.id).length,
-            dense: true,
-            trailing: value.inGroup(group.id).isEmpty
-                ? null
-                : WgIconButton(
-                    icon: WgIcons.grid,
-                    label: 'Open ${group.name} in a grid',
-                    compact: true,
-                    onPressed: () => registry.openHostsInGrid([
-                      for (final host in value.inGroup(group.id)) host.id,
-                    ], title: group.name),
-                  ),
-          ),
-          if (!isGroupCollapsed(ref, group.id))
-            for (final host in value.inGroup(group.id)) row(host),
-        ],
+        ),
+      if (groups.isNotEmpty && value.ungrouped.isNotEmpty)
+        (_) => HostGroupHeader(
+          groupKey: ungroupedKey,
+          name: 'Ungrouped',
+          count: value.ungrouped.length,
+          renamable: false,
+          dense: true,
+        ),
+      if (!ungroupedCollapsed || groups.isEmpty)
+        for (final host in value.ungrouped) (_) => row(host),
+      for (final group in groups) ...[
+        (_) => HostGroupHeader(
+          groupKey: group.id,
+          groupId: group.id,
+          name: group.name,
+          count: value.inGroup(group.id).length,
+          dense: true,
+          trailing: value.inGroup(group.id).isEmpty
+              ? null
+              : WgIconButton(
+                  icon: WgIcons.grid,
+                  label: 'Open ${group.name} in a grid',
+                  compact: true,
+                  onPressed: () => registry.openHostsInGrid([
+                    for (final host in value.inGroup(group.id)) host.id,
+                  ], title: group.name),
+                ),
+        ),
+        if (!isGroupCollapsed(ref, group.id))
+          for (final host in value.inGroup(group.id)) (_) => row(host),
       ],
+    ];
+    return ListView.builder(
+      padding: EdgeInsets.only(bottom: context.space.sm),
+      itemCount: items.length,
+      itemBuilder: (context, index) => items[index](context),
     );
   }
 }

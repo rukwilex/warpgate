@@ -1,0 +1,9 @@
+warpgate diagnostics
+
+Usage:
+  warpgate diagnostics <command> [flags]
+
+Commands:
+  export  Save a performance and health report from the running app as JSON
+
+Run warpgate diagnostics <command> --help for details.

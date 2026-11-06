@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:dartssh2/dartssh2.dart';
+import 'package:warpgate_core/core/diagnostics/live_objects.dart';
+import 'package:warpgate_core/features/connection/engine/native_ssh.dart';
 import 'package:warpgate_core/core/interaction/interaction_broker.dart';
 import 'package:warpgate_core/features/connection/data/ssh_agent_client.dart';
 import 'package:warpgate_core/features/connection/data/ssh_errors.dart';
@@ -17,11 +19,33 @@ class _Entry {
   new(this.client);
 
   final Future<SSHClient> client;
+  SSHClient? live;
   Future<SftpClient>? sftp;
   int holders = 0;
   int operations = 0;
   Timer? idleTimer;
   bool closing = false;
+  bool probing = false;
+  DateTime lastProbe = DateTime.now();
+  int keepAliveSeconds = 0;
+}
+
+abstract final class SshDefaults {
+  static const algorithms = SSHAlgorithms(
+    cipher: [
+      SSHCipherType.chacha20poly1305,
+      SSHCipherType.aes128ctr,
+      SSHCipherType.aes256ctr,
+      SSHCipherType.aes128gcm,
+      SSHCipherType.aes256gcm,
+    ],
+    mac: [
+      SSHMacType.hmacSha256Etm,
+      SSHMacType.hmacSha512Etm,
+      SSHMacType.hmacSha256,
+      SSHMacType.hmacSha512,
+    ],
+  );
 }
 
 class ConnectionPool {
@@ -31,10 +55,14 @@ class ConnectionPool {
     required this._keys,
     required this._broker,
     this._idleTimeout = const Duration(seconds: 90),
+    this.probeTimeout = const Duration(seconds: 10),
+    this.livenessTick = const Duration(seconds: 1),
     Future<List<SSHIdentity>> Function()? agentIdentities,
     Future<List<SSHIdentity>> Function(Host host)? fallbackIdentities,
+    this.fallbackKeys,
     Future<SSHSocket> Function(String host, int port)? dial,
-  }) : _dial = dial ?? _defaultDial,
+  }) : _customDial = dial != null,
+       _dial = dial ?? _defaultDial,
        _agentIdentities = agentIdentities ?? SshAgentClient.identitiesFromEnvironment,
        _fallbackIdentities = fallbackIdentities;
 
@@ -50,7 +78,18 @@ class ConnectionPool {
   final Future<List<SSHIdentity>> Function() _agentIdentities;
   final Future<List<SSHIdentity>> Function(Host host)? _fallbackIdentities;
 
+  final Future<List<String>> Function(Host host)? fallbackKeys;
+  final bool _customDial;
+  final Duration probeTimeout;
+  final Duration livenessTick;
+
   final Map<String, _Entry> _entries = {};
+  Timer? _liveness;
+  DateTime _lastTick = DateTime.now();
+  final Stopwatch _clock = Stopwatch()..start();
+  Duration _lastTickClock = Duration.zero;
+  int deadLinksClosed = 0;
+  int wakeUps = 0;
   final Map<String, LinkStatus> _status = {};
   final _changes = StreamController<String>.broadcast();
   final Map<String, Future<void>> _promptLocks = {};
@@ -96,6 +135,12 @@ class ConnectionPool {
     unawaited(
       entry.client.then(
         (client) {
+          entry
+            ..live = client
+            ..keepAliveSeconds = _lookup(hostId)?.keepAliveSeconds ?? 0
+            ..lastProbe = DateTime.now();
+          LiveObjects.opened('ssh connection');
+          _ensureLiveness();
           _emit(hostId, const LinkStatus(LinkState.connected));
           _refreshBusy(hostId);
           unawaited(
@@ -122,9 +167,17 @@ class ConnectionPool {
   }
 
   void _onClosed(String hostId, _Entry entry, Object? error) {
-    if (!identical(_entries[hostId], entry)) return;
+    if (entry.live != null) {
+      entry.live = null;
+      LiveObjects.closed('ssh connection');
+    }
+    if (!identical(_entries[hostId], entry)) {
+      _stopLivenessIfIdle();
+      return;
+    }
     _entries.remove(hostId);
     entry.idleTimer?.cancel();
+    _stopLivenessIfIdle();
     _emit(
       hostId,
       entry.closing
@@ -251,13 +304,82 @@ class ConnectionPool {
   }
 
   Future<void> dispose() async {
+    _liveness?.cancel();
+    _liveness = null;
     for (final hostId in List.of(_entries.keys)) {
       await disconnect(hostId);
     }
     await _changes.close();
   }
 
+  int get openConnections => _entries.values.where((e) => e.live != null).length;
+
+  bool get livenessRunning => _liveness != null;
+
+  void _ensureLiveness() {
+    if (_liveness != null) return;
+    _lastTick = DateTime.now();
+    _lastTickClock = _clock.elapsed;
+    _liveness = Timer.periodic(livenessTick, (_) => _checkLiveness());
+  }
+
+  void _stopLivenessIfIdle() {
+    if (_entries.values.any((e) => e.live != null)) return;
+    _liveness?.cancel();
+    _liveness = null;
+  }
+
+  void _checkLiveness() {
+    final now = DateTime.now();
+    final clock = _clock.elapsed;
+    final wallGap = now.difference(_lastTick);
+    final clockGap = clock - _lastTickClock;
+    _lastTick = now;
+    _lastTickClock = clock;
+    final woke = wallGap > livenessTick * 5 || wallGap - clockGap > const Duration(seconds: 3);
+    if (woke) wakeUps++;
+    for (final MapEntry(key: hostId, value: entry) in _entries.entries.toList()) {
+      final client = entry.live;
+      if (client == null || entry.closing || entry.probing) continue;
+      final every = entry.keepAliveSeconds;
+      if (every <= 0 && !woke) continue;
+      if (!woke && now.difference(entry.lastProbe) < Duration(seconds: every)) continue;
+      unawaited(_probe(hostId, entry, client, woke ? probeTimeout ~/ 2 : probeTimeout));
+    }
+  }
+
+  Future<void> probe(String hostId) async {
+    final entry = _entries[hostId];
+    final client = entry?.live;
+    if (entry == null || client == null || entry.probing) return;
+    await _probe(hostId, entry, client, probeTimeout);
+  }
+
+  Future<void> probeAll() async {
+    await Future.wait([for (final hostId in List.of(_entries.keys)) probe(hostId)]);
+  }
+
+  Future<void> _probe(String hostId, _Entry entry, SSHClient client, Duration timeout) async {
+    entry
+      ..probing = true
+      ..lastProbe = DateTime.now();
+    try {
+      await client.ping().timeout(timeout);
+    } on Object {
+      if (identical(entry.live, client) && !entry.closing) {
+        deadLinksClosed++;
+        client.close();
+        _onClosed(hostId, entry, const DeadLinkError());
+      }
+    } finally {
+      entry.probing = false;
+    }
+  }
+
   Future<SSHClient> _open(Host host) async {
+    if (!_customDial && await NativeEngine.ensureLoaded() && NativeEngine.active) {
+      return _openNative(host);
+    }
     final socket = host.jumpHostId == null
         ? await _dial(host.address, host.port)
         : await _throughJump(host);
@@ -266,9 +388,8 @@ class ConnectionPool {
       socket,
       username: host.username,
       identities: identities,
-      keepAliveInterval: host.keepAliveSeconds > 0
-          ? Duration(seconds: host.keepAliveSeconds)
-          : null,
+      keepAliveInterval: null,
+      algorithms: SshDefaults.algorithms,
       handshakeTimeout: const Duration(seconds: 15),
       onVerifyHostKey: (type, fingerprint) =>
           _verifyHostKey(host, type, utf8.decode(fingerprint)),
@@ -285,6 +406,79 @@ class ConnectionPool {
       rethrow;
     }
     return ssh;
+  }
+
+  Future<SSHClient> _openNative(Host host) async {
+    NativeSshClient? jump;
+    final jumpId = host.jumpHostId;
+    if (jumpId != null) {
+      final via = await client(jumpId);
+      if (via is! NativeSshClient) {
+        throw StateError('The jump host uses the other SSH engine. Reconnect it and try again');
+      }
+      jump = via;
+      retain(jumpId);
+    }
+    try {
+      final client = await NativeSshClient.connect(
+        host: host.address,
+        port: host.port,
+        jump: jump,
+        verify: (type, fingerprint) => _verifyHostKey(host, type, fingerprint),
+        auth: NativeAuth(
+          username: host.username,
+          credentials: await _nativeCredentials(host),
+          password: host.auth == AuthMethod.password || host.auth == AuthMethod.agent
+              ? () => _password(host)
+              : null,
+          keyboardInteractive: (request) => _keyboardInteractive(host, request),
+        ),
+      );
+      if (jumpId != null) {
+        unawaited(client.done.whenComplete(() => release(jumpId)));
+      }
+      return client;
+    } on Object {
+      if (jumpId != null) release(jumpId);
+      rethrow;
+    }
+  }
+
+  Future<List<NativeCredential>> _nativeCredentials(Host host) async {
+    if (host.auth == AuthMethod.agent) {
+      final fallback = fallbackKeys;
+      return [
+        AgentCredential(SshAgentClient.location),
+        if (fallback != null)
+          for (final pem in await fallback(host)) KeyCredential(pem, null),
+      ];
+    }
+    if (host.auth != AuthMethod.key || host.keyId == null) return const [];
+    final material = await _keys.privateMaterial(host.keyId!);
+    if (material == null) {
+      throw const MissingCredentialsException(
+        'The key for this host is missing. Pick a key in the host settings',
+      );
+    }
+    var passphrase = material.passphrase;
+    if (SSHKeyPair.isEncryptedPem(material.pem) && passphrase == null) {
+      passphrase = await _serialPrompt(
+        host.id,
+        () => _broker.ask(
+          SecretRequest(
+            title: 'Unlock key',
+            message: 'The key for ${host.label} is protected with a passphrase.',
+            fieldLabel: 'Passphrase',
+          ),
+        ),
+      );
+      if (passphrase == null) {
+        throw const MissingCredentialsException(
+          'A passphrase is needed to use this key',
+        );
+      }
+    }
+    return [KeyCredential(material.pem, passphrase)];
   }
 
   Future<SSHSocket> _throughJump(Host host) async {

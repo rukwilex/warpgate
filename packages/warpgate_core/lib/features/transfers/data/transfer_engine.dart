@@ -28,7 +28,14 @@ class _PlanItem {
 }
 
 class TransferEngine {
-  new({required this.endpointFor, required this.askConflict, this.checksum});
+  new({
+    required this.endpointFor,
+    required this.askConflict,
+    this.checksum,
+    this.progressEvery = const Duration(milliseconds: 250),
+  });
+
+  final Duration progressEvery;
 
   final EndpointFor endpointFor;
   final Checksum? checksum;
@@ -88,6 +95,16 @@ class TransferEngine {
 
     final meter = SpeedMeter();
     final skippedItems = <String>{};
+    final completed = {...job.completedFiles};
+    final clock = Stopwatch()..start();
+    var lastPublish = -progressEvery.inMicroseconds;
+    var filesDone = job.filesDone;
+    bool due() {
+      final now = clock.elapsedMicroseconds;
+      if (now - lastPublish < progressEvery.inMicroseconds) return false;
+      lastPublish = now;
+      return true;
+    }
     for (final item in plan) {
       cancel.throwIfCancelled();
       final sourcePath = item.relative.isEmpty
@@ -134,14 +151,19 @@ class TransferEngine {
           case ConflictResolution.skip:
             skippedItems.add(item.relative);
             done += item.size;
-            final skipped = item.relative;
-            update(
-              (job) => job.copyWith(
-                doneBytes: done,
-                filesDone: job.filesDone + 1,
-                completedFiles: {...job.completedFiles, skipped},
-              ),
-            );
+            completed.add(item.relative);
+            filesDone++;
+            if (due()) {
+              final bytes = done;
+              final count = filesDone;
+              update(
+                (job) => job.copyWith(
+                  doneBytes: bytes,
+                  filesDone: count,
+                  completedFiles: completed,
+                ),
+              );
+            }
             continue;
           case ConflictResolution.rename:
             targetPath = await target.uniqueName(targetPath);
@@ -154,12 +176,14 @@ class TransferEngine {
 
       final relative = item.relative;
       final fileName = source.paths.basename(sourcePath);
-      update(
-        (job) => job.copyWith(
-          currentFile: () => fileName,
-          partialFile: () => relative,
-        ),
-      );
+      if (item.size >= 1 << 20 || due()) {
+        update(
+          (job) => job.copyWith(
+            currentFile: () => fileName,
+            partialFile: () => relative,
+          ),
+        );
+      }
       final base = done + offset;
       await target.write(
         targetPath,
@@ -169,7 +193,11 @@ class TransferEngine {
         onProgress: (written) {
           final now = base + written;
           final speed = meter.add(now);
-          update((job) => job.copyWith(doneBytes: now, bytesPerSecond: speed));
+          if (due()) {
+            update(
+              (job) => job.copyWith(doneBytes: now, bytesPerSecond: speed),
+            );
+          }
         },
       );
       cancel.throwIfCancelled();
@@ -190,15 +218,31 @@ class TransferEngine {
         );
       }
       done += item.size;
-      update(
-        (job) => job.copyWith(
-          doneBytes: done,
-          filesDone: job.filesDone + 1,
-          completedFiles: {...job.completedFiles, relative},
-          partialFile: () => null,
-        ),
-      );
+      completed.add(relative);
+      filesDone++;
+      if (item.size >= 1 << 20 || due()) {
+        final bytes = done;
+        final count = filesDone;
+        update(
+          (job) => job.copyWith(
+            doneBytes: bytes,
+            filesDone: count,
+            completedFiles: completed,
+            partialFile: () => null,
+          ),
+        );
+      }
     }
+    final bytes = done;
+    final count = filesDone;
+    update(
+      (job) => job.copyWith(
+        doneBytes: bytes,
+        filesDone: count,
+        completedFiles: completed,
+        partialFile: () => null,
+      ),
+    );
     if (job.move) {
       await _removeSource(
         source,

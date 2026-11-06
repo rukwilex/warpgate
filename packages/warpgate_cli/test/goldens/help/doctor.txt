@@ -1,10 +1,14 @@
 Check the install, PATH, secure storage, app and ssh-agent
 
 Usage:
-  warpgate doctor
+  warpgate doctor [flags]
+
+Flags:
+      --perf  Also check memory, CPU, event loop latency and stalls of the running app
 
 Examples:
   warpgate doctor
+  warpgate doctor --perf
   warpgate doctor --json
 
 Run warpgate --help for flags that work on every command.

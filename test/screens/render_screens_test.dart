@@ -97,6 +97,8 @@ void main() {
       await shot('multi_exec');
       router.go(Routes.settings);
       await shot('settings');
+      await tester.tap(find.text('Diagnostics').first);
+      await shot('settings_diagnostics');
       router.go(Routes.workbench);
       container.read(paletteProvider.notifier).open(PaletteMode.commands);
       await shot('palette');

@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:warpgate_core/core/data/app_data_migration.dart';
 import 'package:warpgate_core/core/data/document_store.dart';
+import 'package:warpgate_core/core/data/file_key_vault.dart';
 import 'package:warpgate_core/core/data/vault_secret_store.dart';
 import 'package:warpgate_core/core/platform/app_paths.dart';
 
@@ -52,9 +53,20 @@ abstract final class PlatformVault {
   }
 
   static Future<VaultSecretStore> create(DocumentStore store) async {
+    final keyFile = kIsWeb
+        ? null
+        : Platform.environment['WARPGATE_MASTER_KEY_FILE'];
+    if (keyFile != null) {
+      return VaultSecretStore(
+        store: store,
+        master: MasterKeySource(primary: FileKeyVault(keyFile)),
+        onWarning: debugPrint,
+      );
+    }
     final profile = AppPaths.resolve(platformRoot: '');
     final item = profile.profile == null ? null : profile.keychainAccount;
-    final isolated = item != null || Platform.environment.containsKey('WARPGATE_HOME');
+    final isolated =
+        item != null || Platform.environment.containsKey('WARPGATE_HOME');
     if (!kIsWeb && Platform.isMacOS) {
       final group = await _macGroup();
       final signed =

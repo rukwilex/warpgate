@@ -5,8 +5,11 @@ import 'dart:io';
 import 'package:dartssh2/dartssh2.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_pty/flutter_pty.dart';
+import 'package:warpgate/features/terminal/data/terminal_ingest.dart';
 import 'package:warpgate/features/terminal/domain/terminal_geometry.dart';
 import 'package:warpgate/features/terminal/domain/terminal_reflow.dart';
+import 'package:warpgate_core/core/diagnostics/live_objects.dart';
+import 'package:warpgate_core/core/diagnostics/watchdog.dart';
 import 'package:warpgate_core/features/connection/data/connection_pool.dart';
 import 'package:warpgate_core/features/connection/data/ssh_errors.dart';
 import 'package:warpgate_core/features/connection/domain/link_state.dart';
@@ -21,6 +24,7 @@ abstract interface class TerminalBackend {
   bool get connectionLost;
   void write(Uint8List data);
   void resize(int columns, int rows);
+  void acknowledge();
   void close();
 }
 
@@ -50,6 +54,9 @@ class SshShellBackend implements TerminalBackend {
   void resize(int columns, int rows) => _session.resizeTerminal(columns, rows);
 
   @override
+  void acknowledge() {}
+
+  @override
   void close() => _session.close();
 }
 
@@ -76,8 +83,30 @@ class LocalPtyBackend implements TerminalBackend {
   @override
   void resize(int columns, int rows) => _pty.resize(rows, columns);
 
+  bool _closing = false;
+
   @override
-  void close() => _pty.kill();
+  void acknowledge() {
+    if (!_closing) _pty.ackRead();
+  }
+
+  @override
+  void close() {
+    if (_closing) return;
+    _closing = true;
+    LiveObjects.opened('closing local shell');
+    if (!Platform.isWindows) _pty.kill(ProcessSignal.sighup);
+    _pty.close();
+    final killer = Timer(const Duration(seconds: 3), () {
+      _pty.kill(Platform.isWindows ? ProcessSignal.sigterm : ProcessSignal.sigkill);
+    });
+    unawaited(
+      _pty.exitCode.whenComplete(() {
+        killer.cancel();
+        LiveObjects.closed('closing local shell');
+      }),
+    );
+  }
 }
 
 abstract final class StreamGroup {
@@ -199,7 +228,7 @@ class LocalTarget extends SessionTarget {
 
 typedef InputSink = void Function(TerminalSession origin, String data);
 
-class TerminalSession {
+class TerminalSession extends IngestSink {
   new({
     required this.id,
     required this._target,
@@ -207,6 +236,7 @@ class TerminalSession {
     this.maxLines = 10000,
     this.autoReconnect = true,
     this.resizeInterval = const Duration(milliseconds: 80),
+    this.openBackend,
     String? restoredScrollback,
   }) : terminal = Terminal(maxLines: maxLines) {
     terminal
@@ -214,6 +244,7 @@ class TerminalSession {
       ..onOutput = _handleUserInput
       ..onResize = _handleResize
       ..onTitleChange = (value) => title.value = value;
+    LiveObjects.opened('terminal session');
     if (restoredScrollback != null && restoredScrollback.isNotEmpty) {
       terminal.write(
         '\x1b[2m${restoredScrollback.replaceAll('\n', '\r\n')}\x1b[0m\r\n',
@@ -225,6 +256,7 @@ class TerminalSession {
   final int maxLines;
   final bool autoReconnect;
   final Duration resizeInterval;
+  final Future<TerminalBackend> Function()? openBackend;
   final Terminal terminal;
   late final _resizeThrottle = ResizeThrottle(
     interval: resizeInterval,
@@ -246,7 +278,24 @@ class TerminalSession {
   String Function(String data)? inputModifier;
 
   TerminalBackend? _backend;
-  StreamSubscription<String>? _output;
+  StreamSubscription<Uint8List>? _output;
+  bool _ackOwed = false;
+  late final _queue = IngestQueue(
+    write: _handleRemoteOutput,
+    onHigh: () => _output?.pause(),
+    onLow: () {
+      final output = _output;
+      if (output != null && output.isPaused) output.resume();
+      if (_ackOwed) {
+        _ackOwed = false;
+        _backend?.acknowledge();
+      }
+    },
+  );
+
+  int get pendingBytes => _queue.pendingBytes;
+
+  bool get throttled => _queue.throttled;
   Timer? _retryTimer;
   bool _disposed = false;
   bool _userClosed = false;
@@ -283,10 +332,7 @@ class TerminalSession {
       _backend = backend;
       _attempt = 0;
       backend.resize(terminal.viewWidth, terminal.viewHeight);
-      _output = backend.output
-          .cast<List<int>>()
-          .transform(const Utf8Decoder(allowMalformed: true))
-          .listen(_handleRemoteOutput);
+      _output = backend.output.listen(_receive);
       _setStatus(const LinkStatus(LinkState.connected));
       unawaited(
         backend.done.then(
@@ -300,6 +346,8 @@ class TerminalSession {
   }
 
   Future<TerminalBackend> _open() async {
+    final custom = openBackend;
+    if (custom != null) return await custom();
     switch (_target) {
       case LocalTarget(:final directory):
         final shell =
@@ -314,6 +362,7 @@ class TerminalSession {
           environment: {...Platform.environment, 'TERM': 'xterm-256color'},
           columns: _columns,
           rows: _rows,
+          ackRead: true,
         );
         return LocalPtyBackend(pty);
       case SshTarget(:final host, :final tmuxSession, :final directory):
@@ -377,12 +426,30 @@ class TerminalSession {
     return backend;
   }
 
+  void _receive(Uint8List data) {
+    _queue.add(data);
+    if (_queue.throttled) {
+      _ackOwed = true;
+    } else {
+      _backend?.acknowledge();
+    }
+    TerminalIngest.instance.notify(this);
+  }
+
+  @override
+  bool drainSome(int maxBytes) {
+    if (_disposed) return false;
+    _queue.take(maxBytes);
+    return !_queue.isEmpty;
+  }
+
   void _handleRemoteOutput(String data) {
     terminal.write(data);
     _trackDirectory(data);
   }
 
   void _trackDirectory(String data) {
+    if (!data.contains('\x1b]7;')) return;
     final path = FolderTracking.parseOsc7(data);
     if (path == null) return;
     reportsFolder = true;
@@ -507,6 +574,7 @@ class TerminalSession {
     if (result != null) {
       main.lines.replaceWith(result.lines);
       main.setCursor(result.cursorX, result.cursorScreenY);
+      Watchdog.during(Activity.terminalResize, main.compactScrollback);
       terminal.notifyListeners();
     }
     return result?.rowMap;
@@ -517,6 +585,7 @@ class TerminalSession {
   void _handleEnded(TerminalBackend backend) {
     if (!identical(_backend, backend)) return;
     final lost = backend.connectionLost;
+    if (!_disposed) _queue.flush();
     _teardown();
     if (_disposed) return;
     if (_userClosed) {
@@ -586,6 +655,9 @@ class TerminalSession {
     unawaited(_output?.cancel());
     _output = null;
     _backend = null;
+    _ackOwed = false;
+    TerminalIngest.instance.forget(this);
+    _queue.clear();
   }
 
   void _setStatus(LinkStatus value) {
@@ -603,7 +675,9 @@ class TerminalSession {
   String tail(int lines) => TerminalText.tail(terminal, lines);
 
   void dispose() {
+    if (_disposed) return;
     _disposed = true;
+    LiveObjects.closed('terminal session');
     _resizeThrottle.dispose();
     _retryTimer?.cancel();
     _backend?.close();

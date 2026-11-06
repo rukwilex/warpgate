@@ -25,12 +25,12 @@ jobs:
           cache: true
       - run: flutter pub get
       - run: flutter analyze
-      - run: flutter test
+      - run: flutter test --exclude-tags perf
       - run: dart pub get
         working-directory: packages/warpgate_core
       - run: dart analyze --fatal-infos
         working-directory: packages/warpgate_core
-      - run: dart test
+      - run: dart test --exclude-tags perf
         working-directory: packages/warpgate_core
       - run: dart pub get
         working-directory: packages/warpgate_cli
@@ -38,12 +38,59 @@ jobs:
         working-directory: packages/warpgate_cli
       - run: dart test --exclude-tags integration
         working-directory: packages/warpgate_cli
+      - name: No comments in sources
+        working-directory: tool/no_comments
+        run: |
+          dart pub get
+          dart run bin/no_comments.dart --check ../../lib ../../packages ../../test ../../rust/src
+
+  perf-gates:
+    needs: check
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+      - run: flutter pub get
+      - name: Flood, memory, leak and churn thresholds
+        run: flutter test --tags perf --enable-vmservice --concurrency=1
+      - run: dart pub get
+        working-directory: packages/warpgate_core
+      - name: Transfer bookkeeping thresholds
+        run: dart test --tags perf
+        working-directory: packages/warpgate_core
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: perf-results
+          path: build/perf/results.jsonl
+
+  rust:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+      - run: cargo fmt --check
+        working-directory: rust
+      - run: cargo clippy --all-targets -- -D warnings
+        working-directory: rust
+      - run: cargo test
+        working-directory: rust
 
   cli-integration:
     needs: check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
@@ -55,8 +102,18 @@ jobs:
         run: tool/cli_test_server.sh "$RUNNER_TEMP/cli" >> "$GITHUB_ENV"
       - run: dart pub get
         working-directory: packages/warpgate_cli
-      - run: dart test --tags integration --concurrency=1
+      - run: cargo build --release
+        working-directory: rust
+      - name: Run against the dartssh2 engine
+        run: dart test --tags integration --concurrency=1
         working-directory: packages/warpgate_cli
+        env:
+          WARPGATE_ENGINE: dart
+      - name: Run against the Rust engine
+        run: dart test --tags integration --concurrency=1
+        working-directory: packages/warpgate_cli
+        env:
+          WARPGATE_ENGINE_LIBRARY: ${{ github.workspace }}/rust/target/release/libwarpgate_engine.so
 
   android:
     needs: check
@@ -69,6 +126,9 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi,x86_64-linux-android,i686-linux-android
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
@@ -104,6 +164,9 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-ios
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
@@ -123,6 +186,9 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
@@ -148,6 +214,7 @@ jobs:
       - name: Enable long paths
         run: git config --system core.longpaths true
       - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
@@ -169,6 +236,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev libsecret-1-dev
+      - uses: dtolnay/rust-toolchain@stable
       - uses: subosito/flutter-action@v2
         with:
           channel: stable

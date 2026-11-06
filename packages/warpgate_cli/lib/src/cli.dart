@@ -17,6 +17,7 @@ import 'package:warpgate_core/actions/registry.dart';
 import 'package:warpgate_core/actions/runtime.dart';
 import 'package:warpgate_core/core/data/document_store.dart';
 import 'package:warpgate_core/core/data/sqlite_document_store.dart';
+import 'package:warpgate_core/features/connection/data/disk_keys.dart';
 import 'package:warpgate_core/core/errors/exit_codes.dart';
 import 'package:warpgate_core/core/interaction/interaction_broker.dart';
 import 'package:warpgate_core/core/platform/app_paths.dart';
@@ -64,28 +65,13 @@ class CliContext {
       secrets: CliSecrets(store: store, paths: paths, client: client),
       broker: broker,
       fallbackIdentities: _diskIdentities,
+      fallbackKeys: (_) async => DiskKeys.pems(),
     );
     await runtime.loadCatalog();
     return _runtime = runtime;
   }
 
-  static Future<List<SSHIdentity>> _diskIdentities(Host host) async {
-    final home = Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'];
-    if (home == null) return const [];
-    final found = <SSHIdentity>[];
-    for (final name in const ['id_ed25519', 'id_ecdsa', 'id_rsa']) {
-      final file = File(p.join(home, '.ssh', name));
-      if (!file.existsSync()) continue;
-      try {
-        final pem = file.readAsStringSync();
-        if (SSHKeyPair.isEncryptedPem(pem)) continue;
-        found.addAll(SSHKeyPair.fromPem(pem));
-      } on Object {
-        continue;
-      }
-    }
-    return found;
-  }
+  static Future<List<SSHIdentity>> _diskIdentities(Host host) async => DiskKeys.identities();
 
   Future<IpcClient> requireApp(ActionSpec action) async {
     final existing = await client();

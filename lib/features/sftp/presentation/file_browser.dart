@@ -150,6 +150,9 @@ class _FileBrowserState extends ConsumerState<FileBrowser> {
   @override
   void dispose() {
     widget.link?.cwd.removeListener(_onTerminalFolder);
+    _generation++;
+    _entries = null;
+    _visibleCache = null;
     _focus.dispose();
     _scroll.dispose();
     _pathBar.dispose();
@@ -267,14 +270,26 @@ class _FileBrowserState extends ConsumerState<FileBrowser> {
     }
   }
 
+  List<FileEntry>? _visibleCache;
+  Object? _visibleKey;
+
   List<FileEntry> get _visible {
+    final key = (_entries, _filter, _showHidden, _sort, _ascending);
+    final cached = _visibleCache;
+    if (cached != null && key == _visibleKey) return cached;
     final query = _filter.toLowerCase();
-    return [
-      for (final entry in _entries ?? const <FileEntry>[])
-        if ((_showHidden || !entry.isHidden) &&
-            (query.isEmpty || entry.name.toLowerCase().contains(query)))
-          entry,
-    ]..sort((a, b) => FileSorting.compare(a, b, _sort, ascending: _ascending));
+    final result = FileSorting.sorted(
+      [
+        for (final entry in _entries ?? const <FileEntry>[])
+          if ((_showHidden || !entry.isHidden) &&
+              (query.isEmpty || entry.name.toLowerCase().contains(query)))
+            entry,
+      ],
+      _sort,
+      ascending: _ascending,
+    );
+    _visibleKey = key;
+    return _visibleCache = result;
   }
 
   List<FileEntry> get _selection => [

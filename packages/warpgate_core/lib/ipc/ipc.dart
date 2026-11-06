@@ -241,11 +241,26 @@ class IpcClient {
     }
   }
 
-  Future<JsonMap> call(String method, [JsonMap params = const {}]) {
+  static Duration defaultTimeout = const Duration(seconds: 60);
+  bool _broken = false;
+
+  Future<JsonMap> call(
+    String method, [
+    JsonMap params = const {},
+    Duration? timeout,
+  ]) {
     final done = Completer<JsonMap>();
     _tail = _tail.then((_) async {
+      if (_broken) {
+        done.completeError(const IpcUnavailable('The connection to Warpgate was lost'));
+        return;
+      }
       try {
-        done.complete(await _send(method, params));
+        done.complete(await _send(method, params).timeout(timeout ?? defaultTimeout));
+      } on TimeoutException {
+        _broken = true;
+        _socket.destroy();
+        done.completeError(const IpcUnavailable('Warpgate did not answer in time'));
       } on Object catch (error, stack) {
         done.completeError(error, stack);
       }
@@ -256,10 +271,14 @@ class IpcClient {
   Future<JsonMap> _send(String method, JsonMap params) async {
     final id = _next++;
     _socket.writeln(jsonEncode({'id': id, 'method': method, 'params': params}));
-    if (!await _lines.moveNext()) {
-      throw const IpcUnavailable('Warpgate closed the connection');
-    }
-    final reply = (jsonDecode(_lines.current) as Map).cast<String, Object?>();
+    late Map<String, Object?> reply;
+    do {
+      if (!await _lines.moveNext()) {
+        _broken = true;
+        throw const IpcUnavailable('Warpgate closed the connection');
+      }
+      reply = (jsonDecode(_lines.current) as Map).cast<String, Object?>();
+    } while (reply.containsKey('id') && reply['id'] != id);
     final error = reply['error'];
     if (error is Map) {
       throw ActionFailure(

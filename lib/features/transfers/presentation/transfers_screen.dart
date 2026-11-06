@@ -74,6 +74,8 @@ class _TransfersScreenState extends ConsumerState<TransfersScreen> {
               body: 'Drag files between two file panes, or between a pane and your desktop. Copies between hosts stream through here without touching this disk.',
             )
           : null,
+      itemCount: jobs.isEmpty ? 0 : visible.length,
+      itemBuilder: (context, index) => _JobRow(job: visible[index]),
       child: jobs.isEmpty
           ? null
           : Column(
@@ -94,9 +96,7 @@ class _TransfersScreenState extends ConsumerState<TransfersScreen> {
                   SizedBox(height: context.space.lg),
                 ],
                 if (visible.isEmpty)
-                  const WgEmptyState(title: 'Nothing in this view')
-                else
-                  for (final job in visible) _JobRow(job: job),
+                  const WgEmptyState(title: 'Nothing in this view'),
               ],
             ),
     );

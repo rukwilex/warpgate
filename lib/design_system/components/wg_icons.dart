@@ -42,6 +42,7 @@ abstract final class WgIcons {
   static const IconData transfer = LucideIcons300.arrowDownUp;
   static const IconData upload = LucideIcons300.upload;
   static const IconData download = LucideIcons300.download;
+  static const IconData activity = LucideIcons300.activity;
   static const IconData pause = LucideIcons300.pause;
   static const IconData play = LucideIcons300.play;
   static const IconData retry = LucideIcons300.rotateCw;

@@ -13,6 +13,7 @@ import 'package:warpgate_core/actions/registry.dart';
 import 'package:warpgate_core/actions/runtime.dart';
 import 'package:warpgate_core/core/data/document_store.dart';
 import 'package:warpgate_core/core/data/vault_secret_store.dart';
+import 'package:warpgate_core/core/diagnostics/perf_checks.dart';
 import 'package:warpgate_core/core/errors/exit_codes.dart';
 import 'package:warpgate_core/core/interaction/interaction_broker.dart';
 import 'package:warpgate_core/features/connection/data/connection_pool.dart';
@@ -34,6 +35,7 @@ abstract final class MiscCommands {
     'help': _help,
     'completion': _completion,
     'doctor': _doctor,
+    'diagnostics.export': _diagnosticsExport,
     'install': _install,
     'uninstall': _uninstall,
     'mcp.serve': _mcpServe,
@@ -214,6 +216,27 @@ abstract final class MiscCommands {
     return {'removed': removed};
   }
 
+  static Future<JsonMap?> _diagnosticsExport(CliContext context, ActionSpec action, JsonMap args) async {
+    final client = await context.client();
+    if (client == null) {
+      throw const ActionFailure(
+        'Warpgate is not running',
+        kind: ExitKind.general,
+        hint: 'Open Warpgate, then run warpgate diagnostics export again',
+      );
+    }
+    final report = await client.call('diagnostics.snapshot', {'log': true});
+    final stamp = DateTime.now().toIso8601String().replaceAll(':', '-').split('.').first;
+    final path = p.absolute((args['file'] as String?) ?? 'warpgate-diagnostics-$stamp.json');
+    await File(path).writeAsString(const JsonEncoder.withIndent('  ').convert(report));
+    final memory = (report['memory'] as Map?) ?? const {};
+    return {
+      'path': path,
+      'stalls': ((report['stalls'] as List?) ?? const []).length,
+      'rss_mb': memory['rss_mb'] as int? ?? 0,
+    };
+  }
+
   static Future<JsonMap?> _doctor(CliContext context, ActionSpec action, JsonMap args) async {
     final checks = <JsonMap>[];
     void check(String name, {required bool ok, required String detail, String? fix}) {
@@ -309,6 +332,16 @@ abstract final class MiscCommands {
         final keys = await agent.keys();
         await agent.close();
         check('ssh-agent', ok: true, detail: '${keys.length} keys loaded');
+      }
+    }
+    if (args['perf'] == true) {
+      if (client == null) {
+        check('Performance', ok: false, detail: 'The app is not running, so there is nothing to measure', fix: 'Open Warpgate and run this again');
+      } else {
+        final report = await client.call('diagnostics.snapshot');
+        for (final item in PerfChecks.from(report)) {
+          check(item.name, ok: item.ok, detail: item.detail, fix: item.fix);
+        }
       }
     }
     final allOk = checks.every((item) => item['ok'] == true);

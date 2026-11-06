@@ -1,0 +1,11 @@
+name: warpgate_perf_driver
+description: Drives a running Warpgate app through IPC and MCP and records frame, memory, CPU and latency numbers.
+publish_to: 'none'
+
+environment:
+  sdk: ^3.13.5
+
+dependencies:
+  vm_service: ^15.4.0
+  warpgate_core:
+    path: ../../../packages/warpgate_core

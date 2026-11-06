@@ -33,6 +33,7 @@ class TransferScheduler {
        jobs = initial;
 
   static const collection = 'transfers';
+  static const historyLimit = 500;
   static const controlCollection = 'transfer_control';
 
   final DocumentStore store;
@@ -107,11 +108,35 @@ class TransferScheduler {
     _publish([...jobs]..[index] = next);
     final now = DateTime.now();
     final last = _lastPersist[id];
-    if (persist ||
-        last == null ||
-        now.difference(last) > const Duration(seconds: 2)) {
+    final every = next.completedFiles.length > 2000
+        ? const Duration(seconds: 15)
+        : const Duration(seconds: 2);
+    if (persist || last == null || now.difference(last) > every) {
       _lastPersist[id] = now;
       unawaited(store.put(collection, id, next.toJson(), at: next.createdAt));
+    }
+    if (persist && next.status.isFinished) {
+      _lastPersist.remove(id);
+      _trimHistory();
+    }
+  }
+
+  void _trimHistory() {
+    final finished = [
+      for (final job in jobs)
+        if (job.status.isFinished) job,
+    ];
+    if (finished.length <= historyLimit) return;
+    finished.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+    final drop = {
+      for (final job in finished.take(finished.length - historyLimit)) job.id,
+    };
+    _publish([
+      for (final job in jobs)
+        if (!drop.contains(job.id)) job,
+    ]);
+    for (final id in drop) {
+      unawaited(store.delete(collection, id));
     }
   }
 

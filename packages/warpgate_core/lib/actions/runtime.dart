@@ -25,6 +25,7 @@ class WarpgateRuntime {
     required this.secrets,
     required this.broker,
     Future<List<SSHIdentity>> Function(Host host)? fallbackIdentities,
+    Future<List<String>> Function(Host host)? fallbackKeys,
     Future<List<SSHIdentity>> Function()? agentIdentities,
     Future<SSHSocket> Function(String host, int port)? dial,
   }) {
@@ -40,6 +41,7 @@ class WarpgateRuntime {
       keys: keys,
       broker: broker,
       fallbackIdentities: fallbackIdentities,
+      fallbackKeys: fallbackKeys,
       agentIdentities: agentIdentities,
       dial: dial,
     );

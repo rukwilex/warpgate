@@ -1,0 +1,6 @@
+rust_input: crate::api
+rust_root: .
+dart_output: ../packages/warpgate_core/lib/src/engine
+dart_entrypoint_class_name: WarpgateEngine
+dart_preamble: ""
+stop_on_error: true

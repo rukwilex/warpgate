@@ -41,6 +41,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.1.2"
+  build_cli_annotations:
+    dependency: transitive
+    description:
+      name: build_cli_annotations
+      sha256: e563c2e01de8974566a1998410d3f6f03521788160a02503b0b1f1a46c7b3d95
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.1.1"
   characters:
     dependency: transitive
     description:
@@ -310,10 +318,9 @@ packages:
   flutter_pty:
     dependency: "direct main"
     description:
-      name: flutter_pty
-      sha256: c2f3b3160b519ac820fa3f6ef175361f2dfc52c557465643589542e9f229ad66
-      url: "https://pub.dev"
-    source: hosted
+      path: "packages/flutter_pty"
+      relative: true
+    source: path
     version: "0.4.2"
   flutter_riverpod:
     dependency: "direct main"
@@ -323,6 +330,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.4.3"
+  flutter_rust_bridge:
+    dependency: transitive
+    description:
+      name: flutter_rust_bridge
+      sha256: e87d6b9ee934dcd24a128ccb2bd91905d2d5fe5c06245d6a8f5477d4907a437a
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.12.0"
   flutter_secure_storage:
     dependency: "direct main"
     description:
@@ -923,7 +938,7 @@ packages:
     source: hosted
     version: "11.0.0"
   vm_service:
-    dependency: transitive
+    dependency: "direct dev"
     description:
       name: vm_service
       sha256: "89b11d62e1040ee681af3b4f1c97a803ecbf010c6e8b9c5896ee5b08c3bf7b78"
@@ -937,6 +952,13 @@ packages:
       relative: true
     source: path
     version: "1.0.0"
+  warpgate_engine:
+    dependency: "direct main"
+    description:
+      path: "packages/warpgate_engine"
+      relative: true
+    source: path
+    version: "0.1.0"
   web:
     dependency: transitive
     description:
@@ -980,11 +1002,10 @@ packages:
   xterm:
     dependency: "direct main"
     description:
-      name: xterm
-      sha256: "168dfedca77cba33fdb6f52e2cd001e9fde216e398e89335c19b524bb22da3a2"
-      url: "https://pub.dev"
-    source: hosted
-    version: "4.0.0"
+      path: "packages/xterm"
+      relative: true
+    source: path
+    version: "4.0.0+warpgate.1"
   yaml:
     dependency: transitive
     description:

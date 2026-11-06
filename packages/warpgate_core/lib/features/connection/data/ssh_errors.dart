@@ -26,6 +26,7 @@ abstract final class SshErrorText {
     TimeoutException() => 'The host did not answer in time',
     SSHDisconnectError() => 'The server closed the connection',
     MissingCredentialsException(:final message) => message,
+    DeadLinkError() => 'The server stopped answering, so the connection was closed',
     StateError(:final message) => message,
     _ => error.toString(),
   };
@@ -44,4 +45,11 @@ class MissingCredentialsException implements Exception {
 
   @override
   String toString() => message;
+}
+
+class DeadLinkError implements Exception {
+  const new();
+
+  @override
+  String toString() => 'The server stopped answering keep-alive checks';
 }

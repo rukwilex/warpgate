@@ -4,18 +4,23 @@ import 'dart:ui';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:warpgate/core/diagnostics/app_health.dart';
 import 'package:warpgate/core/platform/platform_info.dart';
 import 'package:warpgate/core/routing/routes.dart';
 import 'package:warpgate/core/shortcuts/shortcut_codec.dart';
+import 'package:warpgate/design_system/design_system.dart';
 import 'package:warpgate/features/cli/presentation/cli_bridge.dart';
 import 'package:warpgate/features/connection/presentation/connection_providers.dart';
 import 'package:warpgate/features/hosts/presentation/hosts_controller.dart';
 import 'package:warpgate/features/mcp/presentation/mcp_service.dart';
 import 'package:warpgate/features/palette/presentation/command_registry.dart';
 import 'package:warpgate/features/security/presentation/app_lock_controller.dart';
+import 'package:warpgate/features/settings/presentation/settings_controller.dart';
 import 'package:warpgate/features/shell/presentation/ui_state.dart';
 import 'package:warpgate/features/terminal/presentation/terminal_sessions.dart';
 import 'package:warpgate/features/workspace/presentation/workbench_controller.dart';
+import 'package:warpgate_core/core/diagnostics/watchdog.dart';
+import 'package:warpgate_core/features/connection/engine/native_ssh.dart';
 import 'package:warpgate_core/features/hosts/domain/host.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -30,6 +35,7 @@ class AppEffects extends ConsumerStatefulWidget {
 
 class _AppEffectsState extends ConsumerState<AppEffects> {
   late final AppLifecycleListener _lifecycle;
+  late final AppHealth _health;
   final Set<String> _connected = {};
 
   @override
@@ -37,6 +43,8 @@ class _AppEffectsState extends ConsumerState<AppEffects> {
     super.initState();
     HardwareKeyboard.instance.addHandler(_onKey);
     _lifecycle = AppLifecycleListener(
+      onResume: _wake,
+      onShow: _wake,
       onPause: () => unawaited(_persist()),
       onHide: () => unawaited(_persist()),
       onDetach: () => unawaited(_persist()),
@@ -48,7 +56,25 @@ class _AppEffectsState extends ConsumerState<AppEffects> {
     ref
       ..read(mcpServerProvider)
       ..read(cliBridgeProvider);
+    _health = ref.read(appHealthProvider);
+    _health.stallNotice.addListener(_showStall);
+    unawaited(_health.start());
     WidgetsBinding.instance.addPostFrameCallback((_) => unawaited(_restore()));
+  }
+
+  void _wake() => unawaited(ref.read(connectionPoolProvider).probeAll());
+
+  void _showStall() {
+    final stall = _health.stallNotice.value;
+    final context = rootNavigatorKey.currentContext;
+    if (stall == null || context == null || !context.mounted) return;
+    final seconds = (stall.duration.inMilliseconds / 1000).toStringAsFixed(1);
+    showWgToast(
+      context,
+      stall.activity == Activity.idle
+          ? 'Warpgate was not responding for $seconds s. Details are in Settings, Diagnostics'
+          : 'Warpgate was not responding for $seconds s (${stall.activity.label.toLowerCase()}). Details are in Settings, Diagnostics',
+    );
   }
 
   Future<void> _restore() async {
@@ -92,6 +118,7 @@ class _AppEffectsState extends ConsumerState<AppEffects> {
 
   @override
   void dispose() {
+    _health.stallNotice.removeListener(_showStall);
     HardwareKeyboard.instance.removeHandler(_onKey);
     _lifecycle.dispose();
     super.dispose();
@@ -100,6 +127,11 @@ class _AppEffectsState extends ConsumerState<AppEffects> {
   @override
   Widget build(BuildContext context) {
     ref
+      ..listen(settingsProvider.select((s) => s.sshEngine), (_, engine) {
+        NativeEngine.preferred = engine == 'dart'
+            ? SshEngineKind.dart
+            : SshEngineKind.native;
+      })
       ..listen(
         workbenchProvider.select((state) => state.activeWorkspace?.name),
         (_, _) => _syncTitle(),
