@@ -13,12 +13,6 @@ import 'package:warpgate_core/features/hosts/data/host_repository.dart';
 import 'package:warpgate_core/features/keys/data/key_repository.dart';
 
 class FloodBackend implements TerminalBackend {
-  final controller = StreamController<Uint8List>();
-  final _done = Completer<void>();
-  int acks = 0;
-  int pauses = 0;
-  int sent = 0;
-
   new() {
     controller
       ..onPause = () {
@@ -26,6 +20,13 @@ class FloodBackend implements TerminalBackend {
       }
       ..onResume = pump;
   }
+
+  final controller = StreamController<Uint8List>();
+  final _done = Completer<void>();
+  int acks = 0;
+  int pauses = 0;
+  int sent = 0;
+
 
   static final _chunk = Uint8List.fromList(
     List.generate(32 * 1024, (i) => i % 72 == 71 ? 10 : (i % 72 == 70 ? 13 : 120)),

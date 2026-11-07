@@ -188,12 +188,14 @@ void main() {
   test('one 2 GB file with 200 old jobs in the list', () async {
     final result = await _run(files: 1, fileSize: 2 << 30, history: 200);
     record('transfer.big_file', result);
+    expect(result['status'], 'completed');
     expect(result['publishes']! as int, lessThan(((result['seconds']! as double) * 8).ceil() + 10));
   }, timeout: const Timeout(Duration(minutes: 10)));
 
   test('20,000 small files', () async {
     final result = await _run(files: 20000, fileSize: 4096, history: 0);
     record('transfer.many_files', result);
+    expect(result['status'], 'completed');
     expect(result['publishes']! as int, lessThan(((result['seconds']! as double) * 8).ceil() + 10));
   }, timeout: const Timeout(Duration(minutes: 10)));
 }

@@ -80,6 +80,10 @@ pid_t pty_forkpty(
         {
             *slave = pts;
         }
+        else
+        {
+            close(pts);
+        }
     }
 
     return pid;

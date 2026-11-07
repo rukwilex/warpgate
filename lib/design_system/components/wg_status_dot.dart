@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -29,9 +30,45 @@ class WgStatusDot extends StatefulWidget {
   State<WgStatusDot> createState() => _WgStatusDotState();
 }
 
-class _WgStatusDotState extends State<WgStatusDot>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _spin = AnimationController(vsync: this);
+class _LiveClock {
+  new _();
+
+  static final step = ValueNotifier<int>(0);
+  static final _users = <Object, Duration>{};
+  static Timer? _timer;
+  static Duration _period = Duration.zero;
+
+  static void join(Object user, Duration period) {
+    _users[user] = period;
+    _sync();
+  }
+
+  static void leave(Object user) {
+    if (_users.remove(user) != null) _sync();
+  }
+
+  static void _sync() {
+    if (_users.isEmpty) {
+      _timer?.cancel();
+      _timer = null;
+      return;
+    }
+    final period = _users.values.first;
+    if (_timer != null && period == _period) return;
+    _timer?.cancel();
+    _period = period;
+    _timer = Timer.periodic(
+      period ~/ _WgStatusDotState.steps,
+      (_) => step.value = (step.value + 1) % _WgStatusDotState.steps,
+    );
+  }
+}
+
+class _WgStatusDotState extends State<WgStatusDot> {
+  static const steps = 12;
+
+  final _still = ValueNotifier<int>(0);
+  bool _live = false;
 
   @override
   void didChangeDependencies() {
@@ -47,19 +84,22 @@ class _WgStatusDotState extends State<WgStatusDot>
 
   void _syncAnimation() {
     final period = context.motion.live;
-    final animate = widget.state.isLive && period > Duration.zero;
-    if (animate && !_spin.isAnimating) {
-      _spin
-        ..duration = period
-        ..repeat();
-    } else if (!animate && _spin.isAnimating) {
-      _spin.stop();
+    final animate =
+        widget.state.isLive &&
+        period > Duration.zero &&
+        TickerMode.valuesOf(context).enabled;
+    if (animate) {
+      _LiveClock.join(this, period);
+    } else if (_live) {
+      _LiveClock.leave(this);
     }
+    _live = animate;
   }
 
   @override
   void dispose() {
-    _spin.dispose();
+    _LiveClock.leave(this);
+    _still.dispose();
     super.dispose();
   }
 
@@ -81,6 +121,8 @@ class _WgStatusDotState extends State<WgStatusDot>
     final label = widget.subject == null
         ? widget.state.label
         : '${widget.subject}: ${widget.state.label.toLowerCase()}';
+    final color = _color(context);
+    final stroke = context.sizes.stroke;
     return Semantics(
       label: label,
       child: Tooltip(
@@ -88,14 +130,13 @@ class _WgStatusDotState extends State<WgStatusDot>
         excludeFromSemantics: true,
         child: SizedBox.square(
           dimension: size,
-          child: AnimatedBuilder(
-            animation: _spin,
-            builder: (context, _) => CustomPaint(
+          child: RepaintBoundary(
+            child: CustomPaint(
               painter: _DotPainter(
                 state: widget.state,
-                color: _color(context),
-                turn: _spin.value,
-                stroke: context.sizes.stroke,
+                color: color,
+                step: _live ? _LiveClock.step : _still,
+                stroke: stroke,
               ),
             ),
           ),
@@ -109,13 +150,13 @@ class _DotPainter extends CustomPainter {
   new({
     required this.state,
     required this.color,
-    required this.turn,
+    required this.step,
     required this.stroke,
-  });
+  }) : super(repaint: step);
 
   final WgDotState state;
   final Color color;
-  final double turn;
+  final ValueNotifier<int> step;
   final double stroke;
 
   @override
@@ -153,7 +194,13 @@ class _DotPainter extends CustomPainter {
       case WgDotState.connecting:
       case WgDotState.reconnecting:
         final rect = Rect.fromCircle(center: center, radius: radius - stroke);
-        canvas.drawArc(rect, turn * math.pi * 2, math.pi * 1.4, false, ring);
+        canvas.drawArc(
+          rect,
+          step.value / _WgStatusDotState.steps * math.pi * 2,
+          math.pi * 1.4,
+          false,
+          ring,
+        );
     }
   }
 
@@ -161,5 +208,5 @@ class _DotPainter extends CustomPainter {
   bool shouldRepaint(_DotPainter oldDelegate) =>
       oldDelegate.state != state ||
       oldDelegate.color != color ||
-      oldDelegate.turn != turn;
+      oldDelegate.step != step;
 }

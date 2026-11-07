@@ -533,17 +533,31 @@ impl SshChannel {
             };
             let limit = max_bytes as usize;
             let mut first = true;
+            let mut deadline = tokio::time::Instant::now() + Duration::from_millis(1);
             loop {
                 let next = if let Some(message) = stashed.pop() {
                     first = false;
                     Some(message)
                 } else if first {
                     first = false;
-                    reader.wait().await
+                    let message = reader.wait().await;
+                    deadline = tokio::time::Instant::now() + Duration::from_millis(1);
+                    message
                 } else {
                     match reader.wait().now_or_never() {
                         Some(message) => message,
-                        None => break,
+                        None => {
+                            let small = chunk.data.len() + chunk.extended.len() < 16 * 1024;
+                            let remaining =
+                                deadline.saturating_duration_since(tokio::time::Instant::now());
+                            if !small || remaining.is_zero() {
+                                break;
+                            }
+                            match tokio::time::timeout(remaining, reader.wait()).await {
+                                Ok(message) => message,
+                                Err(_) => break,
+                            }
+                        }
                     }
                 };
                 match next {

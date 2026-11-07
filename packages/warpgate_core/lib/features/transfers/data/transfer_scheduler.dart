@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:collection/collection.dart';
+import 'package:warpgate_core/core/diagnostics/app_log.dart';
 import 'package:warpgate_core/core/data/document_store.dart';
 import 'package:warpgate_core/core/interaction/interaction_broker.dart';
 import 'package:warpgate_core/core/util/ids.dart';
@@ -206,7 +207,17 @@ class TransferScheduler {
       persist: true,
     );
     final job = byId(id)!;
+    final held = <String>[];
     try {
+      for (final hostId in {job.source.hostId, job.target.hostId}.nonNulls) {
+        try {
+          await pool.client(hostId);
+          pool.retain(hostId);
+          held.add(hostId);
+        } on Object {
+          continue;
+        }
+      }
       if (job.mode == TransferMode.direct) {
         await _runDirect(job, token);
       } else {
@@ -246,7 +257,8 @@ class TransferScheduler {
         ),
         persist: true,
       );
-    } on Object catch (error) {
+    } on Object catch (error, stack) {
+      AppLog.instance.error('transfer', 'Transfer $id failed: $error', stack);
       <String?>{
         job.source.hostId,
         job.target.hostId,
@@ -265,6 +277,7 @@ class TransferScheduler {
         persist: true,
       );
     } finally {
+      held.forEach(pool.release);
       poller?.cancel();
       _tokens.remove(id);
       pump();

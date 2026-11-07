@@ -54,9 +54,9 @@ List<(int, int)> rustComments(String s) {
       ranges.add((i, j));
       i = j;
     } else if ((c == 'r' || (c == 'b' && i + 1 < n && s[i + 1] == 'r')) &&
-        RegExp(r'^b?r(#*)"').hasMatch(s.substring(i, (i + 20).clamp(0, n))) &&
-        (i == 0 || !RegExp(r'[A-Za-z0-9_]').hasMatch(s[i - 1]))) {
-      final match = RegExp(r'^b?r(#*)"').firstMatch(s.substring(i))!;
+        RegExp('^b?r(#*)"').hasMatch(s.substring(i, (i + 20).clamp(0, n))) &&
+        (i == 0 || !RegExp('[A-Za-z0-9_]').hasMatch(s[i - 1]))) {
+      final match = RegExp('^b?r(#*)"').firstMatch(s.substring(i))!;
       final close = '"${match.group(1)}';
       final end = s.indexOf(close, i + match.end);
       i = end < 0 ? n : end + close.length;

@@ -1,3 +1,5 @@
+#include <poll.h>
+#include <errno.h>
 
 #include <stdint.h>
 #include <stdio.h>
@@ -79,6 +81,31 @@ static void *read_loop(void *arg)
             }
             pthread_mutex_unlock(&handle->mutex);
         }
+        struct pollfd ready = {handle->ptm, POLLIN, 0};
+        int polled = poll(&ready, 1, 250);
+        if (__atomic_load_n(&handle->closing, __ATOMIC_SEQ_CST))
+        {
+            break;
+        }
+        if (polled == 0)
+        {
+            if (handle->ackRead)
+            {
+                pthread_mutex_lock(&handle->mutex);
+                handle->credits++;
+                pthread_mutex_unlock(&handle->mutex);
+            }
+            continue;
+        }
+        if (polled < 0)
+        {
+            if (errno == EINTR)
+            {
+                continue;
+            }
+            break;
+        }
+
         ssize_t n = read(handle->ptm, buffer, sizeof(buffer));
 
         if (n <= 0)
@@ -274,7 +301,7 @@ FFI_PLUGIN_EXPORT int pty_getpid(PtyHandle *handle)
 FFI_PLUGIN_EXPORT void pty_close(PtyHandle *handle)
 {
     pthread_mutex_lock(&handle->mutex);
-    handle->closing = 1;
+    __atomic_store_n(&handle->closing, 1, __ATOMIC_SEQ_CST);
     pthread_cond_broadcast(&handle->ready);
     pthread_mutex_unlock(&handle->mutex);
     pty_release(handle);

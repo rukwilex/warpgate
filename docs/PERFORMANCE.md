@@ -24,7 +24,7 @@ Machine: Apple Silicon, 10 cores, 24 GB, macOS 27.2, Flutter 3.47.7 / Dart 3.13.
 
 1. **Scrollback stored 16 bytes per cell at full line width.** One line cost 2.4 KB at 80 columns and 4.4 KB at 200 columns, even when it held 20 characters. With the setting at its maximum of 100k lines, one wide pane held 435 MB, so 15 such panes reach 6.5 GB. At the default 10k lines, 20 wide panes still held 880 MB.
 2. **Every pane kept up to 10,240 laid-out glyph paragraphs in native memory, and evicted ones were never disposed.** Output with many colors (truecolor prompts, `bat`, `delta`, editor themes, `lolcat`) cycled through that cache. A single truecolor flood grew the process by 700 MB of native memory that a garbage collection did not return, and each pane had its own cache.
-3. **Leaks that grow with time:** local terminals were closed with `SIGTERM`, which interactive shells ignore, so the shell, its PTY, a reader thread and its file descriptor stayed alive for every local pane ever closed (`flutter_pty` also never closed the PTY master or detached its threads). Reconnects and churn grew open files from 109 to 617 in one run.
+3. **Leaks that grow with time.** `flutter_pty` kept the slave side of every PTY open in the app (its `forkpty` closed the slave in the parent only when the caller asked for it back), never closed the master, and never detached its two threads. Because the app itself held the slave, the master never reached end of file, so the reader thread and the master stayed alive too, and every later shell inherited all earlier slaves. Local terminals were also closed with `SIGTERM`, which interactive shells ignore. Every local pane ever opened left a file descriptor, a thread and often a shell behind. Reconnects and churn grew open files from 109 to 617 in one run.
 
 **Root cause of the freezes.** SSH ran entirely on the UI thread in pure Dart. `dartssh2` negotiated AES-256-GCM, which its Dart implementation decrypts at about 0.9 MB/s while using a full core. It decrypts everything that has arrived (up to a 2 MB window) before it yields, so the window thread stopped for 6 to 28 seconds during any large output or transfer. On top of that, every terminal chunk was parsed the moment it arrived with no limit per frame, transfers published a new state for every 32 KB acknowledgement, and the file list re-sorted 100k entries on every rebuild.
 
@@ -55,8 +55,10 @@ The baseline app was built from the original commit in a separate worktree. The 
 | In-app logs | Only `debugPrint` | — | Rotating log: 1 MB per file, 5 files, 14 days, plus a 500-entry ring for the diagnostics screen. |
 | Preview, thumbnail and image caches | Previews are capped at 2 MB per file (`readAll`). Flutter's image cache uses its default limits. | code | The memory guard clears the image cache under pressure. |
 | Leaks after closing things | Sessions, panes and file panels release their state (the 1,000-session churn ends with 0 live sessions). Two `TerminalSession` objects stay reachable through Flutter's `SliverMultiBoxAdaptorElement._currentBeforeChild` (bounded, not growing). An unfinished directory listing keeps a closed file panel alive until it completes. | retaining paths from the VM service | The file panel drops its listing and sorted cache on close. |
-| Local terminals | `kill()` sent SIGTERM, which interactive shells ignore, so the shell kept running. `flutter_pty` never closed the PTY master, never detached its two threads, and on Windows never closed the pseudo console, thread handles or pipes. | open files 293 → 617 over 150 churn rounds | Close with SIGHUP, then SIGKILL after 3 s. `flutter_pty` vendored with a reference-counted close, detached threads, and a credit counter instead of unlocking a mutex from another thread. |
+| Local terminals | `kill()` sent SIGTERM, which interactive shells ignore. `flutter_pty` kept every PTY slave open in the app (one `(revoked)` descriptor per closed terminal in `lsof`), never closed the master, never detached its threads, and on Windows never closed the pseudo console, thread handles or pipes. | open files 293 → 617 over 150 churn rounds; 40 `(revoked)` descriptors after 40 rounds | `flutter_pty` vendored: the parent closes the slave, the reader polls and stops within 250 ms of close, the master is closed by a reference-counted release, threads are detached, flow control uses a credit counter instead of unlocking a mutex from another thread. Closing sends SIGHUP to the shell's process group, then SIGKILL after 3 s. |
 | Reconnect logic | The pool removes and closes the old client before a new one is made. The pool provider is not rebuilt when hosts change. | 15-round reconnect storm: sockets 0 → 0 | No change needed. |
+| Long transfers | Not a memory issue but found by the transfer scenario: transfers never held their connections, so the pool's 90 s idle timer closed a connection in the middle of any transfer that ran longer than 90 s on a host with no open terminal ("sftp: session closed"). | 1 of 10 jobs failed in the 8 GB run | A running transfer holds its source and target connections until it ends. |
+| IPC requests that never answer | `IpcClient` matched replies by order, with no timeout, so one lost reply blocked every later call of that client forever (it hung the benchmark driver once). A socket error then surfaced as an unhandled exception. | driver hang, then crash | Replies matched by id, 60 s timeout that drops the connection, socket errors caught. Bringing the window to the front for a CLI request times out after 2 s. |
 | Whole files read into memory | Only `readAll` for previews (capped at 2 MB) and `warpgate edit` | code | No change needed. |
 
 ### CPU and freezes
@@ -121,12 +123,14 @@ Packing costs up to 10% of parse speed on line-heavy output and buys 6 to 10 tim
 
 | Output | Average frame before → after | Worst frame before → after |
 |---|---|---|
-| `yes` | 4.0 → 3.5 ms | 5.7 → 5.2 ms |
-| `find` | 1.2 → 1.2 ms | 4.5 → 2.1 ms |
-| Build log | 1.6 → 1.5 ms | 9.3 → 5.2 ms |
-| Full-screen redraws | 1.7 → 1.5 ms | 12.9 → 18.9 ms |
-| Truecolor (unique color per cell) | 8.6 → 10.5 ms | 132 → 39 ms |
-| Process memory after all five | 1,238 MB | 433 MB |
+| `yes` | 4.0 → 2.7 ms | 5.7 → 3.5 ms |
+| `find` | 1.2 → 1.1 ms | 4.5 → 3.9 ms |
+| Build log | 1.6 → 1.8 ms | 9.3 → 6.0 ms |
+| Full-screen redraws | 1.7 → 1.2 ms | 12.9 → 9.8 ms |
+| Truecolor (unique color per cell) | 8.6 → 16.8 ms | 132 → 29 ms |
+| Process memory after all five | 1,238 MB | 440 MB |
+
+The truecolor case is the worst case on purpose: every one of 4,800 cells has its own color and every row changes every frame, so neither the glyph cache nor the row cache can help, and recording rows costs extra. Real tools use far fewer colors. In the app, a one-pane flood had no frame over 16 ms (below).
 
 A cached glyph costs 7 KB of native memory. Before, every pane could keep 10,240 of them (70 MB) and evicted ones waited for a garbage collection that small Dart objects never trigger. Now all panes share at most 4,096 (28 MB), and evicted ones are disposed at once.
 
@@ -163,6 +167,76 @@ Before, bookkeeping alone capped a transfer at 144 MB/s for one big file and 16 
 
 See [Rust engine: the decision](#rust-engine-the-decision).
 
+### App in profile mode
+
+The real app, driven over IPC and MCP against the local servers (`tool/perf/app_bench.sh`). Baseline is the original code, final is this branch with the Rust engine. "Event loop" is the round trip of an IPC ping handled on the UI isolate, sampled every 100 ms. "Janky" means build or raster over 16 ms.
+
+| Scenario | Baseline | Final |
+|---|---|---|
+| **Idle**, 20 sessions, 2 minutes | 1.1 to 13.4% CPU across runs, up to 60 frames/s | **0.48% CPU, 0 frames** |
+| **20 sessions with full scrollback** (12,000 lines printed in each, 200,000 lines kept) | not measured | **282 MB RSS**, 35.6 MB of it in terminals |
+| **Flood, 1 pane** (time-limited flood, same method as baseline) | 0.1 frames/s, event loop up to **9,979 ms**, 6 pauses over 500 ms | 14.9 frames/s, event loop up to 12 ms, none over 500 ms |
+| **Flood, 1 pane** (48 MB fixed) | | 0 janky frames, worst build 1.1 ms, worst raster 8.3 ms, event loop up to 11 ms. 2.8 MB/s, which is what the server's PTY delivers (OpenSSH's own client gets 2.2 MB/s from it) |
+| **Flood, 8 panes** | 1,006 s, 0.1 frames/s, event loop up to **30,000 ms** | 8 × 12 MB in 18 s, 48 frames/s, 0 janky frames, event loop up to 10 ms |
+| **Full-screen** (`top` and `vim` paging, panes split and closed every 300 ms, 60 s) | 0 janky, worst build 8.3 ms, event loop up to 13 ms | 0 janky, worst build 9.0 ms, event loop up to 28 ms |
+| **Reconnect storm** (8 hosts, all server sessions killed 8 times, 4 minutes) | open files 109 → **293** | open files 89 → 90, sockets 11 → 11 |
+| **Churn** (150 rounds of an SSH pane and a local terminal opened and closed) | open files 293 → **617**, Dart heap **+129 MB**, RSS +117 MB | open files 90 → 102 (the 12 are pooled connections that close after 90 s idle), heap −8 MB, RSS −6 MB |
+| **Requests** (1,500 IPC reads and sends, 900 MCP `read_terminal`, `run_command` and `sftp_list`) | RSS +24 MB | 0 failures, RSS 177 to 191 MB across the run with no trend |
+| **Transfers** (3 × 1 GB down, 3 × 1 GB up, 3 × 1 GB between two hosts, 20,000 small files, one paused and resumed, one cancelled) | not measured | 9 completed, 1 cancelled, 8.1 GB at 73.5 MB/s, 0 janky frames, event loop p99 3.9 ms and worst 42 ms, RSS at most 297 MB |
+| **Folder of 100,000 entries**, opened in a file panel 10 times | not measured | event loop worst 388 ms (one listing), no pause over 500 ms, RSS 412 MB while the listing is open |
+
+Baseline floods were time-limited (`cat` in a loop under `alarm`). The marker that ends them scrolled away, so each pane waited out a 120 s timeout, and their durations are not throughput. Frames and event loop numbers are comparable. The final runs use a fixed amount of output.
+
+### Targets
+
+| Target | Result |
+|---|---|
+| Idle CPU under 1% with 20 idle sessions | **0.48%** |
+| No frame over 16 ms during a single-pane flood | **0 of 303 frames** (worst build 1.1 ms, raster 8.3 ms) |
+| Memory under 400 MB with 20 sessions and default scrollback | **282 MB** with every scrollback full |
+| App still responsive during a 10 GB transfer | 8.1 GB run: event loop p99 3.9 ms, worst 42 ms, no frame over 16 ms |
+| Soak: memory flat within 10% after the first hour, no stall over 500 ms, no handle growth | 12 h run: RSS 45% *below* its first-hour level, heap +9.7%, open files 95 at the end vs 103 in hour 1, 0 watchdog stalls. CPU and latency from that run were distorted by a driver bug; see [Soak](#soak) |
+
+### Soak
+
+`tool/perf/soak.sh` on the macOS profile build (run 1: the build before the status-dot fix). It repeats this cycle: a 2-pane flood, 10 idle sessions for 60 s, a full-screen app with resizes for 20 s, 20 rounds of session churn, 200 MCP requests, then killing every server-side SSH session. The app is sampled every 30 s. The machine was kept awake with `caffeinate -i` and was in normal use for part of the evening.
+
+**Run 1: 721 minutes, 1,453 cycles, 1,444 samples.**
+
+| Measure | Hour 1 | Hours 7 to 12 | End |
+|---|---|---|---|
+| RSS, median per hour | 247 MB | 228 to 238 MB | 148 MB |
+| RSS, highest sample | 271 MB | 268 MB | |
+| Dart heap, median per hour | 30.6 MB | 34.2 to 35.8 MB | 35.3 MB |
+| Open files, highest per hour | 103 | 104 to 115 | 95 |
+| Stalls reported by the app's watchdog | 0 | 0 | 0 |
+
+- **Memory:** RSS at the end was 44.6% below its level at the end of the first hour, and never above 273 MB. Heap moved by 9.7%. No growth trend.
+- **Handles:** open files stayed in a band of 91 to 115 and ended at 95, below the first hour's 103. Sockets stayed at 13 while 10 sessions were open.
+- **Stalls:** the in-app watchdog, which flags a UI isolate blocked for 2 s or more, reported none in 12 hours. No frame over 16 ms during idle steps.
+
+A harness bug distorted run 1's CPU and latency numbers. When the idle step saw frames, it asked for a CPU profile. The profile build had the profiler disabled, so that call threw inside `measure()`, and the step's 10 Hz IPC pinger and 1 Hz VM sampler were never stopped. That happened 96 times. Messages handled by the app's UI isolate in a 3 s idle trace rose in exact proportion, 60 per leaked probe (151 with 2 leaked, 5,789 with 96). Idle CPU drifted from 1.0% to 5–7%, and from 20:00 the driver's own ping round-trips reached up to 18 s. Frames and the app's watchdog stayed clean throughout. The driver now stops both probes when a step throws, and profile runs enable `enable-dart-profiling`. A 35-minute run with the fix kept the idle message count flat (36, 22, 21) and idle CPU between 0.9% and 1.1% with 10 sessions.
+
+The frames seen during idle steps had one source: status dots spinning while links connect or reconnect. That is also the intermittent "idle repaint" seen once on an intermediate build. It was fixed after run 1 (see [Reconnecting status dots](#reconnecting-status-dots)).
+
+**Run 2** uses the final build (with the dot fix) and the fixed driver. Its results go in `build/perf/soak-final.jsonl` and `build/perf/results.jsonl` (label `final`).
+
+### Reconnecting status dots
+
+Every connecting or reconnecting status dot ran its own `AnimationController`. That scheduled a frame on every vsync, and with no repaint boundary each tick repainted the whole window: about 3,000 semantics-annotation repaints in a 3 s trace. All of this to rotate an arc about 8 px across. A link that keeps failing stays in this state through its whole backoff.
+
+The fix: the spinner moves in 12 steps per turn on one clock that all live dots share, inside a `RepaintBoundary`. It still stops when its route is hidden (`TickerMode`). `test/widgets/status_dot_test.dart` fails on the old dot and passes on the new one.
+
+Scenario `idleprof`: 10 sessions whose host refuses connections, so every link keeps reconnecting, measured for 30 s on the profile build.
+
+| | CPU | Frames in 30 s |
+|---|---|---|
+| Before (two runs) | 18.5%, 24.9% | 1,832, 1,830 |
+| One timer per dot | 7.4%, 7.1% | 619, 613 |
+| Shared clock (final) | **5.1%, 4.5%** | **323, 341** |
+
+The CPU left is mostly the reconnect attempts themselves.
+
 ## Rust engine: the decision
 
 The brief set three conditions, checked after the Dart fixes. Any one of them justified a Rust engine.
@@ -180,17 +254,18 @@ Measured on the same machine against the same servers:
 | | dartssh2 (before) | dartssh2 with ChaCha20 | Rust engine | OpenSSH |
 |---|---|---|---|---|
 | SFTP download, MB/s | 1.6 | 38.6 | 500 to 563 | 625 to 737 |
-| SFTP download, CPU ms per MB | 620 | 26.5 | 2.3 | about 1.9 |
+| SFTP download, CPU ms per MB | 620 | 26.5 | 2.1 to 2.3 | about 1.9 |
 | SFTP upload, MB/s | 1.4 | 37.9 | 381 | |
 | Longest event loop pause during SFTP | 6,276 ms | 239 ms | 2.3 ms | |
-| `cat \| base64` through a shell, MB/s | 1.0 | 32.7 | 92.1 | |
+| `cat \| base64` through a shell, MB/s | 1.0 | 32.7 | 126.6 | |
 | Longest event loop pause during that flood | 10,738 ms | 184 ms | 2.3 ms | |
-| `yes` through a PTY, MB/s | 0.4 | 3.3 | 2.7 | 2.2 (`ssh -tt`) |
+| `yes` through a PTY, MB/s | 0.4 | 3.3 | 3.1 | 2.2 (`ssh -tt`) |
+| `yes`, CPU ms per MB | 2,520 | 300 | 359 | 333 (`ssh -tt`) |
 | Longest event loop pause during `yes` | 28,326 ms | 3,499 ms | 4 ms | |
 | 20 idle sessions, CPU | 0.05% | | 0.006% | |
 | Dead server noticed | never | 15.9 s | 6.3 s | |
 
-The Rust engine reaches 80 to 90% of OpenSSH's SFTP throughput at 1.2× its CPU, and SSH never runs on a Dart isolate. `yes` is slow for every client, OpenSSH included: macOS `yes` writes one line per `write()`, so the server sends a stream of tiny packets.
+The Rust engine reaches 80 to 90% of OpenSSH's SFTP throughput at 1.1 to 1.2× its CPU, and SSH never runs on a Dart isolate. `yes` is slow for every client, OpenSSH included: macOS `yes` writes one line per `write()`, so the server sends a stream of tiny packets. Reads gather whatever arrives within 1 ms (up to 256 KB) before crossing into Dart, which brought `yes` from 797 to 359 ms of CPU per MB, about what OpenSSH's own client uses.
 
 **What was built.** `russh` 0.65 and `russh-sftp` 2.4 on a Tokio runtime with 2 worker threads, through `flutter_rust_bridge` 2.12 and cargokit, for macOS (universal), iOS, Android (all ABIs), Windows and Linux. Dart classes in `warpgate_core` implement the `dartssh2` interfaces on top of it, so `ConnectionPool` returns either engine behind the same `SSHClient` type, and the UI, CLI and MCP did not change. Both engines run the same 23 CLI integration tests (exec, interactive shell, copy, local, remote and SOCKS forwards, jump hosts, ssh-agent, bad credentials), and CI runs them against both. The CLI loads the same library through FFI. Build details are in `docs/BUILD.md`.
 
@@ -233,6 +308,11 @@ tool/perf/app_bench.sh build/macos/Build/Products/Profile/Warpgate.app mylabel \
 
 tool/perf/soak.sh build/macos/Build/Products/Profile/Warpgate.app 720   # minutes; any length
 
+WARPGATE_PERF_UNREACHABLE=1 WARPGATE_PERF_KEEP_FLEET=1 WARPGATE_PERF_PORT=2900 \
+  WARPGATE_PERF_VM_PORT=8191 WARPGATE_PERF_MCP_PORT=47813 \
+  tool/perf/app_bench.sh build/macos/Build/Products/Profile/Warpgate.app dots idleprof
+                                                     # reconnecting links, beside a running soak
+
 (cd tool/perf/driver && dart run bin/report.dart)    # tables from build/perf/results.jsonl
 ```
 
@@ -248,8 +328,7 @@ Things measured or found but not fixed, and things this machine could not verify
 | `flutter_pty` on Windows sleeps 1 s inside `pty_create`, on the UI isolate | Present in the original plugin. Without Windows here, removing it could not be tested. | Remove the `Sleep(1000)` and test on Windows. |
 | `Native.isProcessAlive` on Windows runs `tasklist` synchronously | Used when transfers are restored at startup, not in a loop | Replace with `OpenProcess` through FFI. |
 | russh grants channel window when data arrives, not when it is read | Memory stays bounded (russh's channel queue holds at most 64 packets, and Dart pulls at most 256 KB at a time), but a paused pane can hold up other channels on the same connection while it catches up | Upstream: consumption-based window adjustment in russh, or one connection per busy pane. |
-| `yes` through a PTY costs 2.4× OpenSSH's CPU per MB | Many tiny packets, each a hop from Rust to Dart | Batch small packets on the Rust side with a 1 ms window. |
 | Terminal parsing stays on the UI isolate | It is time-sliced to 8 ms per frame, and memory is under the threshold. Moving the screen model off the isolate would mean moving rendering data across isolates every frame. | Revisit only if a parser profile shows it. |
-| A 100k-entry folder still sorts on the UI isolate once per listing (about 60 ms in JIT, less in AOT) | A worker isolate was measured and was slower because of copying | Sort in Rust as part of the SFTP listing. |
+| A 100k-entry folder still lists and sorts on the UI isolate once per listing: one 388 ms pause in the app, and the listing holds about 180 MB while it is open | A worker isolate was measured and was slower because of copying | List and sort in Rust and hand Dart only the visible window of rows. |
 | Per-cell glyph drawing in very colorful output | A synthetic gradient with a unique color in every cell (4,800 per screen) exceeds the 4,096-glyph cache and averaged about 10 ms per frame in the debug-mode benchmark | Draw runs of same-style text as one paragraph, or use a glyph atlas. |
 | `leak_tracker` | The project uses its own counters (`LiveObjects`) and VM-service instance counts in the churn test instead | Optional. |

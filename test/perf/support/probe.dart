@@ -7,7 +7,7 @@ import 'package:vm_service/vm_service.dart';
 import 'package:vm_service/vm_service_io.dart';
 
 class HeapSample {
-  const HeapSample(this.dartHeap, this.external, this.rss);
+  const new(this.dartHeap, this.external, this.rss);
 
   final int dartHeap;
   final int external;
@@ -17,7 +17,7 @@ class HeapSample {
 }
 
 class Probe {
-  Probe._(this._service, this._isolateId);
+  new _(this._service, this._isolateId);
 
   static Probe? _instance;
 
@@ -75,10 +75,12 @@ class Probe {
       final path = await _service.getRetainingPath(_isolateId, instance.id!, 40);
       paths.add([
         for (final element in path.elements ?? const <RetainingObject>[])
-          '${element.value is InstanceRef ? (element.value! as InstanceRef).classRef?.name : element.value?.runtimeType}'
-              '${element.parentField != null ? '.${element.parentField}' : ''}'
-              '${element.parentMapKey != null ? '[key]' : ''}'
-              '${element.parentListIndex != null ? '[${element.parentListIndex}]' : ''}',
+          [
+            '${element.value is InstanceRef ? (element.value! as InstanceRef).classRef?.name : element.value?.runtimeType}',
+            if (element.parentField != null) '.${element.parentField}',
+            if (element.parentMapKey != null) '[key]',
+            if (element.parentListIndex != null) '[${element.parentListIndex}]',
+          ].join(),
       ].join(' <- '));
     }
     return paths;

@@ -24,7 +24,7 @@ if [ ! -x "$CLI" ] || [ -n "$WARPGATE_PERF_REBUILD_CLI" ]; then
   (cd "$ROOT/packages/warpgate_cli" && dart compile exe bin/warpgate.dart -o "$CLI" >/dev/null)
 fi
 
-"$ROOT/tool/perf/sshd_fleet.sh" start "$PORTS" >/dev/null
+[ -n "$WARPGATE_PERF_KEEP_FLEET" ] || "$ROOT/tool/perf/sshd_fleet.sh" start "$PORTS" >/dev/null
 AGENT_SOCK="$WORK/agent-$LABEL.sock"
 rm -f "$AGENT_SOCK"
 eval "$(ssh-agent -s -a "$AGENT_SOCK")" >/dev/null
@@ -40,16 +40,17 @@ while [ "$i" -lt "$HOSTS" ]; do
 done
 i=0
 while [ "$i" -lt "$PORTS" ]; do
-  "$CLI" --no-app known-hosts trust "perf-$i" --fingerprint "$FP" >/dev/null
+  "$CLI" --no-app known-hosts trust "perf-$i" --fingerprint "$FP" >/dev/null 2>&1 || [ -n "$WARPGATE_PERF_UNREACHABLE" ]
   i=$((i + 1))
 done
 "$CLI" --no-app settings set mcpEnabled true >/dev/null
 "$CLI" --no-app settings set mcpPort "$MCP_PORT" >/dev/null
 
 LOG="$WORK/app-$LABEL.log"
-FLUTTER_ENGINE_SWITCHES=2 \
+FLUTTER_ENGINE_SWITCHES=3 \
 FLUTTER_ENGINE_SWITCH_1="vm-service-port=$VM_PORT" \
 FLUTTER_ENGINE_SWITCH_2="disable-service-auth-codes" \
+FLUTTER_ENGINE_SWITCH_3="enable-dart-profiling" \
 SSH_AUTH_SOCK="$AGENT_SOCK" \
   "$APP/Contents/MacOS/Warpgate" > "$LOG" 2>&1 &
 APP_PID=$!

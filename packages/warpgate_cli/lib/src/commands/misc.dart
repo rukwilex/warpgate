@@ -18,6 +18,7 @@ import 'package:warpgate_core/core/errors/exit_codes.dart';
 import 'package:warpgate_core/core/interaction/interaction_broker.dart';
 import 'package:warpgate_core/features/connection/data/connection_pool.dart';
 import 'package:warpgate_core/features/connection/data/ssh_agent_client.dart';
+import 'package:warpgate_core/features/connection/engine/native_ssh.dart';
 import 'package:warpgate_core/features/hosts/data/hosts_service.dart';
 import 'package:warpgate_core/features/mcp/data/mcp_protocol.dart';
 import 'package:warpgate_core/features/mcp/data/mcp_server.dart';
@@ -316,6 +317,13 @@ abstract final class MiscCommands {
     } else {
       check('Secure storage', ok: true, detail: 'Windows data protection');
     }
+    final native = await NativeEngine.ensureLoaded();
+    check(
+      'SSH engine',
+      ok: native,
+      detail: native ? NativeEngine.version ?? 'native' : 'dartssh2, slower: ${NativeEngine.loadError ?? 'turned off'}',
+      fix: native ? null : 'Put the engine library next to warpgate, or set WARPGATE_ENGINE_LIBRARY',
+    );
     final location = SshAgentClient.location;
     if (location == null) {
       check(

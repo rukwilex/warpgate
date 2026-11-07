@@ -173,8 +173,8 @@ class CliBridge {
   Future<void> _front() async {
     if (!PlatformInfo.isDesktop) return;
     try {
-      await windowManager.show();
-      await windowManager.focus();
+      await windowManager.show().timeout(const Duration(seconds: 2));
+      await windowManager.focus().timeout(const Duration(seconds: 2));
     } on Object catch (error) {
       debugPrint('Could not bring the window to the front: $error');
     }

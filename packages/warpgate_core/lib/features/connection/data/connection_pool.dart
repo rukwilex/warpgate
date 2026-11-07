@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:dartssh2/dartssh2.dart';
+import 'package:warpgate_core/core/diagnostics/app_log.dart';
 import 'package:warpgate_core/core/diagnostics/live_objects.dart';
 import 'package:warpgate_core/features/connection/engine/native_ssh.dart';
 import 'package:warpgate_core/core/interaction/interaction_broker.dart';
@@ -368,6 +369,7 @@ class ConnectionPool {
     } on Object {
       if (identical(entry.live, client) && !entry.closing) {
         deadLinksClosed++;
+        AppLog.instance.warning('ssh', 'Closed the connection to $hostId: no keep-alive reply within ${timeout.inSeconds} s');
         client.close();
         _onClosed(hostId, entry, const DeadLinkError());
       }

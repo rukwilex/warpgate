@@ -7,11 +7,11 @@ import 'package:vm_service/vm_service_io.dart';
 import 'package:warpgate_core/core/platform/app_paths.dart';
 import 'package:warpgate_core/ipc/ipc.dart';
 
-final env = Platform.environment;
-final label = env['WARPGATE_PERF_LABEL'] ?? 'run';
+final Map<String, String> env = Platform.environment;
+final String label = env['WARPGATE_PERF_LABEL'] ?? 'run';
 final out = File(env['WARPGATE_PERF_OUT'] ?? 'build/perf/results.jsonl');
-final appPid = int.parse(env['WARPGATE_PERF_APP_PID']!);
-final fleet = env['WARPGATE_PERF_FLEET'] ?? 'tool/perf/sshd_fleet.sh';
+final int appPid = int.parse(env['WARPGATE_PERF_APP_PID']!);
+final String fleet = env['WARPGATE_PERF_FLEET'] ?? 'tool/perf/sshd_fleet.sh';
 
 void record(String scenario, Map<String, Object?> values) {
   final line = jsonEncode({'scenario': scenario, 'label': label, 'at': DateTime.now().toIso8601String(), ...values});
@@ -104,9 +104,7 @@ class Frames {
 }
 
 class Latency {
-  Latency(this.ipc);
-
-  final IpcClient ipc;
+  new(IpcClient _);
   final List<int> _samples = [];
   Timer? _timer;
   bool _busy = false;
@@ -118,7 +116,7 @@ class Latency {
       _busy = true;
       final watch = Stopwatch()..start();
       try {
-        await ipc.call('ping').timeout(const Duration(seconds: 30));
+        await ipc.call('ping', const {}, const Duration(seconds: 30));
         _samples.add(watch.elapsedMicroseconds);
       } on Object {
         _samples.add(30000000);
@@ -143,7 +141,7 @@ class Latency {
 }
 
 class Sampler {
-  Sampler(this.vm, this.isolateId);
+  new(this.vm, this.isolateId);
 
   final VmService vm;
   final String isolateId;
@@ -171,9 +169,24 @@ late VmService vm;
 late String isolateId;
 final frames = Frames();
 
+Future<void> reconnect() async {
+  for (var i = 0; i < 30; i++) {
+    final client = await IpcClient.connect(AppPaths.resolve(), timeout: const Duration(seconds: 2));
+    if (client != null) {
+      ipc = client;
+      return;
+    }
+    await Future<void>.delayed(const Duration(seconds: 1));
+  }
+}
+
 Future<Map<String, Object?>> act(String name, [Map<String, Object?> args = const {}]) async {
   final watch = Stopwatch()..start();
   try {
+    return await ipc.call('action', {'name': name, 'args': args});
+  } on IpcUnavailable {
+    stdout.writeln('ipc lost during $name, reconnecting');
+    await reconnect();
     return await ipc.call('action', {'name': name, 'args': args});
   } finally {
     if (watch.elapsedMilliseconds > 2000) {
@@ -196,9 +209,17 @@ Future<String> open(String host, {String? split}) async {
 
 Future<void> send(String id, String text) => act('sessions.send', {'session': id, 'text': text});
 
+Future<void> closeQuietly(String id) async {
+  try {
+    await act('sessions.close', {'session': id});
+  } on Object {
+    return;
+  }
+}
+
 Future<void> closeAll() async {
   for (final id in await sessionIds()) {
-    await act('sessions.close', {'session': id});
+    await closeQuietly(id);
   }
 }
 
@@ -207,7 +228,7 @@ Future<void> waitFor(String id, String needle, Duration limit) async {
   while (DateTime.now().isBefore(end)) {
     try {
       final text = (await act('sessions.read', {'session': id, 'lines': 30}))['text']! as String;
-      if (text.contains(needle)) return;
+      if (text.replaceAll('\n', '').contains(needle)) return;
     } on Object {
       await Future<void>.delayed(const Duration(milliseconds: 500));
     }
@@ -221,7 +242,13 @@ Future<Map<String, Object?>> measure(Duration span, Future<void> Function() body
   frames.reset();
   final cpu0 = await cpuSeconds();
   final watch = Stopwatch()..start();
-  await body();
+  try {
+    await body();
+  } on Object {
+    sampler.stop();
+    latency.stop();
+    rethrow;
+  }
   step('measure body done');
   final cpu = await cpuSeconds() - cpu0;
   final elapsed = watch.elapsed;
@@ -284,6 +311,26 @@ Future<void> scenarioIdle(int count, Duration span) async {
   });
 }
 
+Future<void> scenarioIdleProfile(int count, Duration span) async {
+  await closeAll();
+  for (var i = 0; i < count; i++) {
+    await open('perf-$i');
+  }
+  await Future<void>.delayed(const Duration(seconds: 20));
+  final cpu0 = await cpuSeconds();
+  final watch = Stopwatch()..start();
+  frames.reset();
+  final hot = await cpuHotspots(span);
+  final cpu = await cpuSeconds() - cpu0;
+  record('app.idle_profile', {
+    'sessions': count,
+    'seconds': watch.elapsed.inSeconds,
+    'cpu_percent': round(cpu * 100 / (watch.elapsedMilliseconds / 1000)),
+    'frames': frames.since(DateTime.now().subtract(watch.elapsed)),
+    'cpu_hotspots': hot,
+  });
+}
+
 Future<void> scenarioFlood(int panes, int copies) async {
   await closeAll();
   final ids = <String>[await open('perf-0')];
@@ -327,7 +374,7 @@ Future<void> scenarioFullScreen(int seconds) async {
         if (flip) {
           final extra = await open('perf-2', split: 'down');
           await Future<void>.delayed(const Duration(milliseconds: 300));
-          await act('sessions.close', {'session': extra});
+          await closeQuietly(extra);
         }
         flip = !flip;
         await Future<void>.delayed(const Duration(milliseconds: 300));
@@ -371,6 +418,7 @@ Future<void> scenarioChurn(int rounds) async {
   final rss0 = await rssBytes();
   final files0 = await openFiles();
   final types0 = await fdTypes();
+  File('${out.parent.path}/churn_lsof_before.txt').writeAsStringSync((await Process.run('lsof', ['-p', '$appPid'])).stdout as String);
   record('app.churn', {
     'fd_types_before': types0,
     'rounds': rounds,
@@ -379,8 +427,8 @@ Future<void> scenarioChurn(int rounds) async {
         final a = await open('perf-${i % 20}');
         final b = (await act('open', {'local': true, 'split': 'right'}))['session_id'] as String?;
         await Future<void>.delayed(const Duration(milliseconds: 150));
-        if (b != null) await act('sessions.close', {'session': b});
-        await act('sessions.close', {'session': a});
+        if (b != null) await closeQuietly(b);
+        await closeQuietly(a);
       }
       await Future<void>.delayed(const Duration(seconds: 15));
     }),
@@ -390,6 +438,7 @@ Future<void> scenarioChurn(int rounds) async {
     'open_files_after': await openFiles(),
     'fd_types_after': await fdTypes(),
   });
+  File('${out.parent.path}/churn_lsof_after.txt').writeAsStringSync((await Process.run('lsof', ['-p', '$appPid'])).stdout as String);
 }
 
 Future<void> scenarioRequests(int calls) async {
@@ -419,6 +468,19 @@ Future<void> scenarioRequests(int calls) async {
     }
   }
 
+  final hostIds = <String>[
+    for (final s in ((await act('sessions.list'))['sessions']! as List).cast<Map<String, Object?>>())
+      if (s['host_id'] != null) '${s['host_id']}',
+  ];
+  for (var i = 1; i < 3; i++) {
+    await open('perf-$i');
+  }
+  hostIds
+    ..clear()
+    ..addAll([
+      for (final s in ((await act('sessions.list'))['sessions']! as List).cast<Map<String, Object?>>())
+        if (s['host_id'] != null) '${s['host_id']}',
+    ]);
   final rss0 = await rssBytes();
   final curve = <double>[];
   record('app.requests', {
@@ -429,8 +491,8 @@ Future<void> scenarioRequests(int calls) async {
         if (i % 4 == 0) await send(id, 'echo $i\r');
         if (i % 5 == 0) {
           await mcp('read_terminal', {'session_id': id, 'lines': 100});
-          await mcp('run_command', {'host': 'perf-1', 'command': 'echo $i'});
-          await mcp('sftp_list', {'host': 'perf-2', 'path': '/usr/share'});
+          await mcp('run_command', {'host_id': hostIds[1 % hostIds.length], 'command': 'echo $i'});
+          await mcp('sftp_list', {'host_id': hostIds[2 % hostIds.length], 'path': '/usr/share'});
         }
         if (i % (calls ~/ 10) == 0) curve.add(round((await rssBytes()) / 1048576));
       }
@@ -447,7 +509,12 @@ Future<void> scenarioRequests(int calls) async {
 Future<Map<String, int>> cpuHotspots(Duration span) async {
   final start = (await vm.getVMTimelineMicros()).timestamp!;
   await Future<void>.delayed(span);
-  final samples = await vm.getCpuSamples(isolateId, start, span.inMicroseconds);
+  final CpuSamples samples;
+  try {
+    samples = await vm.getCpuSamples(isolateId, start, span.inMicroseconds);
+  } on Object {
+    return const {'profiler_disabled': 1};
+  }
   final functions = samples.functions ?? const <ProfileFunction>[];
   final counts = <String, int>{};
   for (final sample in samples.samples ?? const <CpuSample>[]) {
@@ -531,10 +598,11 @@ Future<void> scenarioFill(int count, int lines) async {
   await Future<void>.delayed(const Duration(seconds: 15));
   final rss0 = await rssBytes();
   for (final id in ids) {
-    await send(id, "awk 'BEGIN{for(i=1;i<=$lines;i++) printf \"%06d  build step %d  compiling module_%d.rs  ok  took %dms\\n\", i, i%97, i%541, i%1000}'; echo FILL_DONE\r");
+    await send(id, "seq 1 $lines | sed 's/\$/  build step compiling module ok, took some time/'; echo FILL_\$((1+1))\r");
   }
+
   for (final id in ids) {
-    await waitFor(id, 'FILL_DONE', const Duration(minutes: 3));
+    await waitFor(id, 'FILL_2', const Duration(minutes: 3));
   }
   await Future<void>.delayed(const Duration(seconds: 10));
   final diagnostics = await ipc.call('diagnostics.snapshot');
@@ -551,7 +619,7 @@ Future<void> scenarioFill(int count, int lines) async {
   });
 }
 
-final dataDir = Directory(env['WARPGATE_PERF_DATA'] ?? '${Directory.current.path}/../../../build/perf/data').absolute.path;
+final String dataDir = Directory(env['WARPGATE_PERF_DATA'] ?? '${Directory.current.path}/../../../build/perf/data').absolute.path;
 
 Future<void> prepareData() async {
   final big = env['WARPGATE_PERF_FILE'];
@@ -612,12 +680,22 @@ Future<void> scenarioTransfers() async {
       byStatus['${job['status']}'] = (byStatus['${job['status']}'] ?? 0) + 1;
       if (job['status'] == 'completed') bytes += (job['total_bytes'] ?? job['totalBytes'] ?? 0) as int;
     }
-    statusAtEnd = {'jobs': byStatus, 'bytes_completed': bytes};
+    statusAtEnd = {
+      'jobs': byStatus,
+      'bytes_completed': bytes,
+      'errors': [
+        for (final job in jobs)
+          if (job['status'] == 'failed') '${job['name']}: ${job['error']}',
+      ],
+    };
   });
   final seconds = watch.elapsedMilliseconds / 1000;
   final bytes = statusAtEnd['bytes_completed']! as int;
+  final diag = await ipc.call('diagnostics.snapshot', {'log': true});
   record('app.transfers', {
     ...statusAtEnd,
+    'links': diag['links'],
+    'log': [for (final e in ((diag['log_recent'] as List?) ?? const []).cast<Map<String, Object?>>()) if (e['level'] != 'info') '${e['area']}: ${'${e['message']}'.split('\n').first}'],
     'gb_completed': round(bytes / (1 << 30), 2),
     'mb_per_s': round(bytes / 1048576 / seconds),
     ...result,
@@ -642,6 +720,35 @@ Future<void> scenarioBigDir(int rounds) async {
   record('app.big_dir', {'entries': 100000, 'rounds': rounds, ...result});
 }
 
+Future<void> scenarioFloodDebug(int panes, int copies) async {
+  await closeAll();
+  final ids = <String>[await open('perf-0')];
+  for (var i = 1; i < panes; i++) {
+    ids.add(await open('perf-${i % 20}', split: i.isOdd ? 'right' : 'down'));
+  }
+  await Future<void>.delayed(const Duration(seconds: 5));
+  for (final id in ids) {
+    await send(id, flood(copies));
+  }
+  for (var t = 0; t < 24; t++) {
+    await Future<void>.delayed(const Duration(seconds: 5));
+    final d = await ipc.call('diagnostics.snapshot');
+    final sessions = [
+      for (final s in ((d['sessions'] as List?) ?? const []).cast<Map<String, Object?>>())
+        '${s['status']}/${s['pending_kb']}kb/${s['throttled'] == true ? 'T' : '-'}/${s['scrollback_lines']}',
+    ];
+    final done = <bool>[];
+    for (final id in ids) {
+      final text = (await act('sessions.read', {'session': id, 'lines': 30}))['text']! as String;
+      done.add(text.replaceAll('\n', '').contains('FLOOD_2'));
+    }
+    step('t=${(t + 1) * 5}s done=${done.where((x) => x).length}/${ids.length} ingest=${d['ingest']} loop=${d['event_loop']} stalls=${(d['stalls'] as List?)?.length} $sessions');
+    if (done.every((x) => x)) break;
+  }
+  final d = await ipc.call('diagnostics.snapshot');
+  File('${out.parent.path}/flood_debug_stalls.json').writeAsStringSync(const JsonEncoder.withIndent('  ').convert(d['stalls']));
+}
+
 Future<void> scenarioSoak(Duration span) async {
   final out = File(env['WARPGATE_PERF_SOAK_OUT'] ?? 'build/perf/soak.jsonl');
   out.parent.createSync(recursive: true);
@@ -651,7 +758,7 @@ Future<void> scenarioSoak(Duration span) async {
   var worstPing = 0;
   Timer? sampler;
   Future<void> sample() async {
-    Map<String, Object?> diagnostics = const {};
+    var diagnostics = const <String, Object?>{};
     try {
       diagnostics = await ipc.call('diagnostics.snapshot').timeout(const Duration(seconds: 30));
     } on Object {
@@ -711,11 +818,11 @@ Future<void> scenarioSoak(Duration span) async {
   double growth(String key) {
     final from = (base[key]! as num).toDouble();
     final to = (last[key]! as num).toDouble();
-    return from == 0 ? 0 : round((to - from) * 100 / from, 1);
+    return from == 0 ? 0 : round((to - from) * 100 / from);
   }
 
   record('app.soak', {
-    'minutes': round(watch.elapsed.inSeconds / 60, 1),
+    'minutes': round(watch.elapsed.inSeconds / 60),
     'cycles': cycle,
     'samples': samples.length,
     'rss_mb_first_hour_end': base['rss_mb'],
@@ -757,6 +864,8 @@ Future<void> main(List<String> args) async {
     switch (scenario) {
       case 'idle':
         await scenarioIdle(int.parse(env['WARPGATE_PERF_IDLE_SESSIONS'] ?? '20'), idleSpan);
+      case 'idleprof':
+        await scenarioIdleProfile(int.parse(env['WARPGATE_PERF_IDLE_SESSIONS'] ?? '10'), const Duration(seconds: 30));
       case 'flood1':
         await scenarioFlood(1, floodCopies);
       case 'flood8':
@@ -773,6 +882,8 @@ Future<void> main(List<String> args) async {
         await scenarioTransfers();
       case 'bigdir':
         await scenarioBigDir(10);
+      case 'flooddbg':
+        await scenarioFloodDebug(8, int.parse(env['WARPGATE_PERF_FLOOD_COPIES'] ?? '5'));
       case 'fill':
         await scenarioFill(20, 12000);
       case 'soak':

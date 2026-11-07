@@ -42,6 +42,12 @@ abstract final class Native {
     return stat.type == FileSystemEntityType.notFound ? null : stat.mode & 0xFFF;
   }
 
+  static bool signalGroup(int processGroup, int signal) {
+    if (Platform.isWindows || processGroup <= 0) return false;
+    final call = _libc.lookupFunction<_KillNative, _Kill>('kill');
+    return call(-processGroup, signal) == 0;
+  }
+
   static bool isProcessAlive(int processId) {
     if (Platform.isWindows) {
       final result = Process.runSync('tasklist', [

@@ -15,7 +15,7 @@ import '../widgets/terminal_surface_test.dart' show localSession;
 import 'support/load.dart';
 import 'support/probe.dart';
 
-const _chunk = 16 * 1024;
+const int _chunk = 16 * 1024;
 
 List<List<int>> _chunks(String text) {
   final bytes = utf8.encode(text);

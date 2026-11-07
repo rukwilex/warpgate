@@ -10,6 +10,7 @@ import 'package:warpgate/features/terminal/domain/terminal_geometry.dart';
 import 'package:warpgate/features/terminal/domain/terminal_reflow.dart';
 import 'package:warpgate_core/core/diagnostics/live_objects.dart';
 import 'package:warpgate_core/core/diagnostics/watchdog.dart';
+import 'package:warpgate_core/core/platform/native.dart';
 import 'package:warpgate_core/features/connection/data/connection_pool.dart';
 import 'package:warpgate_core/features/connection/data/ssh_errors.dart';
 import 'package:warpgate_core/features/connection/domain/link_state.dart';
@@ -95,10 +96,14 @@ class LocalPtyBackend implements TerminalBackend {
     if (_closing) return;
     _closing = true;
     LiveObjects.opened('closing local shell');
-    if (!Platform.isWindows) _pty.kill(ProcessSignal.sighup);
+    if (!Platform.isWindows && !Native.signalGroup(_pty.pid, 1)) {
+      _pty.kill(ProcessSignal.sighup);
+    }
     _pty.close();
     final killer = Timer(const Duration(seconds: 3), () {
-      _pty.kill(Platform.isWindows ? ProcessSignal.sigterm : ProcessSignal.sigkill);
+      if (Platform.isWindows || !Native.signalGroup(_pty.pid, 9)) {
+        _pty.kill(Platform.isWindows ? ProcessSignal.sigterm : ProcessSignal.sigkill);
+      }
     });
     unawaited(
       _pty.exitCode.whenComplete(() {

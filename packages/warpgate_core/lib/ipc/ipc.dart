@@ -235,7 +235,9 @@ class IpcClient {
         socket.destroy();
         return null;
       }
-      return IpcClient._(socket, lines);
+      final client = IpcClient._(socket, lines);
+      unawaited(socket.done.then<void>((_) => client._broken = true, onError: (Object _) => client._broken = true));
+      return client;
     } on Object {
       return null;
     }
@@ -270,7 +272,12 @@ class IpcClient {
 
   Future<JsonMap> _send(String method, JsonMap params) async {
     final id = _next++;
-    _socket.writeln(jsonEncode({'id': id, 'method': method, 'params': params}));
+    try {
+      _socket.writeln(jsonEncode({'id': id, 'method': method, 'params': params}));
+    } on Object {
+      _broken = true;
+      throw const IpcUnavailable('The connection to Warpgate was lost');
+    }
     late Map<String, Object?> reply;
     do {
       if (!await _lines.moveNext()) {

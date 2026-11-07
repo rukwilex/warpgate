@@ -1,3 +1,4 @@
+import 'package:flutter/painting.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:xterm/xterm.dart';
 
@@ -14,7 +15,7 @@ List<List<int>> cells(BufferLine line) {
 
 void main() {
   test('scrollback lines are packed and read back cell for cell', () {
-    final terminal = Terminal(maxLines: 1000)
+    final terminal = Terminal()
       ..reflowEnabled = false
       ..resize(60, 5);
     final text = StringBuffer();
@@ -26,7 +27,7 @@ void main() {
         ..write(i % 5 == 0 ? ' 🚀' : '')
         ..write('\r\n');
     }
-    final reference = Terminal(maxLines: 1000)
+    final reference = Terminal()
       ..reflowEnabled = false
       ..resize(60, 100);
     terminal.write(text.toString());

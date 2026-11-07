@@ -28,7 +28,7 @@ void main() {
           path: '/var/log/x/$i',
           isDirectory: i % 50 == 0,
           size: i * 13,
-          modified: DateTime(2026, 1, 1).add(Duration(minutes: i)),
+          modified: DateTime(2026).add(Duration(minutes: i)),
         ),
     ];
     for (final key in [SortKey.name, SortKey.size]) {

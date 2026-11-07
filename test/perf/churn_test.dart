@@ -61,8 +61,9 @@ Future<void> main() async {
         await tester.pump(const Duration(milliseconds: 16));
         bench.closePane(files);
       }
-      bench.closePane(split);
-      bench.closePane(id);
+      bench
+        ..closePane(split)
+        ..closePane(id);
       await tester.pump(const Duration(milliseconds: 16));
     }
     await tester.settleFor(const Duration(seconds: 2));
