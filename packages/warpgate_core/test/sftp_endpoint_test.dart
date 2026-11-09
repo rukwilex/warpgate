@@ -51,6 +51,12 @@ class WritableSftp extends FakeSftp {
   Future<SshSftpFile> open(String path, {SftpFileOpenMode mode = SftpFileOpenMode.read}) async => file;
 }
 
+class LinkSftp extends FakeSftp {
+  @override
+  Future<SftpFileAttrs> stat(String path, {bool followLink = true}) async =>
+      SftpFileAttrs(mode: SftpFileMode.value(followLink ? 0x4000 | 493 : 0xA000 | 511));
+}
+
 void main() {
   late StallingWriter writer;
   late WritableFile file;
@@ -81,5 +87,11 @@ void main() {
       throwsA(isA<FileOperationException>().having((e) => e.message, 'message', 'Permission denied')),
     );
     expect(file.closed, isTrue);
+  });
+
+  test('stat reports a symlink to a folder as a link so it is not deleted through', () async {
+    final entry = await SftpEndpoint(LinkSftp(), label: 'remote').stat('/srv/current');
+    expect(entry!.isLink, isTrue);
+    expect(entry.isDirectory, isTrue);
   });
 }

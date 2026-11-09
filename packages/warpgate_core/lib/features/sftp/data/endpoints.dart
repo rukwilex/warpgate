@@ -78,11 +78,14 @@ class SftpEndpoint extends FileEndpoint {
   @override
   Future<FileEntry?> stat(String path) async {
     try {
-      final attrs = await _sftp.stat(path);
+      final link = await _sftp.stat(path, followLink: false);
+      final isLink = link.isSymbolicLink;
+      final attrs = isLink ? await _resolvedOr(path, link) : link;
       return FileEntry(
         name: paths.basename(path),
         path: path,
         isDirectory: attrs.isDirectory,
+        isLink: isLink,
         size: attrs.size ?? 0,
         modified: attrs.modifyTime == null
             ? null
@@ -91,6 +94,14 @@ class SftpEndpoint extends FileEndpoint {
       );
     } on SftpStatusError {
       return null;
+    }
+  }
+
+  Future<SftpFileAttrs> _resolvedOr(String path, SftpFileAttrs link) async {
+    try {
+      return await _sftp.stat(path);
+    } on SftpStatusError {
+      return link;
     }
   }
 

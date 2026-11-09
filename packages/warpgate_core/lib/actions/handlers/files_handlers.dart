@@ -108,7 +108,7 @@ abstract final class FileHandlers {
     if (entry == null) {
       throw ActionFailure('${call.string('path')} does not exist', kind: ExitKind.notFound);
     }
-    if (entry.isDirectory) {
+    if (entry.isDirectory && !entry.isLink) {
       if (!call.on('recursive')) {
         throw ActionFailure(
           '$path is a folder',
