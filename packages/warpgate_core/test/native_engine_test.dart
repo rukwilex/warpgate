@@ -84,7 +84,7 @@ void main() {
     final session = await client.execute('head -c 3000000 /dev/zero');
     var total = 0;
     final err = session.stderr.drain<void>();
-    await session.stdout.forEach((Uint8List chunk) => total += chunk.length);
+    await session.stdout.forEach((chunk) => total += chunk.length);
     await err;
     expect(total, 3000000);
     await client.close();

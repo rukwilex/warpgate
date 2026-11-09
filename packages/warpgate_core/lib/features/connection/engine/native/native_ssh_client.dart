@@ -14,12 +14,12 @@ import 'package:warpgate_core/src/engine/api/ssh.dart' as rs;
 import 'package:warpgate_core/src/engine/api/util.dart' as rs;
 
 class NativeSshClient implements SshClient {
-  NativeSshClient._(this._client, this.username) {
+  new _(this._client, this.username) {
     LiveObjects.opened('native ssh client');
     unawaited(
       guardNative(_client.waitClosed).then<void>(
         (_) => _finish(null),
-        onError: (Object error) => _finish(error),
+        onError: _finish,
       ),
     );
   }
@@ -74,9 +74,11 @@ class NativeSshClient implements SshClient {
       result.completeError(const ConnectCancelledException());
       unawaited(opening.then((client) => client.disconnect(), onError: (_) {}));
     });
-    opening.then(
-      (client) => result.isCompleted ? null : result.complete(client),
-      onError: (Object error, StackTrace stack) => result.isCompleted ? null : result.completeError(error, stack),
+    unawaited(
+      opening.then(
+        (client) => result.isCompleted ? null : result.complete(client),
+        onError: (Object error, StackTrace stack) => result.isCompleted ? null : result.completeError(error, stack),
+      ),
     );
     return result.future;
   }
@@ -271,7 +273,7 @@ class NativeSshClient implements SshClient {
 }
 
 class NativeRemoteForward implements SshRemoteForward {
-  NativeRemoteForward(this.host, this.port, this.filter);
+  new(this.host, this.port, this.filter);
 
   @override
   final String host;

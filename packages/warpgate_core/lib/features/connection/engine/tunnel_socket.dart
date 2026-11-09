@@ -9,7 +9,7 @@ SSHForwardChannel tunnelSocket(SshTunnel tunnel) =>
     tunnel is DartSshTunnel ? tunnel.channel : TunnelSocket(tunnel);
 
 class TunnelSocket implements SSHForwardChannel {
-  TunnelSocket(this._tunnel);
+  new(this._tunnel);
 
   final SshTunnel _tunnel;
 

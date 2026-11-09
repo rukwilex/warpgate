@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:warpgate_core/features/connection/domain/ssh_client.dart';
 import 'package:warpgate_cli/src/args.dart';
 import 'package:warpgate_cli/src/cli.dart';
 import 'package:warpgate_cli/src/terminal.dart';
@@ -13,6 +12,7 @@ import 'package:warpgate_core/core/data/document_store.dart';
 import 'package:warpgate_core/core/errors/exit_codes.dart';
 import 'package:warpgate_core/features/connection/data/port_forwarder.dart';
 import 'package:warpgate_core/features/connection/domain/link_state.dart';
+import 'package:warpgate_core/features/connection/domain/ssh_client.dart';
 import 'package:warpgate_core/features/hosts/domain/host.dart';
 import 'package:warpgate_core/features/multi_exec/data/multi_exec_runner.dart';
 
@@ -113,7 +113,7 @@ abstract final class ConnectCommands {
     final input = stdin.listen(
       (bytes) => session.write(Uint8List.fromList(bytes)),
       onDone: () {
-        if (!stdin.hasTerminal) session.stdin.close();
+        if (!stdin.hasTerminal) unawaited(session.stdin.close());
       },
     );
     final signals = <StreamSubscription<ProcessSignal>>[
@@ -189,7 +189,7 @@ abstract final class ConnectCommands {
     final hosts = rt.many(args['targets']! as String);
     final command = (args['command']! as List).cast<String>().join(' ');
     final timeout = Durations.parse(args['timeout'] as String?);
-    return _runOn(
+    return await _runOn(
       context,
       action,
       rt,
@@ -297,7 +297,7 @@ abstract final class ConnectCommands {
       }
       values[variable.name] = answer;
     }
-    return _runOn(
+    return await _runOn(
       context,
       action,
       rt,

@@ -254,7 +254,7 @@ abstract final class Shape {
           for (final MapEntry(:key, value: child) in properties.entries)
             if (value.containsKey(key))
               ...validate(value[key], (child! as Map).cast(), '$path.$key')
-            else if ((child as Map)['nullable'] != true)
+            else if ((child! as Map)['nullable'] != true)
               '$path.$key is missing',
         ];
       default:

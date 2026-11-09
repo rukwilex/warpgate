@@ -5,7 +5,7 @@ import 'package:dartssh2/dartssh2.dart';
 import 'package:warpgate_core/features/connection/domain/ssh_client.dart';
 
 class DartSftp implements SshSftp {
-  DartSftp(this._sftp);
+  new(this._sftp);
 
   final SftpClient _sftp;
 
@@ -39,11 +39,11 @@ class DartSftp implements SshSftp {
       DartSftpFile(await _sftp.open(path, mode: mode));
 
   @override
-  Future<void> close() async => _sftp.close();
+  Future<void> close() => _sftp.close();
 }
 
 class DartSftpFile implements SshSftpFile {
-  DartSftpFile(this._file);
+  new(this._file);
 
   final SftpFile _file;
 
@@ -60,7 +60,7 @@ class DartSftpFile implements SshSftpFile {
 }
 
 class DartSftpWriter implements SshSftpWriter {
-  DartSftpWriter(this._writer);
+  new(this._writer);
 
   final SftpFileWriter _writer;
 

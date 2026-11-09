@@ -1,24 +1,24 @@
 import 'package:dartssh2/dartssh2.dart';
 
 sealed class NativeCredential {
-  const NativeCredential();
+  const new();
 }
 
 class AgentCredential extends NativeCredential {
-  const AgentCredential(this.socket);
+  const new(this.socket);
 
   final String? socket;
 }
 
 class KeyCredential extends NativeCredential {
-  const KeyCredential(this.pem, this.passphrase);
+  const new(this.pem, this.passphrase);
 
   final String pem;
   final String? passphrase;
 }
 
 class NativeAuth {
-  const NativeAuth({
+  const new({
     required this.username,
     this.credentials = const [],
     this.password,

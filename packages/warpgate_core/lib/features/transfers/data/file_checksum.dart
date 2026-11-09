@@ -16,10 +16,10 @@ abstract final class FileChecksum {
       try {
         return await NativeEngine.sha256File(path);
       } on Object {
-        return Worker.named('io').run(() => _local(path));
+        return await Worker.named('io').run(() => _local(path));
       }
     }
-    return Worker.named('io').run(() => _local(path));
+    return await Worker.named('io').run(() => _local(path));
   }
 
   static Future<String?> _local(String path) async {

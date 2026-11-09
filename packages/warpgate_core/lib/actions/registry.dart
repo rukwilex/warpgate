@@ -181,11 +181,11 @@ abstract final class Tables {
 const _hostHelp =
     'Host label, id or user@host[:port]';
 const _sessionHelp = 'Session id. Run warpgate sessions list to see them';
-const _ui = ActionMode.app;
-const _prefer = ActionMode.prefersApp;
-const _read = ActionPermission.read;
-const _write = ActionPermission.write;
-const _destroy = ActionPermission.destructive;
+const ActionMode _ui = ActionMode.app;
+const ActionMode _prefer = ActionMode.prefersApp;
+const ActionPermission _read = ActionPermission.read;
+const ActionPermission _write = ActionPermission.write;
+const ActionPermission _destroy = ActionPermission.destructive;
 
 abstract final class ActionRegistry {
   static final List<ActionSpec> all = [
@@ -261,7 +261,7 @@ abstract final class ActionRegistry {
         'warpgate exec @web --parallel 4 -- systemctl restart nginx',
         'warpgate exec a,b,c --json -- df -h /',
       ],
-      notes: 'On one host the exit code is the remote command\'s. On several hosts it is 0 when all succeed and 7 when any fail.',
+      notes: "On one host the exit code is the remote command's. On several hosts it is 0 when all succeed and 7 when any fail.",
       result: Shape.object({
         'results': Shape.list(Shapes.hostRun),
         'succeeded': Shape.integer,
@@ -317,7 +317,7 @@ abstract final class ActionRegistry {
       examples: [
         'warpgate hosts add prod deploy@10.0.0.5',
         'warpgate hosts add db root@db.local:2222 --auth key --key work -g data',
-        'printf %s "\$PW" | warpgate hosts add lab me@lab --auth password --password-stdin',
+        r'printf %s "$PW" | warpgate hosts add lab me@lab --auth password --password-stdin',
       ],
       text: 'Saved {label}',
       result: Shape.object({'id': Shape.string, 'label': Shape.string}),
@@ -1653,14 +1653,14 @@ abstract final class ActionRegistry {
       text: 'Restored {hosts} hosts, {keys} keys and {snippets} snippets',
       result: Shape.object({'hosts': Shape.integer, 'keys': Shape.integer, 'snippets': Shape.integer}),
     ),
-    ActionSpec(
+    const ActionSpec(
       name: 'mcp.serve',
       cli: 'mcp serve',
       title: 'Serve MCP',
       summary: 'Run a stdio MCP server for Claude Code',
       permission: _write,
       examples: ['warpgate mcp serve', 'claude mcp add warpgate -- warpgate mcp serve'],
-      result: const {},
+      result: {},
     ),
     ActionSpec(
       name: 'mcp.status',

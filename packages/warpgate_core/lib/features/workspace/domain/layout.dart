@@ -394,7 +394,7 @@ abstract final class Layouts {
 
 @immutable
 class LayoutRect {
-  const LayoutRect.fromLTWH(this.left, this.top, this.width, this.height);
+  const new fromLTWH(this.left, this.top, this.width, this.height);
 
   final double left;
   final double top;

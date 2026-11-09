@@ -9,7 +9,7 @@ enum ExitKind {
   partial(7, 'Partial failure on a multi-host command'),
   interrupted(130, 'Interrupted');
 
-  const ExitKind(this.code, this.meaning);
+  new(this.code, this.meaning);
 
   final int code;
   final String meaning;

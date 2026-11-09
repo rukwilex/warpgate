@@ -39,12 +39,12 @@ class _Entry {
 }
 
 class ConnectionPool {
-  ConnectionPool({
-    required HostLookup lookup,
+  new({
+    required this._lookup,
     required HostRepository hosts,
     required KeyRepository keys,
     required InteractionBroker broker,
-    Duration idleTimeout = SshDefaults.idleTimeout,
+    this._idleTimeout = SshDefaults.idleTimeout,
     this.probeTimeout = SshDefaults.probeTimeout,
     this.livenessTick = SshDefaults.livenessTick,
     Future<List<SSHIdentity>> Function()? agentIdentities,
@@ -52,9 +52,7 @@ class ConnectionPool {
     Future<List<String>> Function(Host host)? fallbackKeys,
     SocketDialer? dial,
     SshConnector? connector,
-  }) : _lookup = lookup,
-       _idleTimeout = idleTimeout,
-       _connector =
+  }) : _connector =
            connector ??
            _defaultConnector(
              hosts: hosts,
@@ -401,7 +399,7 @@ class ConnectionPool {
 
   Future<SshClient> _open(Host host, CancelToken cancel) async {
     final jumpId = host.jumpHostId;
-    if (jumpId == null) return _connector.open(host, cancel: cancel);
+    if (jumpId == null) return await _connector.open(host, cancel: cancel);
     final jump = await client(jumpId);
     retain(jumpId);
     try {

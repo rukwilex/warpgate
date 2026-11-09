@@ -92,12 +92,12 @@ class AppLog {
       final file = File(path);
       if (_written < 0) {
         await Directory(directory!).create(recursive: true);
-        _written = await file.exists() ? await file.length() : 0;
+        _written = file.existsSync() ? await file.length() : 0;
         await prune();
       }
       final text = '${_pending.join('\n')}\n';
       _pending.clear();
-      await file.writeAsString(text, mode: FileMode.append, flush: false);
+      await file.writeAsString(text, mode: FileMode.append);
       _written += text.length;
       if (_written > maxFileBytes) await _rotate();
     } on Object {
@@ -111,7 +111,7 @@ class AppLog {
     final base = currentFile!;
     for (var i = maxFiles - 1; i >= 1; i--) {
       final from = File(i == 1 ? base : '$base.${i - 1}');
-      if (await from.exists()) await from.rename('$base.$i');
+      if (from.existsSync()) await from.rename('$base.$i');
     }
     _written = 0;
     await prune();
@@ -125,14 +125,14 @@ class AppLog {
       if (entity is! File || !p.basename(entity.path).startsWith('warpgate.log')) continue;
       final suffix = p.basename(entity.path).substring('warpgate.log'.length);
       final index = suffix.isEmpty ? 0 : int.tryParse(suffix.substring(1)) ?? maxFiles;
-      final old = now.difference(await entity.lastModified()) > maxAge;
+      final old = now.difference(entity.lastModifiedSync()) > maxAge;
       if (index >= maxFiles || (index > 0 && old)) await entity.delete();
     }
   }
 
   Future<int> diskBytes() async {
     final dir = directory;
-    if (dir == null || !await Directory(dir).exists()) return 0;
+    if (dir == null || !Directory(dir).existsSync()) return 0;
     var total = 0;
     await for (final entity in Directory(dir).list()) {
       if (entity is File && p.basename(entity.path).startsWith('warpgate.log')) total += await entity.length();

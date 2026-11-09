@@ -594,7 +594,7 @@ abstract final class ActionHandlers {
     } on Object {
       if (fingerprint == null) rethrow;
     } finally {
-      client.close();
+      unawaited(client.close());
     }
     final seen = fingerprint;
     if (seen == null) {
@@ -612,9 +612,7 @@ abstract final class ActionHandlers {
           ? ' This replaces ${previous.fingerprint}.'
           : '';
       final confirm = call.confirm;
-      final accepted = confirm == null
-          ? false
-          : await confirm('Trust ${host.knownHostsKey}, $keyType $seen?$change');
+      final accepted = !(confirm == null) && await confirm('Trust ${host.knownHostsKey}, $keyType $seen?$change');
       if (!accepted) {
         throw ActionFailure(
           'The key was not trusted',
@@ -635,7 +633,7 @@ abstract final class ActionHandlers {
 
   static Future<(FileEndpoint, String, PathRef)> _endpoint(ActionCall call, String name) async {
     final ref = PathRef.parse(call.string(name));
-    return _open(call.runtime, ref);
+    return await _open(call.runtime, ref);
   }
 
   static Future<(FileEndpoint, String, PathRef)> _open(WarpgateRuntime rt, PathRef ref) async {

@@ -6,7 +6,7 @@ import 'package:warpgate_core/features/hosts/data/host_repository.dart';
 import 'package:warpgate_core/features/hosts/domain/host.dart';
 
 class HostPrompts {
-  HostPrompts(this._hosts, this._broker);
+  new(this._hosts, this._broker);
 
   final HostRepository _hosts;
   final InteractionBroker _broker;

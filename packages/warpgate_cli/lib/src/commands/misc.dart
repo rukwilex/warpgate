@@ -222,7 +222,6 @@ abstract final class MiscCommands {
     if (client == null) {
       throw const ActionFailure(
         'Warpgate is not running',
-        kind: ExitKind.general,
         hint: 'Open Warpgate, then run warpgate diagnostics export again',
       );
     }
@@ -519,7 +518,7 @@ class _IpcWorkbench implements McpWorkbench {
   Future<JsonMap> _action(String name, JsonMap args) async {
     final client = await _context.client();
     if (client == null) throw _needsApp;
-    return client.call('action', {'name': name, 'args': args});
+    return await client.call('action', {'name': name, 'args': args});
   }
 
   Future<void> refresh() async {

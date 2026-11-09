@@ -21,7 +21,7 @@ enum Activity {
   mcp('An MCP request'),
   memoryTrim('Freeing memory');
 
-  const Activity(this.label);
+  new(this.label);
 
   final String label;
 }
@@ -136,7 +136,7 @@ class Watchdog {
     });
     final port = ReceivePort('watchdog');
     _port = port;
-    port.listen((Object? message) {
+    port.listen((message) {
       if (message is! String) return;
       final stall = Stall.fromJson((jsonDecode(message) as Map).cast<String, Object?>());
       stalls.addFirst(stall);
@@ -216,8 +216,8 @@ class Watchdog {
     try {
       final uri = Uri.parse(serviceUri);
       final ws = uri.replace(scheme: uri.scheme == 'https' ? 'wss' : 'ws', path: '${uri.path.endsWith('/') ? uri.path : '${uri.path}/'}ws');
-      socket = await WebSocket.connect(ws.toString()).timeout(const Duration(seconds: 2));
-      socket.add(jsonEncode({'jsonrpc': '2.0', 'id': '1', 'method': 'getStack', 'params': {'isolateId': isolateId, 'limit': 30}}));
+      socket = await WebSocket.connect(ws.toString()).timeout(const Duration(seconds: 2))
+        ..add(jsonEncode({'jsonrpc': '2.0', 'id': '1', 'method': 'getStack', 'params': {'isolateId': isolateId, 'limit': 30}}));
       final reply = await socket.first.timeout(const Duration(seconds: 3));
       final result = ((jsonDecode('$reply') as Map)['result'] as Map?) ?? const {};
       final frames = (result['frames'] as List?) ?? const [];

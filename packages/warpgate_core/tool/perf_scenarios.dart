@@ -14,8 +14,8 @@ import 'package:warpgate_core/features/hosts/data/host_repository.dart';
 import 'package:warpgate_core/features/hosts/domain/host.dart';
 import 'package:warpgate_core/features/keys/data/key_repository.dart';
 
-final _env = Platform.environment;
-final _label = _env['WARPGATE_PERF_LABEL'] ?? 'run';
+final Map<String, String> _env = Platform.environment;
+final String _label = _env['WARPGATE_PERF_LABEL'] ?? 'run';
 final _out = File(_env['WARPGATE_PERF_OUT'] ?? '../../build/perf/results.jsonl');
 
 void record(String scenario, Map<String, Object?> values) {
@@ -85,7 +85,7 @@ Future<int> openFiles() async {
 }
 
 class Fleet {
-  Fleet._(this.pool, this.hosts, this.store);
+  new _(this.pool, this.hosts, this.store);
 
   final ConnectionPool pool;
   final List<Host> hosts;
@@ -186,7 +186,7 @@ Future<void> shellFlood(String command, String name) async {
   final watch = Stopwatch()..start();
   probe.start();
   var got = 0;
-  final decoder = const Utf8Decoder(allowMalformed: true);
+  const decoder = Utf8Decoder(allowMalformed: true);
   await for (final chunk in session.stdout) {
     got += decoder.convert(chunk).length;
   }
@@ -231,7 +231,7 @@ Future<void> idleSessions(int count, Duration span) async {
 }
 
 Future<void> deadLink(Duration limit) async {
-  final fleet = await Fleet.open(hostsCount: 4, keepAlive: 5);
+  final fleet = await Fleet.open(keepAlive: 5);
   final detected = <String, Duration>{};
   final watch = Stopwatch();
   for (final host in fleet.hosts) {
@@ -291,7 +291,7 @@ Future<void> reconnectStorm(int rounds, Duration every) async {
 }
 
 Future<void> execLoop(int calls) async {
-  final fleet = await Fleet.open(hostsCount: 4);
+  final fleet = await Fleet.open();
   final rss0 = ProcessInfo.currentRss;
   final watch = Stopwatch()..start();
   final probe = LoopProbe()..start();

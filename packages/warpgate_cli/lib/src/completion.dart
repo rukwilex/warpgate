@@ -4,15 +4,15 @@ import 'dart:io';
 
 import 'package:path/path.dart' as p;
 import 'package:warpgate_cli/src/args.dart';
+import 'package:warpgate_cli/src/secrets/cli_secrets.dart';
 import 'package:warpgate_core/actions/registry.dart';
+import 'package:warpgate_core/actions/runtime.dart';
 import 'package:warpgate_core/actions/targets.dart';
 import 'package:warpgate_core/core/data/sqlite_document_store.dart';
-import 'package:warpgate_core/actions/runtime.dart';
 import 'package:warpgate_core/core/interaction/interaction_broker.dart';
 import 'package:warpgate_core/core/platform/app_paths.dart';
 import 'package:warpgate_core/features/settings/data/settings_store.dart';
 import 'package:warpgate_core/ipc/ipc.dart';
-import 'package:warpgate_cli/src/secrets/cli_secrets.dart';
 
 abstract final class Completion {
   static String script(String shell) => switch (shell) {
@@ -32,7 +32,7 @@ _warpgate() {
 }
 compdef _warpgate warpgate
 ''',
-    'fish' => r'''
+    'fish' => '''
 complete -c warpgate -f -a '(warpgate __complete (commandline -opc)[2..-1] (commandline -ct) 2>/dev/null)'
 ''',
     _ => r'''
@@ -113,7 +113,7 @@ Register-ArgumentCompleter -Native -CommandName warpgate -ScriptBlock {
         if (option.choices.isNotEmpty) {
           return option.choices.where((item) => item.startsWith(current)).toList();
         }
-        return dynamicValues(option.complete, current);
+        return await dynamicValues(option.complete, current);
       }
     }
     final used = leading.length - size;

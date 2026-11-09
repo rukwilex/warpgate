@@ -6,7 +6,7 @@ import 'package:warpgate_core/features/connection/domain/ssh_client.dart';
 import 'package:warpgate_core/features/connection/engine/dart/dart_sftp.dart';
 
 class DartSshClient implements SshClient {
-  DartSshClient(this._client);
+  new(this._client);
 
   final SSHClient _client;
   final Map<SshRemoteForward, SSHRemoteForward> _remotes = {};
@@ -27,7 +27,7 @@ class DartSshClient implements SshClient {
   Future<void> ping() => _client.ping();
 
   @override
-  Future<void> close() async => _client.close();
+  Future<void> close() => _client.close();
 
   @override
   Future<SshSession> shell({
@@ -66,7 +66,7 @@ class DartSshClient implements SshClient {
   Future<bool> cancelForwardRemote(SshRemoteForward forward) async {
     final remote = _remotes.remove(forward);
     if (remote == null) return false;
-    return _client.cancelForwardRemote(remote);
+    return await _client.cancelForwardRemote(remote);
   }
 
   @override
@@ -75,7 +75,7 @@ class DartSshClient implements SshClient {
 }
 
 class DartSshSession implements SshSession {
-  DartSshSession(this._session);
+  new(this._session);
 
   final SSHSession _session;
 
@@ -108,7 +108,7 @@ class DartSshSession implements SshSession {
 }
 
 class DartSshTunnel implements SshTunnel {
-  DartSshTunnel(this.channel);
+  new(this.channel);
 
   final SSHForwardChannel channel;
 
@@ -126,7 +126,7 @@ class DartSshTunnel implements SshTunnel {
 }
 
 class DartRemoteForward implements SshRemoteForward {
-  DartRemoteForward(this._remote);
+  new(this._remote);
 
   final SSHRemoteForward _remote;
 

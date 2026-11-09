@@ -188,7 +188,7 @@ class IpcServer {
 }
 
 class IpcClient {
-  IpcClient._(this._socket, this._lines);
+  new _(this._socket, this._lines);
 
   final Socket _socket;
   final StreamIterator<String> _lines;

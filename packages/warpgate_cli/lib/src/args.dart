@@ -252,7 +252,7 @@ abstract final class ArgParser {
       }
       if (stopAt != null &&
           positional.length >= stopAt &&
-          action.positionals[stopAt - (stopAt == 0 ? 0 : 1)].variadic == false &&
+          !action.positionals[stopAt - (stopAt == 0 ? 0 : 1)].variadic &&
           !token.startsWith('-')) {
         afterDashes = tokens.sublist(i);
         break;

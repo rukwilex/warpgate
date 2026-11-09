@@ -17,10 +17,10 @@ import 'package:warpgate_core/actions/registry.dart';
 import 'package:warpgate_core/actions/runtime.dart';
 import 'package:warpgate_core/core/data/document_store.dart';
 import 'package:warpgate_core/core/data/sqlite_document_store.dart';
-import 'package:warpgate_core/features/connection/data/disk_keys.dart';
 import 'package:warpgate_core/core/errors/exit_codes.dart';
 import 'package:warpgate_core/core/interaction/interaction_broker.dart';
 import 'package:warpgate_core/core/platform/app_paths.dart';
+import 'package:warpgate_core/features/connection/data/disk_keys.dart';
 import 'package:warpgate_core/features/hosts/domain/host.dart';
 import 'package:warpgate_core/ipc/ipc.dart';
 
@@ -51,8 +51,7 @@ class CliContext {
     if (globals.noApp) return null;
     if (_triedClient) return _client;
     _triedClient = true;
-    _client = await IpcClient.connect(paths);
-    return _client;
+    return _client = await IpcClient.connect(paths);
   }
 
   Future<WarpgateRuntime> runtime() async {
@@ -83,7 +82,7 @@ class CliContext {
       );
     }
     if (await AppInstance.isRunning(paths)) {
-      throw ActionFailure(
+      throw const ActionFailure(
         'Warpgate is running, but its command line connection is not answering',
         hint: 'Quit and reopen Warpgate. If it stays, run warpgate doctor',
       );
@@ -144,7 +143,7 @@ abstract final class Dispatch {
 Future<int> runCli(List<String> arguments) async {
   final bootstrap = _Bootstrap.from(arguments);
   if (arguments.isNotEmpty && arguments.first == '__complete') {
-    return Completion.run(arguments.sublist(1));
+    return await Completion.run(arguments.sublist(1));
   }
   ParsedCommand parsed;
   try {
@@ -234,7 +233,7 @@ Future<int> _run(CliContext context, ActionSpec action, JsonMap args) async {
     return exit.code;
   } on Object catch (error) {
     final failure = context.prompter.hostKeyRejected
-        ? ActionFailure(
+        ? const ActionFailure(
             'The host key was not trusted',
             kind: ExitKind.hostKey,
             hint: 'Check it, then run warpgate known-hosts trust <host>',
@@ -263,7 +262,7 @@ Future<void> _confirm(CliContext context, ActionSpec action, JsonMap args) async
     {'key': 'all settings', ...args},
   );
   if (!context.prompter.interactive) {
-    throw ActionFailure(
+    throw const ActionFailure(
       'This changes or deletes data, so it needs confirmation',
       kind: ExitKind.usage,
       hint: 'Add --yes to run it without a prompt',
@@ -278,16 +277,16 @@ Future<JsonMap?> execute(CliContext context, ActionSpec action, JsonMap args) as
   final prepared = await MiscCommands.prepare(context, action, args);
   if (action.mode == ActionMode.app) {
     final client = await context.requireApp(action);
-    return client.call('action', {'name': action.name, 'args': prepared});
+    return await client.call('action', {'name': action.name, 'args': prepared});
   }
   if (action.mode == ActionMode.prefersApp) {
     final client = await context.client();
     if (client != null) {
-      return client.call('action', {'name': action.name, 'args': prepared});
+      return await client.call('action', {'name': action.name, 'args': prepared});
     }
   }
   final custom = Dispatch.local[action.name];
-  if (custom != null) return custom(context, action, prepared);
+  if (custom != null) return await custom(context, action, prepared);
   final handler = ActionHandlers.all[action.name];
   if (handler == null) {
     throw ActionFailure('warpgate ${action.cli} is not available in this build');
@@ -322,7 +321,7 @@ Future<bool> startApp(CliContext context) async {
   final directory = p.dirname(executable);
   final environment = <String, String>{
     if (context.paths.profile != null) 'WARPGATE_PROFILE': context.paths.profile!,
-    if (Platform.environment['WARPGATE_HOME'] case final home?) 'WARPGATE_HOME': home,
+    'WARPGATE_HOME': ?Platform.environment['WARPGATE_HOME'],
   };
   context.output.note('Starting Warpgate');
   try {

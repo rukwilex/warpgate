@@ -10,15 +10,13 @@ import 'package:warpgate_core/features/keys/data/key_repository.dart';
 typedef UnlockedKey = ({String pem, String? passphrase});
 
 class HostCredentials {
-  HostCredentials({
-    required KeyRepository keys,
-    required HostPrompts prompts,
+  new({
+    required this._keys,
+    required this._prompts,
     Future<List<SSHIdentity>> Function()? agentIdentities,
     this.fallbackIdentities,
     this.fallbackKeys,
-  }) : _keys = keys,
-       _prompts = prompts,
-       _agentIdentities = agentIdentities ?? SshAgentClient.identitiesFromEnvironment;
+  }) : _agentIdentities = agentIdentities ?? SshAgentClient.identitiesFromEnvironment;
 
   final KeyRepository _keys;
   final HostPrompts _prompts;

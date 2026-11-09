@@ -2,8 +2,8 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:collection/collection.dart';
-import 'package:warpgate_core/core/diagnostics/app_log.dart';
 import 'package:warpgate_core/core/data/document_store.dart';
+import 'package:warpgate_core/core/diagnostics/app_log.dart';
 import 'package:warpgate_core/core/interaction/interaction_broker.dart';
 import 'package:warpgate_core/core/util/ids.dart';
 import 'package:warpgate_core/features/connection/data/connection_pool.dart';
@@ -294,7 +294,7 @@ class TransferScheduler {
   }
 
   Future<String?> _checksum(String? hostId, String path) async {
-    if (hostId == null) return FileChecksum.local(path);
+    if (hostId == null) return await FileChecksum.local(path);
     if (_hasSha256[hostId] == false) return null;
     final quoted = KeyCodec.shellQuote(path);
     final result = await pool.exec(

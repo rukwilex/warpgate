@@ -17,7 +17,7 @@ SftpFileAttrs _attrs(rs.SftpAttrs a) => SftpFileAttrs(
 );
 
 class NativeSftpClient implements SshSftp {
-  NativeSftpClient(this._sftp) {
+  new(this._sftp) {
     LiveObjects.opened('native sftp session');
   }
 
@@ -76,11 +76,11 @@ class NativeSftpClient implements SshSftp {
 }
 
 class NativeSftpFile implements SshSftpFile {
-  NativeSftpFile(this._file) {
+  new(this._file) {
     LiveObjects.opened('native sftp file');
   }
 
-  static const chunk = 255 * 1024;
+  static const int chunk = 255 * 1024;
   static const window = 32;
 
   final rs.SftpFile _file;
@@ -142,7 +142,7 @@ class NativeSftpFile implements SshSftpFile {
 }
 
 class NativeSftpWriter implements SshSftpWriter {
-  NativeSftpWriter(this._owner, Stream<Uint8List> stream, int offset, void Function(int total)? onProgress)
+  new(this._owner, Stream<Uint8List> stream, int offset, void Function(int total)? onProgress)
     : _input = StreamIterator(stream) {
     unawaited(_run(offset, onProgress));
   }

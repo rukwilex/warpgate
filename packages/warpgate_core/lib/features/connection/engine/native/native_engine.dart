@@ -75,7 +75,7 @@ abstract final class NativeEngine {
 
   static Future<String?> sha256File(String path) async {
     if (!await ensureLoaded()) return null;
-    return rs.sha256File(path: path);
+    return await rs.sha256File(path: path);
   }
 }
 

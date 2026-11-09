@@ -91,7 +91,7 @@ abstract final class SqliteLibrary {
     for (final candidate in tried) {
       try {
         return DynamicLibrary.open(candidate);
-      } on ArgumentError {
+      } on Object {
         continue;
       }
     }
@@ -102,7 +102,7 @@ abstract final class SqliteLibrary {
 }
 
 class SqliteDocumentStore implements DocumentStore {
-  SqliteDocumentStore._(this._api, this._db);
+  new _(this._api, this._db);
 
   factory open(String path) {
     final api = _Sqlite(SqliteLibrary.open());
@@ -198,7 +198,9 @@ class SqliteDocumentStore implements DocumentStore {
       }
     } finally {
       _api.finalize(statement);
-      held.forEach((pointer) => Native.free(pointer.cast()));
+      for (final pointer in held) {
+        Native.free(pointer.cast());
+      }
     }
   }
 
@@ -286,7 +288,7 @@ class SqliteDocumentStore implements DocumentStore {
 
   @override
   Future<T> transaction<T>(Future<T> Function() body) async {
-    if (_inTransaction) return body();
+    if (_inTransaction) return await body();
     _exec('BEGIN IMMEDIATE');
     _inTransaction = true;
     try {

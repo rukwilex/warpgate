@@ -73,7 +73,7 @@ class CliSecrets implements SecretStore {
   SecretStore? _resolved;
 
   static KeyVault platformVault(AppPaths paths) {
-    final KeyVault vault = Platform.isMacOS
+    final vault = Platform.isMacOS
         ? MacKeychain()
         : Platform.isWindows
         ? WindowsDpapi(paths.root)

@@ -13,9 +13,9 @@ class WorkerError implements Exception {
 class Worker {
   new _(this.name);
 
-  static final Map<String, Worker> _named = {};
+  factory named(String name) => _named[name] ??= Worker._(name);
 
-  static Worker named(String name) => _named[name] ??= Worker._(name);
+  static final Map<String, Worker> _named = {};
 
   static Iterable<Worker> get all => _named.values;
 
@@ -50,7 +50,7 @@ class Worker {
   Future<void> _start() async {
     final receive = ReceivePort('worker $name');
     final ready = Completer<SendPort>();
-    receive.listen((Object? message) {
+    receive.listen((message) {
       if (message is SendPort) {
         ready.complete(message);
         return;
@@ -75,7 +75,7 @@ class Worker {
   static void _main(SendPort reply) {
     final port = ReceivePort();
     reply.send(port.sendPort);
-    port.listen((Object? message) async {
+    port.listen((message) async {
       final (id, task) = message! as (int, FutureOr<Object?> Function());
       try {
         reply.send((id, true, await task()));

@@ -131,7 +131,7 @@ void main() {
     final out = StringBuffer();
     process.stdout.transform(const Utf8Decoder(allowMalformed: true)).listen(out.write);
     await Future<void>.delayed(const Duration(seconds: 2));
-    process.stdin.writeln('test -t 0 && echo tty-yes-\$((40+2))');
+    process.stdin.writeln(r'test -t 0 && echo tty-yes-$((40+2))');
     await Future<void>.delayed(const Duration(seconds: 1));
     process.stdin.writeln('exit 9');
     await process.stdin.flush();
@@ -315,9 +315,9 @@ void main() {
 
   test('transfers are listed and can be cleared', () async {
     final list = await run(['transfers', 'list', '--json']);
-    expect(((jsonDecode(list.stdout as String) as Map)['transfers'] as List), isNotEmpty);
+    expect((jsonDecode(list.stdout as String) as Map)['transfers'] as List, isNotEmpty);
     await ok(['transfers', 'clear']);
     final after = await run(['transfers', 'list', '--status', 'completed', '--json']);
-    expect(((jsonDecode(after.stdout as String) as Map)['transfers'] as List), isEmpty);
+    expect((jsonDecode(after.stdout as String) as Map)['transfers'] as List, isEmpty);
   }, skip: skip);
 }

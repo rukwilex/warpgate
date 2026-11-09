@@ -6,14 +6,14 @@ import 'package:warpgate_core/features/connection/domain/ssh_client.dart';
 import 'package:warpgate_core/src/engine/api/ssh.dart' as rs;
 
 class ChannelPump {
-  ChannelPump(
+  new(
     this.channel, {
     required this.onData,
     required this.onExtended,
     required this.onClosed,
   });
 
-  static const chunk = 256 * 1024;
+  static const int chunk = 256 * 1024;
 
   final rs.SshChannel channel;
   final void Function(Uint8List data) onData;
@@ -63,7 +63,7 @@ class ChannelPump {
 }
 
 class NativeSshSession implements SshSession {
-  NativeSshSession(this._channel) {
+  new(this._channel) {
     LiveObjects.opened('native ssh channel');
     _pump = ChannelPump(_channel, onData: _stdout.add, onExtended: _stderr.add, onClosed: _finish);
     for (final controller in [_stdout, _stderr]) {
@@ -136,14 +136,14 @@ class NativeSshSession implements SshSession {
   }
 
   @override
-  Future<int?> waitForExit({Duration? timeout}) async {
+  Future<int?> waitForExit({Duration? timeout}) {
     final waiting = done.then((_) => exitCode);
     return timeout == null ? waiting : waiting.timeout(timeout);
   }
 }
 
 class NativeForwardChannel implements SshTunnel {
-  NativeForwardChannel(this._channel) {
+  new(this._channel) {
     LiveObjects.opened('native forward channel');
     _pump = ChannelPump(_channel, onData: _incoming.add, onExtended: (_) {}, onClosed: _finish);
     _incoming

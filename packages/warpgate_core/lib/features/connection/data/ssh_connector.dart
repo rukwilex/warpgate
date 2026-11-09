@@ -18,11 +18,11 @@ import 'package:warpgate_core/features/sftp/domain/file_endpoint.dart' show Canc
 typedef SocketDialer = Future<SSHSocket> Function(String host, int port);
 
 abstract interface class SshConnector {
-  Future<SshClient> open(Host host, {SshClient? jump, required CancelToken cancel});
+  Future<SshClient> open(Host host, {required CancelToken cancel, SshClient? jump});
 }
 
 class EngineSshConnector implements SshConnector {
-  EngineSshConnector({required HostCredentials credentials, required HostPrompts prompts, SocketDialer? dial})
+  new({required HostCredentials credentials, required HostPrompts prompts, SocketDialer? dial})
     : _dart = DartSshConnector(credentials: credentials, prompts: prompts, dial: dial),
       _native = dial == null ? NativeSshConnector(credentials: credentials, prompts: prompts) : null;
 
@@ -30,36 +30,31 @@ class EngineSshConnector implements SshConnector {
   final NativeSshConnector? _native;
 
   @override
-  Future<SshClient> open(Host host, {SshClient? jump, required CancelToken cancel}) async {
+  Future<SshClient> open(Host host, {required CancelToken cancel, SshClient? jump}) async {
     final native = _native;
     if (native != null && (jump == null || jump is NativeSshClient) && await NativeEngine.ensureLoaded()) {
-      if (NativeEngine.active) return native.open(host, jump: jump, cancel: cancel);
+      if (NativeEngine.active) return await native.open(host, jump: jump, cancel: cancel);
     }
-    return _dart.open(host, jump: jump, cancel: cancel);
+    return await _dart.open(host, jump: jump, cancel: cancel);
   }
 }
 
 class NativeSshConnector implements SshConnector {
-  NativeSshConnector({required HostCredentials credentials, required HostPrompts prompts})
-    : _credentials = credentials,
-      _prompts = prompts;
+  new({required this._credentials, required this._prompts});
 
   final HostCredentials _credentials;
   final HostPrompts _prompts;
 
   @override
-  Future<SshClient> open(Host host, {SshClient? jump, required CancelToken cancel}) async {
+  Future<SshClient> open(Host host, {required CancelToken cancel, SshClient? jump}) async {
     if (jump != null && jump is! NativeSshClient) {
       throw StateError('The jump host uses the other SSH engine. Reconnect it and try again');
     }
-    return NativeSshClient.connect(
+    return await NativeSshClient.connect(
       host: host.address,
       port: host.port,
       jump: jump as NativeSshClient?,
       cancel: cancel,
-      connectTimeout: SshDefaults.connectTimeout,
-      handshakeTimeout: SshDefaults.handshakeTimeout,
-      clientId: 'SSH-2.0-${SshDefaults.ident}',
       verify: (type, fingerprint) => _prompts.verifyHostKey(host, type, fingerprint),
       auth: NativeAuth(
         username: host.username,
@@ -72,10 +67,8 @@ class NativeSshConnector implements SshConnector {
 }
 
 class DartSshConnector implements SshConnector {
-  DartSshConnector({required HostCredentials credentials, required HostPrompts prompts, SocketDialer? dial})
-    : _credentials = credentials,
-      _prompts = prompts,
-      _dial = dial ?? _defaultDial;
+  new({required this._credentials, required this._prompts, SocketDialer? dial})
+    : _dial = dial ?? _defaultDial;
 
   static Future<SSHSocket> _defaultDial(String host, int port) =>
       SSHSocket.connect(host, port, timeout: SshDefaults.connectTimeout);
@@ -85,7 +78,7 @@ class DartSshConnector implements SshConnector {
   final SocketDialer _dial;
 
   @override
-  Future<SshClient> open(Host host, {SshClient? jump, required CancelToken cancel}) async {
+  Future<SshClient> open(Host host, {required CancelToken cancel, SshClient? jump}) async {
     final socket = await _cancellable(
       jump == null
           ? _dial(host.address, host.port)
@@ -118,12 +111,12 @@ class DartSshConnector implements SshConnector {
     try {
       await ssh.authenticated;
     } on Object {
-      ssh.close();
+      unawaited(ssh.close());
       if (cancel.isCancelled) throw const ConnectCancelledException();
       rethrow;
     }
     if (cancel.isCancelled) {
-      ssh.close();
+      unawaited(ssh.close());
       throw const ConnectCancelledException();
     }
     return DartSshClient(ssh);
@@ -138,9 +131,11 @@ class DartSshConnector implements SshConnector {
     cancel.onCancel(() {
       if (!result.isCompleted) result.completeError(const ConnectCancelledException());
     });
-    pending.then(
-      (value) => result.isCompleted ? discard(value) : result.complete(value),
-      onError: (Object error, StackTrace stack) => result.isCompleted ? null : result.completeError(error, stack),
+    unawaited(
+      pending.then(
+        (value) => result.isCompleted ? discard(value) : result.complete(value),
+        onError: (Object error, StackTrace stack) => result.isCompleted ? null : result.completeError(error, stack),
+      ),
     );
     return result.future;
   }

@@ -119,7 +119,7 @@ class Output {
         final local = parsed.toLocal();
         String two(int part) => part.toString().padLeft(2, '0');
         return '${local.year}-${two(local.month)}-${two(local.day)} ${two(local.hour)}:${two(local.minute)}';
-      default:
+      case ColumnFormat.text || ColumnFormat.number || ColumnFormat.status:
         if (value is List) return value.isEmpty ? '-' : value.join(', ');
         if (value is bool) return value ? 'yes' : 'no';
         return '$value';
@@ -137,9 +137,10 @@ class Output {
       for (final row in rows)
         [
           for (final column in columns)
-            column.format == ColumnFormat.status
-                ? dot('${row[column.key]}')
-                : cell(row[column.key], column.format),
+            if (column.format == ColumnFormat.status)
+              dot('${row[column.key]}')
+            else
+              cell(row[column.key], column.format),
         ],
     ];
     final widths = [

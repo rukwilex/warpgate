@@ -5,20 +5,20 @@ typedef _ChmodNative = Int32 Function(Pointer<Uint8>, Uint32);
 typedef _Chmod = int Function(Pointer<Uint8>, int);
 typedef _KillNative = Int32 Function(Int32, Int32);
 typedef _Kill = int Function(int, int);
-typedef _MallocNative = Pointer<Void> Function(IntPtr);
-typedef _Malloc = Pointer<Void> Function(int);
-typedef _FreeNative = Void Function(Pointer<Void>);
-typedef _Free = void Function(Pointer<Void>);
+typedef MallocNative = Pointer<Void> Function(IntPtr);
+typedef MallocFn = Pointer<Void> Function(int);
+typedef FreeNative = Void Function(Pointer<Void>);
+typedef FreeFn = void Function(Pointer<Void>);
 
 abstract final class Native {
   static final DynamicLibrary _libc = Platform.isWindows
       ? DynamicLibrary.open('ucrtbase.dll')
       : DynamicLibrary.process();
 
-  static final _Malloc malloc = _libc.lookupFunction<_MallocNative, _Malloc>(
+  static final MallocFn malloc = _libc.lookupFunction<MallocNative, MallocFn>(
     'malloc',
   );
-  static final _Free free = _libc.lookupFunction<_FreeNative, _Free>('free');
+  static final FreeFn free = _libc.lookupFunction<FreeNative, FreeFn>('free');
 
   static Pointer<Uint8> cString(List<int> bytes) {
     final pointer = malloc(bytes.length + 1).cast<Uint8>();

@@ -23,7 +23,7 @@ abstract final class DocsGenerator {
     ActionMode.app => 'Needs the app, and starts it if it is not running',
   };
 
-  static const _intro = r'''
+  static const _intro = '''
 # Warpgate command line
 
 `warpgate` does everything the app does from a terminal. This file is generated from the action registry by `packages/warpgate_cli/tool/gen_docs.dart`. Do not edit it by hand.

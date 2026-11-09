@@ -186,7 +186,7 @@ class LocalEndpoint extends FileEndpoint {
     final home = env['HOME'] ?? env['USERPROFILE'];
     if (home != null && !Platform.isIOS && !Platform.isAndroid) return home;
     final fallback = mobileHome;
-    if (fallback != null) return fallback();
+    if (fallback != null) return await fallback();
     return home ?? Directory.systemTemp.path;
   }
 

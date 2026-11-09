@@ -48,7 +48,7 @@ abstract final class CopyCommands {
   static Future<JsonMap?> _cat(CliContext context, ActionSpec action, JsonMap args) async {
     final rt = await context.runtime();
     if (context.output.json) {
-      return ActionHandlers.all['files.cat']!(ActionCall(rt, args));
+      return await ActionHandlers.all['files.cat']!(ActionCall(rt, args));
     }
     final ref = PathRef.parse(args['path']! as String);
     final (endpoint, path) = await _open(rt, ref);
@@ -91,8 +91,8 @@ abstract final class CopyCommands {
         hint: 'Use host:path',
       );
     }
-    if (source == '-') return _putStdin(context, action, target);
-    return runCopy(context, action, [source], target, args);
+    if (source == '-') return await _putStdin(context, action, target);
+    return await runCopy(context, action, [source], target, args);
   }
 
   static Future<JsonMap?> _putStdin(CliContext context, ActionSpec action, String target) async {
@@ -115,7 +115,7 @@ abstract final class CopyCommands {
         hint: 'warpgate cp prod:/var/log/app.log staging:/tmp/',
       );
     }
-    return runCopy(context, action, paths.sublist(0, paths.length - 1), paths.last, args);
+    return await runCopy(context, action, paths.sublist(0, paths.length - 1), paths.last, args);
   }
 
   static TransferRef _ref(String? hostId, String path) => TransferRef(hostId: hostId, path: path);
@@ -142,7 +142,7 @@ abstract final class CopyCommands {
   ) async {
     if (args['queue'] == true) {
       final client = await context.requireApp(action);
-      return client.call('action', {
+      return await client.call('action', {
         'name': 'files.cp',
         'args': {...args, 'sources': sources, 'target': targetText},
       });
@@ -229,7 +229,7 @@ abstract final class CopyCommands {
         ),
       );
     }
-    return _runJobs(
+    return await _runJobs(
       context,
       action,
       rt,
@@ -265,9 +265,7 @@ abstract final class CopyCommands {
       });
     }
     final interrupt = ProcessSignal.sigint.watch().listen((_) {
-      for (final id in ids) {
-        queue.pause(id);
-      }
+      ids.forEach(queue.pause);
     });
     try {
       for (final id in ids) {
@@ -484,7 +482,7 @@ abstract final class CopyCommands {
   ) async {
     final settings = await rt.settings.load();
     final queue = scheduler(rt, initial: jobs);
-    return _runJobs(
+    return await _runJobs(
       context,
       action,
       rt,
@@ -497,17 +495,17 @@ abstract final class CopyCommands {
   static Future<JsonMap?> _resume(CliContext context, ActionSpec action, JsonMap args) async {
     final client = await context.client();
     if (client != null) {
-      return client.call('action', {'name': action.name, 'args': args});
+      return await client.call('action', {'name': action.name, 'args': args});
     }
     final rt = await context.runtime();
     final job = await ActionHandlers.findJob(rt, args['id']! as String);
-    return _foreground(context, action, rt, await TransferScheduler.load(rt.store), [job.id]);
+    return await _foreground(context, action, rt, await TransferScheduler.load(rt.store), [job.id]);
   }
 
   static Future<JsonMap?> _retry(CliContext context, ActionSpec action, JsonMap args) async {
     final client = await context.client();
     if (client != null) {
-      return client.call('action', {'name': action.name, 'args': args});
+      return await client.call('action', {'name': action.name, 'args': args});
     }
     final rt = await context.runtime();
     final all = await TransferScheduler.load(rt.store);
@@ -522,7 +520,7 @@ abstract final class CopyCommands {
       context.output.note('Nothing to retry');
       return {'transfers': const <Object?>[], 'failed': 0};
     }
-    return _foreground(context, action, rt, all, ids);
+    return await _foreground(context, action, rt, all, ids);
   }
 
 
