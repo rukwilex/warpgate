@@ -125,7 +125,7 @@ class TransferScheduler {
   void _trimHistory() {
     final finished = [
       for (final job in jobs)
-        if (job.status.isFinished) job,
+        if (job.status.isFinished && !_tokens.containsKey(job.id)) job,
     ];
     if (finished.length <= historyLimit) return;
     finished.sort((a, b) => a.createdAt.compareTo(b.createdAt));
@@ -207,13 +207,12 @@ class TransferScheduler {
       persist: true,
     );
     final job = byId(id)!;
-    final held = <String>[];
+    final held = <PoolHold>[];
     try {
       for (final hostId in {job.source.hostId, job.target.hostId}.nonNulls) {
         try {
           await pool.client(hostId);
-          pool.retain(hostId);
-          held.add(hostId);
+          held.add(pool.hold(hostId));
         } on Object {
           continue;
         }
@@ -277,7 +276,9 @@ class TransferScheduler {
         persist: true,
       );
     } finally {
-      held.forEach(pool.release);
+      for (final hold in held) {
+        hold.release();
+      }
       poller?.cancel();
       _tokens.remove(id);
       pump();

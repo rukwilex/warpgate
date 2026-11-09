@@ -110,18 +110,34 @@ class IpcServer {
 
   void _accept(Socket socket) {
     _clients.add(socket);
-    var authed = false;
+    final state = _ClientState();
     socket
         .cast<List<int>>()
         .transform(utf8.decoder)
         .transform(const LineSplitter())
         .listen(
-          (line) => unawaited(() async {
+          (line) => unawaited(_serve(socket, line, state)),
+          onDone: () => _clients.remove(socket),
+          onError: (Object _) => _clients.remove(socket),
+          cancelOnError: true,
+        );
+  }
+
+  Future<void> _serve(Socket socket, String line, _ClientState state) async {
+    try {
+      await _answer(socket, line, state);
+    } on Object {
+      _clients.remove(socket);
+      socket.destroy();
+    }
+  }
+
+  Future<void> _answer(Socket socket, String line, _ClientState state) async {
             final message = (jsonDecode(line) as Map).cast<String, Object?>();
-            if (!authed) {
-              authed = _matches(message['hello'] as String?);
-              socket.writeln(jsonEncode({'hello': authed}));
-              if (!authed) await socket.close();
+            if (!state.authed) {
+              final ok = state.authed = _matches(message['hello'] as String?);
+              socket.writeln(jsonEncode({'hello': ok}));
+              if (!ok) await socket.close();
               return;
             }
             final id = message['id'];
@@ -150,11 +166,6 @@ class IpcServer {
                 }),
               );
             }
-          }()),
-          onDone: () => _clients.remove(socket),
-          onError: (Object _) => _clients.remove(socket),
-          cancelOnError: true,
-        );
   }
 
   bool _matches(String? candidate) {
@@ -298,4 +309,8 @@ class IpcClient {
   }
 
   Future<void> close() async => _socket.destroy();
+}
+
+class _ClientState {
+  bool authed = false;
 }

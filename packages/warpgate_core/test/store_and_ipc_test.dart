@@ -113,6 +113,19 @@ void main() {
       await server.stop();
     });
 
+    test('a malformed line closes that client and the server keeps serving', () async {
+      final paths = AppPaths(root.path);
+      final server = IpcServer(paths, (method, params) async => {'ok': true});
+      await server.start();
+      final raw = await Socket.connect(InternetAddress(paths.ipcSocket, type: InternetAddressType.unix), 0);
+      raw.writeln('not json');
+      await raw.drain<void>().timeout(const Duration(seconds: 5));
+      final client = (await IpcClient.connect(paths))!;
+      expect((await client.call('x'))['ok'], isTrue);
+      await client.close();
+      await server.stop();
+    }, skip: Platform.isWindows ? 'Unix sockets only' : null);
+
     test('a wrong token gets nothing', () async {
       final paths = AppPaths(root.path);
       var calls = 0;
