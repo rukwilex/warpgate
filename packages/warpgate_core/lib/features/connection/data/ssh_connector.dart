@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:dartssh2/dartssh2.dart';
+import 'package:warpgate_core/core/async/cancel_token.dart';
 import 'package:warpgate_core/features/connection/data/host_credentials.dart';
 import 'package:warpgate_core/features/connection/data/host_prompts.dart';
 import 'package:warpgate_core/features/connection/data/ssh_defaults.dart';
@@ -13,7 +14,6 @@ import 'package:warpgate_core/features/connection/engine/native/native_engine.da
 import 'package:warpgate_core/features/connection/engine/native/native_ssh_client.dart';
 import 'package:warpgate_core/features/connection/engine/tunnel_socket.dart';
 import 'package:warpgate_core/features/hosts/domain/host.dart';
-import 'package:warpgate_core/features/sftp/domain/file_endpoint.dart' show CancelToken;
 
 typedef SocketDialer = Future<SSHSocket> Function(String host, int port);
 

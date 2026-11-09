@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:dartssh2/dartssh2.dart';
+import 'package:warpgate_core/core/async/cancel_token.dart';
 import 'package:warpgate_core/core/diagnostics/live_objects.dart';
 import 'package:warpgate_core/features/connection/data/ssh_errors.dart';
 import 'package:warpgate_core/features/connection/domain/ssh_client.dart';
@@ -9,7 +10,6 @@ import 'package:warpgate_core/features/connection/engine/native/native_channels.
 import 'package:warpgate_core/features/connection/engine/native/native_engine.dart';
 import 'package:warpgate_core/features/connection/engine/native/native_sftp.dart';
 import 'package:warpgate_core/features/connection/engine/tunnel_socket.dart';
-import 'package:warpgate_core/features/sftp/domain/file_endpoint.dart' show CancelToken;
 import 'package:warpgate_core/src/engine/api/connection.dart' as rs;
 import 'package:warpgate_core/src/engine/api/util.dart' as rs;
 

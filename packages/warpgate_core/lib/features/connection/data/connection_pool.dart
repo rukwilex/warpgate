@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:dartssh2/dartssh2.dart' show SSHIdentity;
+import 'package:warpgate_core/core/async/cancel_token.dart';
 import 'package:warpgate_core/core/diagnostics/app_log.dart';
 import 'package:warpgate_core/core/diagnostics/live_objects.dart';
 import 'package:warpgate_core/core/interaction/interaction_broker.dart';
@@ -16,7 +17,6 @@ import 'package:warpgate_core/features/connection/domain/ssh_client.dart';
 import 'package:warpgate_core/features/hosts/data/host_repository.dart';
 import 'package:warpgate_core/features/hosts/domain/host.dart';
 import 'package:warpgate_core/features/keys/data/key_repository.dart';
-import 'package:warpgate_core/features/sftp/domain/file_endpoint.dart' show CancelToken;
 
 export 'package:warpgate_core/features/connection/data/ssh_defaults.dart';
 

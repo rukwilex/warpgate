@@ -3,6 +3,9 @@ import 'dart:typed_data';
 
 import 'package:meta/meta.dart';
 import 'package:path/path.dart' as p;
+import 'package:warpgate_core/core/async/cancel_token.dart';
+
+export 'package:warpgate_core/core/async/cancel_token.dart';
 
 @immutable
 class FileEntry {
@@ -110,37 +113,6 @@ abstract final class FileModes {
     }
     return buffer.toString();
   }
-}
-
-class CancelToken {
-  bool _cancelled = false;
-  final _listeners = <void Function()>[];
-
-  bool get isCancelled => _cancelled;
-
-  void cancel() {
-    if (_cancelled) return;
-    _cancelled = true;
-    for (final listener in List.of(_listeners)) {
-      listener();
-    }
-  }
-
-  void onCancel(void Function() listener) {
-    if (_cancelled) {
-      listener();
-    } else {
-      _listeners.add(listener);
-    }
-  }
-
-  void throwIfCancelled() {
-    if (_cancelled) throw const TransferCancelled();
-  }
-}
-
-class TransferCancelled implements Exception {
-  const new();
 }
 
 class FileOperationException implements Exception {

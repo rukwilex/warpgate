@@ -8,11 +8,11 @@ import 'dart:typed_data';
 
 import 'package:dartssh2/dartssh2.dart';
 import 'package:test/test.dart';
+import 'package:warpgate_core/core/async/cancel_token.dart';
 import 'package:warpgate_core/features/connection/data/ssh_errors.dart';
 import 'package:warpgate_core/features/connection/engine/native/native_auth.dart';
 import 'package:warpgate_core/features/connection/engine/native/native_engine.dart';
 import 'package:warpgate_core/features/connection/engine/native/native_ssh_client.dart';
-import 'package:warpgate_core/features/sftp/domain/file_endpoint.dart' show CancelToken;
 
 void main() {
   final keyPath = Platform.environment['WARPGATE_TEST_KEY'];

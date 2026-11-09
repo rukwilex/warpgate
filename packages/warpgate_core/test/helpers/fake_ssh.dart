@@ -1,11 +1,11 @@
 import 'dart:async';
 import 'dart:typed_data';
 
+import 'package:warpgate_core/core/async/cancel_token.dart';
 import 'package:warpgate_core/features/connection/data/ssh_connector.dart';
 import 'package:warpgate_core/features/connection/data/ssh_errors.dart';
 import 'package:warpgate_core/features/connection/domain/ssh_client.dart';
 import 'package:warpgate_core/features/hosts/domain/host.dart';
-import 'package:warpgate_core/features/sftp/domain/file_endpoint.dart' show CancelToken;
 
 class FakeSshClient implements SshClient {
   new(this.hostId, {this.jump});
