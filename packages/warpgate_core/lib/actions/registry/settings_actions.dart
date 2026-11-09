@@ -1,0 +1,86 @@
+import 'package:warpgate_core/actions/action_spec.dart';
+import 'package:warpgate_core/actions/registry/shapes.dart';
+
+abstract final class SettingsActionSpecs {
+  static final List<ActionSpec> all = [
+    ActionSpec(
+      name: 'settings.list',
+      cli: 'settings list',
+      title: 'List settings',
+      summary: 'List every setting and its value',
+      permission: ActionPermission.read,
+      examples: ['warpgate settings list', 'warpgate settings list --json'],
+      table: const TableSpec('settings', [TableColumn('key', 'KEY'), TableColumn('value', 'VALUE'), TableColumn('type', 'TYPE')]),
+      result: Shape.object({'settings': Shape.list(Shapes.setting)}),
+    ),
+    ActionSpec(
+      name: 'settings.get',
+      cli: 'settings get',
+      title: 'Read a setting',
+      summary: 'Print the value of one setting',
+      permission: ActionPermission.read,
+      args: [pos('key', 'Setting name', complete: CompletionKind.setting)],
+      examples: ['warpgate settings get transferConcurrency', 'warpgate settings get accent --json'],
+      text: '{value}',
+      result: Shapes.setting,
+    ),
+    ActionSpec(
+      name: 'settings.set',
+      cli: 'settings set',
+      title: 'Change a setting',
+      summary: 'Change one setting',
+      permission: ActionPermission.write,
+      mode: ActionMode.prefersApp,
+      args: [
+        pos('key', 'Setting name', complete: CompletionKind.setting),
+        pos('value', 'New value'),
+      ],
+      examples: ['warpgate settings set transferConcurrency 5', 'warpgate settings set themeMode dark'],
+      text: '{key} is now {value}',
+      result: Shapes.setting,
+    ),
+    ActionSpec(
+      name: 'settings.reset',
+      cli: 'settings reset',
+      title: 'Reset settings',
+      summary: 'Reset one setting, or all of them',
+      permission: ActionPermission.destructive,
+      mode: ActionMode.prefersApp,
+      confirm: 'Reset {key}?',
+      args: [pos('key', 'Setting name. Leave out to reset all', required: false, complete: CompletionKind.setting)],
+      examples: ['warpgate settings reset accent', 'warpgate settings reset --yes'],
+      text: 'Reset {reset} settings',
+      result: Shape.object({'reset': Shape.integer}),
+    ),
+    ActionSpec(
+      name: 'backup.export',
+      cli: 'backup export',
+      title: 'Export a backup',
+      summary: 'Write an encrypted backup. Asks for a passphrase',
+      permission: ActionPermission.read,
+      args: [
+        pos('file', 'File to write', complete: CompletionKind.localPath),
+        flag('with-secrets', 'Include private keys and passwords'),
+        flag('passphrase-stdin', 'Read the passphrase from stdin'),
+      ],
+      examples: ['warpgate backup export ~/warpgate.backup', 'warpgate backup export ~/full.backup --with-secrets'],
+      text: 'Wrote {file}',
+      result: Shape.object({'file': Shape.string, 'with_secrets': Shape.boolean}),
+    ),
+    ActionSpec(
+      name: 'backup.import',
+      cli: 'backup import',
+      title: 'Import a backup',
+      summary: 'Restore an encrypted backup. Asks for the passphrase',
+      permission: ActionPermission.destructive,
+      confirm: 'Restore {file}? Items with the same id are replaced.',
+      args: [
+        pos('file', 'Backup file', complete: CompletionKind.localPath),
+        flag('passphrase-stdin', 'Read the passphrase from stdin'),
+      ],
+      examples: ['warpgate backup import ~/warpgate.backup', 'warpgate backup import ~/warpgate.backup --yes --passphrase-stdin < pass.txt'],
+      text: 'Restored {hosts} hosts, {keys} keys and {snippets} snippets',
+      result: Shape.object({'hosts': Shape.integer, 'keys': Shape.integer, 'snippets': Shape.integer}),
+    ),
+  ];
+}

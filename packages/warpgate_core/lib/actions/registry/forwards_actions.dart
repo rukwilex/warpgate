@@ -1,0 +1,83 @@
+import 'package:warpgate_core/actions/action_constants.dart';
+import 'package:warpgate_core/actions/action_spec.dart';
+import 'package:warpgate_core/actions/registry/shapes.dart';
+
+abstract final class ForwardActionSpecs {
+  static final List<ActionSpec> all = [
+    ActionSpec(
+      name: 'forward.list',
+      cli: 'forward list',
+      title: 'List port forwards',
+      summary: 'List saved port forwards',
+      permission: ActionPermission.read,
+      mode: ActionMode.prefersApp,
+      args: [opt('host', 'Only this host', value: 'HOST', complete: CompletionKind.host)],
+      examples: ['warpgate forward list', 'warpgate forward list --host prod --json'],
+      table: const TableSpec('forwards', [
+        TableColumn('id', 'ID'),
+        TableColumn('host', 'HOST'),
+        TableColumn('kind', 'KIND'),
+        TableColumn('bind_port', 'PORT', format: ColumnFormat.number),
+        TableColumn('target_host', 'TARGET'),
+        TableColumn('target_port', 'TPORT', format: ColumnFormat.number),
+        TableColumn('state', 'STATE'),
+      ]),
+      result: Shape.object({'forwards': Shape.list(Shapes.forward)}),
+    ),
+    ActionSpec(
+      name: 'forward.add',
+      cli: 'forward add',
+      title: 'Add a port forward',
+      summary: 'Save a port forward on a host',
+      permission: ActionPermission.write,
+      mode: ActionMode.prefersApp,
+      args: [
+        pos('host', ActionHelp.host, complete: CompletionKind.host),
+        opt('local', 'Local forward: [bind:]port:host:hostport', short: 'L', value: 'SPEC'),
+        opt('remote', 'Remote forward: port:host:hostport', short: 'R', value: 'SPEC'),
+        opt('dynamic', 'SOCKS proxy: [bind:]port', short: 'D', value: 'SPEC'),
+        flag('auto-start', 'Start it when the app connects to the host'),
+      ],
+      examples: ['warpgate forward add prod -L 8080:localhost:80', 'warpgate forward add prod -D 1080 --auto-start'],
+      text: 'Saved forward {id}',
+      result: Shape.object({'id': Shape.string, 'host': Shape.string}),
+    ),
+    ActionSpec(
+      name: 'forward.rm',
+      cli: 'forward rm',
+      title: 'Remove a port forward',
+      summary: 'Remove a saved port forward',
+      permission: ActionPermission.destructive,
+      mode: ActionMode.prefersApp,
+      confirm: 'Remove forward {id}?',
+      args: [pos('id', 'Forward id', complete: CompletionKind.forward)],
+      examples: ['warpgate forward rm 3f2a', 'warpgate forward rm 3f2a --yes'],
+      text: 'Removed forward {id}',
+      result: Shape.object({'id': Shape.string}),
+    ),
+    ActionSpec(
+      name: 'forward.start',
+      cli: 'forward start',
+      title: 'Start a port forward',
+      summary: 'Start a saved port forward in the app',
+      permission: ActionPermission.write,
+      mode: ActionMode.app,
+      args: [pos('id', 'Forward id', complete: CompletionKind.forward)],
+      examples: ['warpgate forward start 3f2a', 'warpgate forward start 3f2a --json'],
+      text: 'Started',
+      result: Shapes.uiDone,
+    ),
+    ActionSpec(
+      name: 'forward.stop',
+      cli: 'forward stop',
+      title: 'Stop a port forward',
+      summary: 'Stop a running port forward in the app',
+      permission: ActionPermission.write,
+      mode: ActionMode.app,
+      args: [pos('id', 'Forward id', complete: CompletionKind.forward)],
+      examples: ['warpgate forward stop 3f2a', 'warpgate forward stop 3f2a --json'],
+      text: 'Stopped',
+      result: Shapes.uiDone,
+    ),
+  ];
+}
