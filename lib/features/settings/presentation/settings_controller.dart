@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:warpgate/core/data/app_database.dart';
 import 'package:warpgate/core/data/storage_providers.dart';
+import 'package:warpgate/features/settings/presentation/settings_constants.dart';
 import 'package:warpgate_core/features/settings/data/settings_store.dart';
 import 'package:warpgate_core/features/settings/domain/app_settings.dart';
 
@@ -35,6 +36,18 @@ class SettingsController extends Notifier<AppSettings> {
           .put(collection, documentId, state.toJson()),
     );
   }
+
+  void setShortcut(String commandId, String binding) => update({
+    SettingsKeys.shortcutOverrides: {
+      ...state.shortcutOverrides,
+      commandId: binding,
+    },
+  });
+
+  void resetShortcut(String commandId) => update({
+    SettingsKeys.shortcutOverrides: {...state.shortcutOverrides}
+      ..remove(commandId),
+  });
 
   void replace(AppSettings value) {
     state = value;
