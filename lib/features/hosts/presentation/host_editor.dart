@@ -1,16 +1,28 @@
 import 'dart:async';
 
-import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:warpgate/design_system/design_system.dart';
 import 'package:warpgate/features/connection/presentation/connection_providers.dart';
+import 'package:warpgate/features/hosts/presentation/hosts_constants.dart';
 import 'package:warpgate/features/hosts/presentation/hosts_controller.dart';
+import 'package:warpgate/features/hosts/presentation/widgets/host_dropdown.dart';
+import 'package:warpgate/features/hosts/presentation/widgets/host_field_label.dart';
+import 'package:warpgate/features/hosts/presentation/widgets/host_field_row.dart';
+import 'package:warpgate/features/hosts/presentation/widgets/host_mcp_access_hint.dart';
+import 'package:warpgate/features/hosts/presentation/widgets/host_route_preview.dart';
+import 'package:warpgate/features/hosts/presentation/widgets/host_toggle_row.dart';
+import 'package:warpgate/features/hosts/presentation/widgets/port_forward_dialog.dart';
+import 'package:warpgate/features/hosts/presentation/widgets/port_forward_row.dart';
+import 'package:warpgate/features/hosts/presentation/widgets/port_forwards_header.dart';
+import 'package:warpgate/features/hosts/utils/host_form_errors.dart';
+import 'package:warpgate/features/hosts/utils/host_save_shortcut.dart';
+import 'package:warpgate/features/hosts/utils/host_tags.dart';
+import 'package:warpgate/features/hosts/utils/host_test_message.dart';
 import 'package:warpgate/features/keys/presentation/keys_controller.dart';
 import 'package:warpgate/features/settings/presentation/settings_controller.dart';
 import 'package:warpgate_core/core/util/ids.dart';
-import 'package:warpgate_core/features/connection/data/port_forwarder.dart';
 import 'package:warpgate_core/features/hosts/domain/host.dart';
 
 Future<Host?> showHostEditor(BuildContext context, {Host? host}) =>
@@ -33,7 +45,9 @@ class _HostEditorState extends ConsumerState<HostEditor> {
   late final Host? _original = widget.host;
   late final _label = TextEditingController(text: _original?.label);
   late final _address = TextEditingController(text: _original?.address);
-  late final _port = TextEditingController(text: '${_original?.port ?? 22}');
+  late final _port = TextEditingController(
+    text: '${_original?.port ?? HostsConstants.defaultPort}',
+  );
   late final _user = TextEditingController(text: _original?.username);
   final _password = TextEditingController();
   late final _tags = TextEditingController(text: _original?.tags.join(', '));
@@ -41,7 +55,7 @@ class _HostEditorState extends ConsumerState<HostEditor> {
     text: _original?.startDirectory,
   );
   late final _keepAlive = TextEditingController(
-    text: '${_original?.keepAliveSeconds ?? 15}',
+    text: '${_original?.keepAliveSeconds ?? HostsConstants.defaultKeepAliveSeconds}',
   );
   late AuthMethod _auth = _original?.auth ?? AuthMethod.password;
   late String? _keyId = _original?.keyId;
@@ -75,25 +89,22 @@ class _HostEditorState extends ConsumerState<HostEditor> {
   }
 
   Host? _build() {
-    _errors.clear();
     final address = _address.text.trim();
     final user = _user.text.trim();
     final port = int.tryParse(_port.text.trim());
-    if (address.isEmpty) {
-      _errors['address'] = 'Enter an address, like 10.0.0.12 or db.example.com';
-    }
-    if (user.isEmpty) _errors['user'] = 'Enter the user to sign in as';
-    if (port == null || port < 1 || port > 65535) {
-      _errors['port'] = 'Use a port from 1 to 65535';
-    }
-    if (_auth == AuthMethod.key && _keyId == null) {
-      _errors['key'] = 'Pick a key, or add one in Keys';
-    }
     final id = _original?.id ?? Ids.next();
     final byId = ref.read(hostsProvider).value?.byId ?? const {};
-    if (HostChain.wouldCycle(id, _jumpId, byId)) {
-      _errors['jump'] = 'This jump host leads back to this host';
-    }
+    _errors
+      ..clear()
+      ..addAll(
+        hostFormErrors(
+          address: address,
+          user: user,
+          port: port,
+          missingKey: _auth == AuthMethod.key && _keyId == null,
+          cyclicJump: HostChain.wouldCycle(id, _jumpId, byId),
+        ),
+      );
     if (_errors.isNotEmpty) {
       setState(() {});
       return null;
@@ -107,35 +118,36 @@ class _HostEditorState extends ConsumerState<HostEditor> {
       auth: _auth,
       keyId: _auth == AuthMethod.key ? _keyId : null,
       groupId: _groupId,
-      tags: _tags.text
-          .split(',')
-          .map((tag) => tag.trim())
-          .where((tag) => tag.isNotEmpty)
-          .toSet()
-          .toList(),
+      tags: parseHostTags(_tags.text),
       jumpHostId: _jumpId,
       tmuxPersistence: _tmux,
       mcpPermission: _mcp,
       forwards: _forwards,
       keepAliveSeconds:
-          int.tryParse(_keepAlive.text.trim())?.clamp(0, 3600) ?? 15,
+          int.tryParse(_keepAlive.text.trim())?.clamp(
+            0,
+            HostsConstants.maxKeepAliveSeconds,
+          ) ??
+          HostsConstants.defaultKeepAliveSeconds,
       startDirectory: _directory.text.trim().isEmpty
           ? null
           : _directory.text.trim(),
     );
   }
 
+  Future<void> _persist(Host host) => ref
+      .read(hostsProvider.notifier)
+      .saveHost(
+        host,
+        password: _auth == AuthMethod.password ? _password.text : null,
+        clearPassword: _clearPassword,
+      );
+
   Future<void> _save() async {
     final host = _build();
     if (host == null) return;
     setState(() => _saving = true);
-    await ref
-        .read(hostsProvider.notifier)
-        .saveHost(
-          host,
-          password: _auth == AuthMethod.password ? _password.text : null,
-          clearPassword: _clearPassword,
-        );
+    await _persist(host);
     if (mounted) Navigator.of(context).pop(host);
   }
 
@@ -146,41 +158,21 @@ class _HostEditorState extends ConsumerState<HostEditor> {
       _testResult = 'Connecting';
       _testOk = null;
     });
-    await ref
-        .read(hostsProvider.notifier)
-        .saveHost(
-          host,
-          password: _auth == AuthMethod.password ? _password.text : null,
-          clearPassword: _clearPassword,
-        );
+    await _persist(host);
     final pool = ref.read(connectionPoolProvider);
     await pool.disconnect(host.id);
-    final result = await pool.exec(
-      host.id,
-      'uname -sr; command -v tmux >/dev/null && echo tmux-ok || echo tmux-missing',
-    );
+    final result = await pool.exec(host.id, HostsConstants.testCommand);
     if (!mounted) return;
     setState(() {
       _testOk = result.succeeded;
-      if (result.succeeded) {
-        final lines = result.stdout.trim().split('\n');
-        final tmux = lines.contains('tmux-ok');
-        _testResult =
-            'Connected. ${lines.first}${_tmux && !tmux ? '. tmux is not installed, so sessions will not survive a disconnect' : ''}';
-      } else {
-        _testResult =
-            result.error ??
-            (result.stderr.trim().isEmpty
-                ? 'The test command failed'
-                : result.stderr.trim());
-      }
+      _testResult = hostTestMessage(result, tmuxWanted: _tmux);
     });
   }
 
   Future<void> _addForward() async {
     final spec = await showDialog<PortForwardSpec>(
       context: context,
-      builder: (_) => const _ForwardDialog(),
+      builder: (_) => const PortForwardDialog(),
     );
     if (spec != null) setState(() => _forwards = [..._forwards, spec]);
   }
@@ -210,23 +202,12 @@ class _HostEditorState extends ConsumerState<HostEditor> {
         WgButton.primary(
           label: _original == null ? 'Add host' : 'Save',
           loading: _saving,
-          shortcut: SingleActivator(
-            LogicalKeyboardKey.enter,
-            meta: WgShortcutLabel.usesCommandKey,
-            control: !WgShortcutLabel.usesCommandKey,
-          ),
+          shortcut: hostSaveShortcut(),
           onPressed: () => unawaited(_save()),
         ),
       ],
       child: CallbackShortcuts(
-        bindings: {
-          SingleActivator(
-            LogicalKeyboardKey.enter,
-            meta: WgShortcutLabel.usesCommandKey,
-            control: !WgShortcutLabel.usesCommandKey,
-          ): () =>
-              unawaited(_save()),
-        },
+        bindings: {hostSaveShortcut(): () => unawaited(_save())},
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -246,7 +227,7 @@ class _HostEditorState extends ConsumerState<HostEditor> {
               autofocus: _original == null,
             ),
             gap,
-            _Row(
+            HostFieldRow(
               children: [
                 (
                   3,
@@ -282,7 +263,7 @@ class _HostEditorState extends ConsumerState<HostEditor> {
               autofillHints: const [AutofillHints.username],
             ),
             gap,
-            const _Label('Sign in with'),
+            const HostFieldLabel('Sign in with'),
             WgSegmented<AuthMethod>(
               label: 'Sign in with',
               value: _auth,
@@ -310,7 +291,7 @@ class _HostEditorState extends ConsumerState<HostEditor> {
                 ),
             ],
             if (_auth == AuthMethod.key)
-              _Dropdown<String?>(
+              HostDropdown<String?>(
                 label: 'Key',
                 value: keys.any((key) => key.id == _keyId) ? _keyId : null,
                 error: _errors['key'],
@@ -332,11 +313,11 @@ class _HostEditorState extends ConsumerState<HostEditor> {
                 style: context.type.caption,
               ),
             gap,
-            _Row(
+            HostFieldRow(
               children: [
                 (
                   1,
-                  _Dropdown<String?>(
+                  HostDropdown<String?>(
                     label: 'Group',
                     value: _groupId,
                     items: [
@@ -359,7 +340,7 @@ class _HostEditorState extends ConsumerState<HostEditor> {
               ],
             ),
             gap,
-            _Dropdown<String?>(
+            HostDropdown<String?>(
               label: 'Jump host',
               value: _jumpId,
               error: _errors['jump'],
@@ -370,24 +351,20 @@ class _HostEditorState extends ConsumerState<HostEditor> {
               onChanged: (value) => setState(() => _jumpId = value),
             ),
             if (_jumpId != null)
-              Padding(
-                padding: EdgeInsets.only(top: space.xs),
-                child: Text(
-                  'Route: ${[for (final hop in HostChain.resolve(Host(id: '_', label: _label.text.isEmpty ? 'this host' : _label.text, address: '', username: '', jumpHostId: _jumpId), catalog.byId)) hop.label].join(' → ')}',
-                  style: context.type.monoSmall.copyWith(
-                    color: context.colors.textMuted,
-                  ),
-                ),
+              HostRoutePreview(
+                label: _label.text,
+                jumpHostId: _jumpId!,
+                byId: catalog.byId,
               ),
             gap,
-            _ToggleRow(
+            HostToggleRow(
               title: 'Keep sessions alive with tmux',
               body: 'Each pane attaches to its own tmux session on the server. Programs keep running when the app closes or the network drops, and the pane reattaches on reconnect.',
               value: _tmux,
               onChanged: (value) => setState(() => _tmux = value),
             ),
             gap,
-            const _Label('Claude Code access'),
+            const HostFieldLabel('Claude Code access'),
             WgSegmented<McpPermission>(
               label: 'Claude Code access',
               value: _mcp,
@@ -398,13 +375,9 @@ class _HostEditorState extends ConsumerState<HostEditor> {
               ],
             ),
             SizedBox(height: space.xs),
-            Text(switch (_mcp) {
-              McpPermission.off => 'Claude Code cannot see this host.',
-              McpPermission.readOnly => 'Claude Code can list files, read files and read terminals. It cannot run commands or change anything.',
-              McpPermission.full => 'Claude Code can run commands, type into terminals and change files. Passwords and keys are never shared.',
-            }, style: context.type.caption),
+            HostMcpAccessHint(permission: _mcp),
             gap,
-            _Row(
+            HostFieldRow(
               children: [
                 (
                   1,
@@ -428,16 +401,7 @@ class _HostEditorState extends ConsumerState<HostEditor> {
               ],
             ),
             gap,
-            Row(
-              children: [
-                const Expanded(child: _Label('Port forwards')),
-                WgButton.ghost(
-                  label: 'Add forward',
-                  icon: WgIcons.plus,
-                  onPressed: () => unawaited(_addForward()),
-                ),
-              ],
-            ),
+            PortForwardsHeader(onAdd: () => unawaited(_addForward())),
             if (_forwards.isEmpty)
               Text(
                 'None',
@@ -447,22 +411,12 @@ class _HostEditorState extends ConsumerState<HostEditor> {
               )
             else
               for (final forward in _forwards)
-                WgListRow(
-                  title: forward.summary,
-                  meta: [
-                    forward.kind.label,
-                    if (forward.autoStart) 'starts on connect',
-                  ].join(' · '),
-                  leading: const Icon(WgIcons.forward),
-                  trailing: WgIconButton(
-                    icon: WgIcons.trash,
-                    label: 'Remove forward',
-                    compact: true,
-                    onPressed: () => setState(
-                      () => _forwards = _forwards
-                          .where((item) => item.id != forward.id)
-                          .toList(),
-                    ),
+                PortForwardRow(
+                  forward: forward,
+                  onRemove: () => setState(
+                    () => _forwards = _forwards
+                        .where((item) => item.id != forward.id)
+                        .toList(),
                   ),
                 ),
           ],
@@ -470,264 +424,4 @@ class _HostEditorState extends ConsumerState<HostEditor> {
       ),
     );
   }
-}
-
-class _Label extends StatelessWidget {
-  const new(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: EdgeInsets.only(bottom: context.space.xs),
-    child: Text(
-      text,
-      style: context.type.label.copyWith(color: context.colors.textSecondary),
-    ),
-  );
-}
-
-class _Row extends StatelessWidget {
-  const new({required this.children});
-
-  final List<(int, Widget)> children;
-
-  @override
-  Widget build(BuildContext context) {
-    final narrow = MediaQuery.sizeOf(context).width < WgBreakpoints.medium;
-    if (narrow) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          for (final (index, (_, child)) in children.indexed) ...[
-            if (index > 0) SizedBox(height: context.space.lg),
-            child,
-          ],
-        ],
-      );
-    }
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        for (final (index, (flex, child)) in children.indexed) ...[
-          if (index > 0) SizedBox(width: context.space.md),
-          Expanded(flex: flex, child: child),
-        ],
-      ],
-    );
-  }
-}
-
-class _Dropdown<T> extends StatelessWidget {
-  const new({
-    required this.label,
-    required this.value,
-    required this.items,
-    required this.onChanged,
-    this.error,
-    this.empty,
-  });
-
-  final String label;
-  final T value;
-  final List<(T, String)> items;
-  final ValueChanged<T> onChanged;
-  final String? error;
-  final String? empty;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.colors;
-    OutlineInputBorder border(Color color) => OutlineInputBorder(
-      borderRadius: context.radii.mdAll,
-      borderSide: BorderSide(color: color),
-    );
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _Label(label),
-        DropdownButtonFormField<T>(
-          initialValue: items.any((item) => item.$1 == value) ? value : null,
-          isExpanded: true,
-          style: context.type.body,
-          dropdownColor: colors.surface,
-          icon: Icon(
-            WgIcons.chevronDown,
-            size: context.sizes.icon,
-            color: colors.textMuted,
-          ),
-          hint: Text(
-            empty ?? 'Choose',
-            style: context.type.body.copyWith(color: colors.textMuted),
-          ),
-          decoration: InputDecoration(
-            isDense: true,
-            filled: true,
-            fillColor: colors.raised,
-            errorText: error,
-            contentPadding: EdgeInsets.symmetric(
-              horizontal: context.space.md,
-              vertical: context.space.sm,
-            ),
-            border: border(colors.hairline),
-            enabledBorder: border(colors.hairline),
-            focusedBorder: border(colors.focusRing),
-          ),
-          items: [
-            for (final (itemValue, text) in items)
-              DropdownMenuItem<T>(
-                value: itemValue,
-                child: Text(text, overflow: TextOverflow.ellipsis),
-              ),
-          ],
-          onChanged: (next) => onChanged(next as T),
-        ),
-      ],
-    );
-  }
-}
-
-class _ToggleRow extends StatelessWidget {
-  const new({
-    required this.title,
-    required this.body,
-    required this.value,
-    required this.onChanged,
-  });
-
-  final String title;
-  final String body;
-  final bool value;
-  final ValueChanged<bool> onChanged;
-
-  @override
-  Widget build(BuildContext context) => MergeSemantics(
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: context.type.bodyStrong),
-              SizedBox(height: context.space.hair),
-              Text(body, style: context.type.caption),
-            ],
-          ),
-        ),
-        SizedBox(width: context.space.md),
-        WgSwitch(value: value, onChanged: onChanged, label: title),
-      ],
-    ),
-  );
-}
-
-class _ForwardDialog extends StatefulWidget {
-  const new();
-
-  @override
-  State<_ForwardDialog> createState() => _ForwardDialogState();
-}
-
-class _ForwardDialogState extends State<_ForwardDialog> {
-  ForwardKind _kind = ForwardKind.local;
-  final _bind = TextEditingController(text: '8080');
-  final _host = TextEditingController(text: 'localhost');
-  final _target = TextEditingController(text: '80');
-  bool _auto = false;
-
-  @override
-  void dispose() {
-    _bind.dispose();
-    _host.dispose();
-    _target.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final gap = SizedBox(height: context.space.lg);
-    final digits = [FilteringTextInputFormatter.digitsOnly];
-    return WgDialog(
-      title: 'Add port forward',
-      actions: [
-        WgButton.ghost(
-          label: 'Cancel',
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        WgButton.primary(
-          label: 'Add',
-          onPressed: () {
-            final bind = int.tryParse(_bind.text);
-            final target = int.tryParse(_target.text) ?? 0;
-            if (bind == null) return;
-            Navigator.of(context).pop(
-              PortForwardSpec(
-                id: Ids.short(),
-                kind: _kind,
-                bindPort: bind,
-                targetHost: _host.text.trim(),
-                targetPort: target,
-                autoStart: _auto,
-              ),
-            );
-          },
-        ),
-      ],
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          WgSegmented<ForwardKind>(
-            label: 'Forward type',
-            value: _kind,
-            onChanged: (value) => setState(() => _kind = value),
-            segments: [
-              for (final kind in ForwardKind.values)
-                WgSegment(kind, kind.label),
-            ],
-          ),
-          SizedBox(height: context.space.sm),
-          Text(switch (_kind) {
-            ForwardKind.local => 'A port on this device reaches a host and port seen from the server.',
-            ForwardKind.remote => 'A port on the server reaches a host and port seen from this device.',
-            ForwardKind.dynamic => 'A SOCKS proxy on this device sends traffic out through the server.',
-          }, style: context.type.caption),
-          gap,
-          WgTextField(
-            controller: _bind,
-            label: _kind == ForwardKind.remote
-                ? 'Port on the server'
-                : 'Port on this device',
-            mono: true,
-            keyboardType: TextInputType.number,
-            inputFormatters: digits,
-          ),
-          if (_kind != ForwardKind.dynamic) ...[
-            gap,
-            WgTextField(controller: _host, label: 'Target host', mono: true),
-            gap,
-            WgTextField(
-              controller: _target,
-              label: 'Target port',
-              mono: true,
-              keyboardType: TextInputType.number,
-              inputFormatters: digits,
-            ),
-          ],
-          gap,
-          WgCheckRow(
-            label: 'Start when the host connects',
-            value: _auto,
-            onChanged: (value) => setState(() => _auto = value),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-extension ForwardLookup on List<ActiveForward> {
-  ActiveForward? find(String hostId, String specId) => firstWhereOrNull(
-    (forward) => forward.hostId == hostId && forward.spec.id == specId,
-  );
 }

@@ -6,6 +6,7 @@ import 'package:warpgate/design_system/design_system.dart';
 import 'package:warpgate/features/connection/presentation/connection_providers.dart';
 import 'package:warpgate/features/hosts/presentation/host_editor.dart';
 import 'package:warpgate/features/hosts/presentation/hosts_controller.dart';
+import 'package:warpgate/features/hosts/utils/forward_lookup.dart';
 import 'package:warpgate_core/features/connection/data/port_forwarder.dart';
 
 class ForwardsScreen extends ConsumerWidget {
