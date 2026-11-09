@@ -5,7 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:warpgate/design_system/design_system.dart';
 import 'package:warpgate/features/palette/presentation/command_registry.dart';
 import 'package:warpgate/features/shell/presentation/window_chrome.dart';
-import 'package:warpgate/features/workspace/presentation/workbench_screen.dart';
+import 'package:warpgate/features/workspace/presentation/widgets/session_tabs.dart';
 
 class TitleBar extends ConsumerWidget {
   const new({required this.onWorkbench, super.key});
