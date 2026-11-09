@@ -3,7 +3,7 @@ import 'dart:typed_data';
 
 import 'package:warpgate_core/core/diagnostics/live_objects.dart';
 import 'package:warpgate_core/features/connection/domain/ssh_client.dart';
-import 'package:warpgate_core/src/engine/api/ssh.dart' as rs;
+import 'package:warpgate_core/src/engine/api/channel.dart' as rs;
 
 class ChannelPump {
   new(

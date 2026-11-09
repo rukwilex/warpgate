@@ -21,8 +21,10 @@
     clippy::needless_borrow
 )]
 
+use crate::api::channel::*;
+use crate::api::connection::*;
+use crate::api::forwarding::*;
 use crate::api::sftp::*;
-use crate::api::ssh::*;
 use crate::api::util::*;
 use flutter_rust_bridge::for_generated::byteorder::{NativeEndian, ReadBytesExt, WriteBytesExt};
 use flutter_rust_bridge::for_generated::{transform_result_dco, Lifetimeable, Lockable};
@@ -34,7 +36,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.12.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 1760737308;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 32411254;
 
 flutter_rust_bridge::frb_generated_default_handler!();
 
@@ -163,7 +165,7 @@ fn wire__crate__api__util__CancelToken_new_impl(
         },
     )
 }
-fn wire__crate__api__ssh__ForwardedConnection_auto_accessor_get_channel_impl(
+fn wire__crate__api__forwarding__ForwardedConnection_auto_accessor_get_channel_impl(
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
     rust_vec_len_: i32,
     data_len_: i32,
@@ -209,7 +211,7 @@ fn wire__crate__api__ssh__ForwardedConnection_auto_accessor_get_channel_impl(
         },
     )
 }
-fn wire__crate__api__ssh__ForwardedConnection_auto_accessor_get_connected_host_impl(
+fn wire__crate__api__forwarding__ForwardedConnection_auto_accessor_get_connected_host_impl(
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
     rust_vec_len_: i32,
     data_len_: i32,
@@ -255,7 +257,7 @@ fn wire__crate__api__ssh__ForwardedConnection_auto_accessor_get_connected_host_i
         },
     )
 }
-fn wire__crate__api__ssh__ForwardedConnection_auto_accessor_get_connected_port_impl(
+fn wire__crate__api__forwarding__ForwardedConnection_auto_accessor_get_connected_port_impl(
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
     rust_vec_len_: i32,
     data_len_: i32,
@@ -301,7 +303,7 @@ fn wire__crate__api__ssh__ForwardedConnection_auto_accessor_get_connected_port_i
         },
     )
 }
-fn wire__crate__api__ssh__ForwardedConnection_auto_accessor_get_origin_host_impl(
+fn wire__crate__api__forwarding__ForwardedConnection_auto_accessor_get_origin_host_impl(
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
     rust_vec_len_: i32,
     data_len_: i32,
@@ -347,7 +349,7 @@ fn wire__crate__api__ssh__ForwardedConnection_auto_accessor_get_origin_host_impl
         },
     )
 }
-fn wire__crate__api__ssh__ForwardedConnection_auto_accessor_get_origin_port_impl(
+fn wire__crate__api__forwarding__ForwardedConnection_auto_accessor_get_origin_port_impl(
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
     rust_vec_len_: i32,
     data_len_: i32,
@@ -393,7 +395,7 @@ fn wire__crate__api__ssh__ForwardedConnection_auto_accessor_get_origin_port_impl
         },
     )
 }
-fn wire__crate__api__ssh__ForwardedConnection_auto_accessor_set_channel_impl(
+fn wire__crate__api__forwarding__ForwardedConnection_auto_accessor_set_channel_impl(
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
     rust_vec_len_: i32,
     data_len_: i32,
@@ -444,7 +446,7 @@ fn wire__crate__api__ssh__ForwardedConnection_auto_accessor_set_channel_impl(
         },
     )
 }
-fn wire__crate__api__ssh__ForwardedConnection_auto_accessor_set_connected_host_impl(
+fn wire__crate__api__forwarding__ForwardedConnection_auto_accessor_set_connected_host_impl(
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
     rust_vec_len_: i32,
     data_len_: i32,
@@ -495,7 +497,7 @@ fn wire__crate__api__ssh__ForwardedConnection_auto_accessor_set_connected_host_i
         },
     )
 }
-fn wire__crate__api__ssh__ForwardedConnection_auto_accessor_set_connected_port_impl(
+fn wire__crate__api__forwarding__ForwardedConnection_auto_accessor_set_connected_port_impl(
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
     rust_vec_len_: i32,
     data_len_: i32,
@@ -546,7 +548,7 @@ fn wire__crate__api__ssh__ForwardedConnection_auto_accessor_set_connected_port_i
         },
     )
 }
-fn wire__crate__api__ssh__ForwardedConnection_auto_accessor_set_origin_host_impl(
+fn wire__crate__api__forwarding__ForwardedConnection_auto_accessor_set_origin_host_impl(
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
     rust_vec_len_: i32,
     data_len_: i32,
@@ -597,7 +599,7 @@ fn wire__crate__api__ssh__ForwardedConnection_auto_accessor_set_origin_host_impl
         },
     )
 }
-fn wire__crate__api__ssh__ForwardedConnection_auto_accessor_set_origin_port_impl(
+fn wire__crate__api__forwarding__ForwardedConnection_auto_accessor_set_origin_port_impl(
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
     rust_vec_len_: i32,
     data_len_: i32,
@@ -1472,7 +1474,7 @@ fn wire__crate__api__sftp__SftpSession_stat_impl(
         },
     )
 }
-fn wire__crate__api__ssh__SshChannel_close_impl(
+fn wire__crate__api__channel__SshChannel_close_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
     rust_vec_len_: i32,
@@ -1519,7 +1521,7 @@ fn wire__crate__api__ssh__SshChannel_close_impl(
                         }
                         let api_that_guard = api_that_guard.unwrap();
                         let output_ok =
-                            crate::api::ssh::SshChannel::close(&*api_that_guard).await?;
+                            crate::api::channel::SshChannel::close(&*api_that_guard).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -1528,7 +1530,7 @@ fn wire__crate__api__ssh__SshChannel_close_impl(
         },
     )
 }
-fn wire__crate__api__ssh__SshChannel_eof_impl(
+fn wire__crate__api__channel__SshChannel_eof_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
     rust_vec_len_: i32,
@@ -1574,7 +1576,8 @@ fn wire__crate__api__ssh__SshChannel_eof_impl(
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok = crate::api::ssh::SshChannel::eof(&*api_that_guard).await?;
+                        let output_ok =
+                            crate::api::channel::SshChannel::eof(&*api_that_guard).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -1583,7 +1586,7 @@ fn wire__crate__api__ssh__SshChannel_eof_impl(
         },
     )
 }
-fn wire__crate__api__ssh__SshChannel_exec_impl(
+fn wire__crate__api__channel__SshChannel_exec_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
     rust_vec_len_: i32,
@@ -1631,7 +1634,7 @@ fn wire__crate__api__ssh__SshChannel_exec_impl(
                         }
                         let api_that_guard = api_that_guard.unwrap();
                         let output_ok =
-                            crate::api::ssh::SshChannel::exec(&*api_that_guard, api_command)
+                            crate::api::channel::SshChannel::exec(&*api_that_guard, api_command)
                                 .await?;
                         Ok(output_ok)
                     })()
@@ -1641,7 +1644,7 @@ fn wire__crate__api__ssh__SshChannel_exec_impl(
         },
     )
 }
-fn wire__crate__api__ssh__SshChannel_exit_status_impl(
+fn wire__crate__api__channel__SshChannel_exit_status_impl(
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
     rust_vec_len_: i32,
     data_len_: i32,
@@ -1681,7 +1684,7 @@ fn wire__crate__api__ssh__SshChannel_exit_status_impl(
                     }
                 }
                 let api_that_guard = api_that_guard.unwrap();
-                let output_ok = Result::<_, ()>::Ok(crate::api::ssh::SshChannel::exit_status(
+                let output_ok = Result::<_, ()>::Ok(crate::api::channel::SshChannel::exit_status(
                     &*api_that_guard,
                 ))?;
                 Ok(output_ok)
@@ -1689,7 +1692,7 @@ fn wire__crate__api__ssh__SshChannel_exit_status_impl(
         },
     )
 }
-fn wire__crate__api__ssh__SshChannel_read_impl(
+fn wire__crate__api__channel__SshChannel_read_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
     rust_vec_len_: i32,
@@ -1737,7 +1740,7 @@ fn wire__crate__api__ssh__SshChannel_read_impl(
                         }
                         let api_that_guard = api_that_guard.unwrap();
                         let output_ok =
-                            crate::api::ssh::SshChannel::read(&*api_that_guard, api_max_bytes)
+                            crate::api::channel::SshChannel::read(&*api_that_guard, api_max_bytes)
                                 .await?;
                         Ok(output_ok)
                     })()
@@ -1747,7 +1750,7 @@ fn wire__crate__api__ssh__SshChannel_read_impl(
         },
     )
 }
-fn wire__crate__api__ssh__SshChannel_request_pty_impl(
+fn wire__crate__api__channel__SshChannel_request_pty_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
     rust_vec_len_: i32,
@@ -1796,7 +1799,7 @@ fn wire__crate__api__ssh__SshChannel_request_pty_impl(
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok = crate::api::ssh::SshChannel::request_pty(
+                        let output_ok = crate::api::channel::SshChannel::request_pty(
                             &*api_that_guard,
                             api_term,
                             api_columns,
@@ -1811,7 +1814,7 @@ fn wire__crate__api__ssh__SshChannel_request_pty_impl(
         },
     )
 }
-fn wire__crate__api__ssh__SshChannel_request_shell_impl(
+fn wire__crate__api__channel__SshChannel_request_shell_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
     rust_vec_len_: i32,
@@ -1858,7 +1861,8 @@ fn wire__crate__api__ssh__SshChannel_request_shell_impl(
                         }
                         let api_that_guard = api_that_guard.unwrap();
                         let output_ok =
-                            crate::api::ssh::SshChannel::request_shell(&*api_that_guard).await?;
+                            crate::api::channel::SshChannel::request_shell(&*api_that_guard)
+                                .await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -1867,7 +1871,7 @@ fn wire__crate__api__ssh__SshChannel_request_shell_impl(
         },
     )
 }
-fn wire__crate__api__ssh__SshChannel_set_env_impl(
+fn wire__crate__api__channel__SshChannel_set_env_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
     rust_vec_len_: i32,
@@ -1915,7 +1919,7 @@ fn wire__crate__api__ssh__SshChannel_set_env_impl(
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok = crate::api::ssh::SshChannel::set_env(
+                        let output_ok = crate::api::channel::SshChannel::set_env(
                             &*api_that_guard,
                             api_name,
                             api_value,
@@ -1929,7 +1933,7 @@ fn wire__crate__api__ssh__SshChannel_set_env_impl(
         },
     )
 }
-fn wire__crate__api__ssh__SshChannel_window_change_impl(
+fn wire__crate__api__channel__SshChannel_window_change_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
     rust_vec_len_: i32,
@@ -1977,7 +1981,7 @@ fn wire__crate__api__ssh__SshChannel_window_change_impl(
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok = crate::api::ssh::SshChannel::window_change(
+                        let output_ok = crate::api::channel::SshChannel::window_change(
                             &*api_that_guard,
                             api_columns,
                             api_rows,
@@ -1991,7 +1995,7 @@ fn wire__crate__api__ssh__SshChannel_window_change_impl(
         },
     )
 }
-fn wire__crate__api__ssh__SshChannel_write_impl(
+fn wire__crate__api__channel__SshChannel_write_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
     rust_vec_len_: i32,
@@ -2039,7 +2043,8 @@ fn wire__crate__api__ssh__SshChannel_write_impl(
                         }
                         let api_that_guard = api_that_guard.unwrap();
                         let output_ok =
-                            crate::api::ssh::SshChannel::write(&*api_that_guard, api_data).await?;
+                            crate::api::channel::SshChannel::write(&*api_that_guard, api_data)
+                                .await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -2048,7 +2053,7 @@ fn wire__crate__api__ssh__SshChannel_write_impl(
         },
     )
 }
-fn wire__crate__api__ssh__SshClient_accept_forwarded_impl(
+fn wire__crate__api__connection__SshClient_accept_forwarded_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
     rust_vec_len_: i32,
@@ -2095,7 +2100,8 @@ fn wire__crate__api__ssh__SshClient_accept_forwarded_impl(
                         }
                         let api_that_guard = api_that_guard.unwrap();
                         let output_ok =
-                            crate::api::ssh::SshClient::accept_forwarded(&*api_that_guard).await?;
+                            crate::api::connection::SshClient::accept_forwarded(&*api_that_guard)
+                                .await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -2104,7 +2110,7 @@ fn wire__crate__api__ssh__SshClient_accept_forwarded_impl(
         },
     )
 }
-fn wire__crate__api__ssh__SshClient_auth_agent_impl(
+fn wire__crate__api__connection__SshClient_auth_agent_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
     rust_vec_len_: i32,
@@ -2152,7 +2158,7 @@ fn wire__crate__api__ssh__SshClient_auth_agent_impl(
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok = crate::api::ssh::SshClient::auth_agent(
+                        let output_ok = crate::api::connection::SshClient::auth_agent(
                             &*api_that_guard,
                             api_user,
                             api_socket,
@@ -2166,7 +2172,7 @@ fn wire__crate__api__ssh__SshClient_auth_agent_impl(
         },
     )
 }
-fn wire__crate__api__ssh__SshClient_auth_key_impl(
+fn wire__crate__api__connection__SshClient_auth_key_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
     rust_vec_len_: i32,
@@ -2215,7 +2221,7 @@ fn wire__crate__api__ssh__SshClient_auth_key_impl(
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok = crate::api::ssh::SshClient::auth_key(
+                        let output_ok = crate::api::connection::SshClient::auth_key(
                             &*api_that_guard,
                             api_user,
                             api_pem,
@@ -2230,7 +2236,7 @@ fn wire__crate__api__ssh__SshClient_auth_key_impl(
         },
     )
 }
-fn wire__crate__api__ssh__SshClient_auth_keyboard_interactive_impl(
+fn wire__crate__api__connection__SshClient_auth_keyboard_interactive_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
     rust_vec_len_: i32,
@@ -2252,11 +2258,11 @@ let decode_indices_ = flutter_rust_bridge::for_generated::lockable_compute_decod
             }
         }
         let api_that_guard = api_that_guard.unwrap();
- let output_ok = crate::api::ssh::SshClient::auth_keyboard_interactive(&*api_that_guard, api_user, api_responder).await?;   Ok(output_ok)
+ let output_ok = crate::api::connection::SshClient::auth_keyboard_interactive(&*api_that_guard, api_user, api_responder).await?;   Ok(output_ok)
                     })().await)
                 } })
 }
-fn wire__crate__api__ssh__SshClient_auth_none_impl(
+fn wire__crate__api__connection__SshClient_auth_none_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
     rust_vec_len_: i32,
@@ -2303,9 +2309,11 @@ fn wire__crate__api__ssh__SshClient_auth_none_impl(
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok =
-                            crate::api::ssh::SshClient::auth_none(&*api_that_guard, api_user)
-                                .await?;
+                        let output_ok = crate::api::connection::SshClient::auth_none(
+                            &*api_that_guard,
+                            api_user,
+                        )
+                        .await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -2314,7 +2322,7 @@ fn wire__crate__api__ssh__SshClient_auth_none_impl(
         },
     )
 }
-fn wire__crate__api__ssh__SshClient_auth_password_impl(
+fn wire__crate__api__connection__SshClient_auth_password_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
     rust_vec_len_: i32,
@@ -2362,7 +2370,7 @@ fn wire__crate__api__ssh__SshClient_auth_password_impl(
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok = crate::api::ssh::SshClient::auth_password(
+                        let output_ok = crate::api::connection::SshClient::auth_password(
                             &*api_that_guard,
                             api_user,
                             api_password,
@@ -2376,7 +2384,7 @@ fn wire__crate__api__ssh__SshClient_auth_password_impl(
         },
     )
 }
-fn wire__crate__api__ssh__SshClient_cancel_forward_remote_impl(
+fn wire__crate__api__connection__SshClient_cancel_forward_remote_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
     rust_vec_len_: i32,
@@ -2424,7 +2432,7 @@ fn wire__crate__api__ssh__SshClient_cancel_forward_remote_impl(
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok = crate::api::ssh::SshClient::cancel_forward_remote(
+                        let output_ok = crate::api::connection::SshClient::cancel_forward_remote(
                             &*api_that_guard,
                             api_host,
                             api_port,
@@ -2438,7 +2446,7 @@ fn wire__crate__api__ssh__SshClient_cancel_forward_remote_impl(
         },
     )
 }
-fn wire__crate__api__ssh__SshClient_connect_via_impl(
+fn wire__crate__api__connection__SshClient_connect_via_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
     rust_vec_len_: i32,
@@ -2463,7 +2471,7 @@ fn wire__crate__api__ssh__SshClient_connect_via_impl(
             let api_that = <RustOpaqueMoi<
                 flutter_rust_bridge::for_generated::RustAutoOpaqueInner<SshClient>,
             >>::sse_decode(&mut deserializer);
-            let api_params = <crate::api::ssh::ConnectParams>::sse_decode(&mut deserializer);
+            let api_params = <crate::api::connection::ConnectParams>::sse_decode(&mut deserializer);
             let api_verifier = decode_DartFn_Inputs_String_String_Output_bool_AnyhowException(
                 <flutter_rust_bridge::DartOpaque>::sse_decode(&mut deserializer),
             );
@@ -2488,7 +2496,7 @@ fn wire__crate__api__ssh__SshClient_connect_via_impl(
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok = crate::api::ssh::SshClient::connect_via(
+                        let output_ok = crate::api::connection::SshClient::connect_via(
                             &*api_that_guard,
                             api_params,
                             api_verifier,
@@ -2502,7 +2510,7 @@ fn wire__crate__api__ssh__SshClient_connect_via_impl(
         },
     )
 }
-fn wire__crate__api__ssh__SshClient_disconnect_impl(
+fn wire__crate__api__connection__SshClient_disconnect_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
     rust_vec_len_: i32,
@@ -2549,7 +2557,7 @@ fn wire__crate__api__ssh__SshClient_disconnect_impl(
                         }
                         let api_that_guard = api_that_guard.unwrap();
                         let output_ok =
-                            crate::api::ssh::SshClient::disconnect(&*api_that_guard).await?;
+                            crate::api::connection::SshClient::disconnect(&*api_that_guard).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -2558,7 +2566,7 @@ fn wire__crate__api__ssh__SshClient_disconnect_impl(
         },
     )
 }
-fn wire__crate__api__ssh__SshClient_forward_remote_impl(
+fn wire__crate__api__connection__SshClient_forward_remote_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
     rust_vec_len_: i32,
@@ -2606,7 +2614,7 @@ fn wire__crate__api__ssh__SshClient_forward_remote_impl(
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok = crate::api::ssh::SshClient::forward_remote(
+                        let output_ok = crate::api::connection::SshClient::forward_remote(
                             &*api_that_guard,
                             api_host,
                             api_port,
@@ -2620,7 +2628,7 @@ fn wire__crate__api__ssh__SshClient_forward_remote_impl(
         },
     )
 }
-fn wire__crate__api__ssh__SshClient_is_closed_impl(
+fn wire__crate__api__connection__SshClient_is_closed_impl(
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
     rust_vec_len_: i32,
     data_len_: i32,
@@ -2660,14 +2668,15 @@ fn wire__crate__api__ssh__SshClient_is_closed_impl(
                     }
                 }
                 let api_that_guard = api_that_guard.unwrap();
-                let output_ok =
-                    Result::<_, ()>::Ok(crate::api::ssh::SshClient::is_closed(&*api_that_guard))?;
+                let output_ok = Result::<_, ()>::Ok(crate::api::connection::SshClient::is_closed(
+                    &*api_that_guard,
+                ))?;
                 Ok(output_ok)
             })())
         },
     )
 }
-fn wire__crate__api__ssh__SshClient_open_direct_tcpip_impl(
+fn wire__crate__api__connection__SshClient_open_direct_tcpip_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
     rust_vec_len_: i32,
@@ -2715,7 +2724,7 @@ fn wire__crate__api__ssh__SshClient_open_direct_tcpip_impl(
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok = crate::api::ssh::SshClient::open_direct_tcpip(
+                        let output_ok = crate::api::connection::SshClient::open_direct_tcpip(
                             &*api_that_guard,
                             api_host,
                             api_port,
@@ -2729,7 +2738,7 @@ fn wire__crate__api__ssh__SshClient_open_direct_tcpip_impl(
         },
     )
 }
-fn wire__crate__api__ssh__SshClient_open_session_impl(
+fn wire__crate__api__connection__SshClient_open_session_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
     rust_vec_len_: i32,
@@ -2776,7 +2785,8 @@ fn wire__crate__api__ssh__SshClient_open_session_impl(
                         }
                         let api_that_guard = api_that_guard.unwrap();
                         let output_ok =
-                            crate::api::ssh::SshClient::open_session(&*api_that_guard).await?;
+                            crate::api::connection::SshClient::open_session(&*api_that_guard)
+                                .await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -2785,7 +2795,7 @@ fn wire__crate__api__ssh__SshClient_open_session_impl(
         },
     )
 }
-fn wire__crate__api__ssh__SshClient_ping_impl(
+fn wire__crate__api__connection__SshClient_ping_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
     rust_vec_len_: i32,
@@ -2832,9 +2842,11 @@ fn wire__crate__api__ssh__SshClient_ping_impl(
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok =
-                            crate::api::ssh::SshClient::ping(&*api_that_guard, api_timeout_ms)
-                                .await?;
+                        let output_ok = crate::api::connection::SshClient::ping(
+                            &*api_that_guard,
+                            api_timeout_ms,
+                        )
+                        .await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -2843,7 +2855,7 @@ fn wire__crate__api__ssh__SshClient_ping_impl(
         },
     )
 }
-fn wire__crate__api__ssh__SshClient_remote_version_impl(
+fn wire__crate__api__connection__SshClient_remote_version_impl(
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
     rust_vec_len_: i32,
     data_len_: i32,
@@ -2883,15 +2895,15 @@ fn wire__crate__api__ssh__SshClient_remote_version_impl(
                     }
                 }
                 let api_that_guard = api_that_guard.unwrap();
-                let output_ok = Result::<_, ()>::Ok(crate::api::ssh::SshClient::remote_version(
-                    &*api_that_guard,
-                ))?;
+                let output_ok = Result::<_, ()>::Ok(
+                    crate::api::connection::SshClient::remote_version(&*api_that_guard),
+                )?;
                 Ok(output_ok)
             })())
         },
     )
 }
-fn wire__crate__api__ssh__SshClient_sftp_impl(
+fn wire__crate__api__connection__SshClient_sftp_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
     rust_vec_len_: i32,
@@ -2937,7 +2949,8 @@ fn wire__crate__api__ssh__SshClient_sftp_impl(
                             }
                         }
                         let api_that_guard = api_that_guard.unwrap();
-                        let output_ok = crate::api::ssh::SshClient::sftp(&*api_that_guard).await?;
+                        let output_ok =
+                            crate::api::connection::SshClient::sftp(&*api_that_guard).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -2946,7 +2959,7 @@ fn wire__crate__api__ssh__SshClient_sftp_impl(
         },
     )
 }
-fn wire__crate__api__ssh__SshClient_wait_closed_impl(
+fn wire__crate__api__connection__SshClient_wait_closed_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
     rust_vec_len_: i32,
@@ -2993,7 +3006,8 @@ fn wire__crate__api__ssh__SshClient_wait_closed_impl(
                         }
                         let api_that_guard = api_that_guard.unwrap();
                         let output_ok =
-                            crate::api::ssh::SshClient::wait_closed(&*api_that_guard).await?;
+                            crate::api::connection::SshClient::wait_closed(&*api_that_guard)
+                                .await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -3002,7 +3016,7 @@ fn wire__crate__api__ssh__SshClient_wait_closed_impl(
         },
     )
 }
-fn wire__crate__api__ssh__connect_impl(
+fn wire__crate__api__connection__connect_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
     rust_vec_len_: i32,
@@ -3024,7 +3038,7 @@ fn wire__crate__api__ssh__connect_impl(
             };
             let mut deserializer =
                 flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_params = <crate::api::ssh::ConnectParams>::sse_decode(&mut deserializer);
+            let api_params = <crate::api::connection::ConnectParams>::sse_decode(&mut deserializer);
             let api_cancel = <RustOpaqueMoi<
                 flutter_rust_bridge::for_generated::RustAutoOpaqueInner<CancelToken>,
             >>::sse_decode(&mut deserializer);
@@ -3054,9 +3068,12 @@ fn wire__crate__api__ssh__connect_impl(
                             }
                         }
                         let api_cancel_guard = api_cancel_guard.unwrap();
-                        let output_ok =
-                            crate::api::ssh::connect(api_params, &*api_cancel_guard, api_verifier)
-                                .await?;
+                        let output_ok = crate::api::connection::connect(
+                            api_params,
+                            &*api_cancel_guard,
+                            api_verifier,
+                        )
+                        .await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -3410,13 +3427,13 @@ impl SseDecode for bool {
     }
 }
 
-impl SseDecode for crate::api::ssh::ChannelChunk {
+impl SseDecode for crate::api::channel::ChannelChunk {
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_data = <Vec<u8>>::sse_decode(deserializer);
         let mut var_extended = <Vec<u8>>::sse_decode(deserializer);
         let mut var_exitStatus = <Option<u32>>::sse_decode(deserializer);
         let mut var_closed = <bool>::sse_decode(deserializer);
-        return crate::api::ssh::ChannelChunk {
+        return crate::api::channel::ChannelChunk {
             data: var_data,
             extended: var_extended,
             exit_status: var_exitStatus,
@@ -3425,14 +3442,14 @@ impl SseDecode for crate::api::ssh::ChannelChunk {
     }
 }
 
-impl SseDecode for crate::api::ssh::ConnectParams {
+impl SseDecode for crate::api::connection::ConnectParams {
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_host = <String>::sse_decode(deserializer);
         let mut var_port = <u16>::sse_decode(deserializer);
         let mut var_connectTimeoutMs = <u32>::sse_decode(deserializer);
         let mut var_handshakeTimeoutMs = <u32>::sse_decode(deserializer);
         let mut var_clientId = <String>::sse_decode(deserializer);
-        return crate::api::ssh::ConnectParams {
+        return crate::api::connection::ConnectParams {
             host: var_host,
             port: var_port,
             connect_timeout_ms: var_connectTimeoutMs,
@@ -3688,59 +3705,108 @@ fn pde_ffi_dispatcher_primary_impl(
             data_len,
         ),
         27 => wire__crate__api__sftp__SftpSession_stat_impl(port, ptr, rust_vec_len, data_len),
-        28 => wire__crate__api__ssh__SshChannel_close_impl(port, ptr, rust_vec_len, data_len),
-        29 => wire__crate__api__ssh__SshChannel_eof_impl(port, ptr, rust_vec_len, data_len),
-        30 => wire__crate__api__ssh__SshChannel_exec_impl(port, ptr, rust_vec_len, data_len),
-        32 => wire__crate__api__ssh__SshChannel_read_impl(port, ptr, rust_vec_len, data_len),
-        33 => wire__crate__api__ssh__SshChannel_request_pty_impl(port, ptr, rust_vec_len, data_len),
-        34 => {
-            wire__crate__api__ssh__SshChannel_request_shell_impl(port, ptr, rust_vec_len, data_len)
-        }
-        35 => wire__crate__api__ssh__SshChannel_set_env_impl(port, ptr, rust_vec_len, data_len),
-        36 => {
-            wire__crate__api__ssh__SshChannel_window_change_impl(port, ptr, rust_vec_len, data_len)
-        }
-        37 => wire__crate__api__ssh__SshChannel_write_impl(port, ptr, rust_vec_len, data_len),
-        38 => wire__crate__api__ssh__SshClient_accept_forwarded_impl(
+        28 => wire__crate__api__channel__SshChannel_close_impl(port, ptr, rust_vec_len, data_len),
+        29 => wire__crate__api__channel__SshChannel_eof_impl(port, ptr, rust_vec_len, data_len),
+        30 => wire__crate__api__channel__SshChannel_exec_impl(port, ptr, rust_vec_len, data_len),
+        32 => wire__crate__api__channel__SshChannel_read_impl(port, ptr, rust_vec_len, data_len),
+        33 => wire__crate__api__channel__SshChannel_request_pty_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        39 => wire__crate__api__ssh__SshClient_auth_agent_impl(port, ptr, rust_vec_len, data_len),
-        40 => wire__crate__api__ssh__SshClient_auth_key_impl(port, ptr, rust_vec_len, data_len),
-        41 => wire__crate__api__ssh__SshClient_auth_keyboard_interactive_impl(
+        34 => wire__crate__api__channel__SshChannel_request_shell_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        42 => wire__crate__api__ssh__SshClient_auth_none_impl(port, ptr, rust_vec_len, data_len),
-        43 => {
-            wire__crate__api__ssh__SshClient_auth_password_impl(port, ptr, rust_vec_len, data_len)
+        35 => wire__crate__api__channel__SshChannel_set_env_impl(port, ptr, rust_vec_len, data_len),
+        36 => wire__crate__api__channel__SshChannel_window_change_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        37 => wire__crate__api__channel__SshChannel_write_impl(port, ptr, rust_vec_len, data_len),
+        38 => wire__crate__api__connection__SshClient_accept_forwarded_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        39 => wire__crate__api__connection__SshClient_auth_agent_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        40 => {
+            wire__crate__api__connection__SshClient_auth_key_impl(port, ptr, rust_vec_len, data_len)
         }
-        44 => wire__crate__api__ssh__SshClient_cancel_forward_remote_impl(
+        41 => wire__crate__api__connection__SshClient_auth_keyboard_interactive_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        45 => wire__crate__api__ssh__SshClient_connect_via_impl(port, ptr, rust_vec_len, data_len),
-        46 => wire__crate__api__ssh__SshClient_disconnect_impl(port, ptr, rust_vec_len, data_len),
-        47 => {
-            wire__crate__api__ssh__SshClient_forward_remote_impl(port, ptr, rust_vec_len, data_len)
-        }
-        49 => wire__crate__api__ssh__SshClient_open_direct_tcpip_impl(
+        42 => wire__crate__api__connection__SshClient_auth_none_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        50 => wire__crate__api__ssh__SshClient_open_session_impl(port, ptr, rust_vec_len, data_len),
-        51 => wire__crate__api__ssh__SshClient_ping_impl(port, ptr, rust_vec_len, data_len),
-        53 => wire__crate__api__ssh__SshClient_sftp_impl(port, ptr, rust_vec_len, data_len),
-        54 => wire__crate__api__ssh__SshClient_wait_closed_impl(port, ptr, rust_vec_len, data_len),
-        55 => wire__crate__api__ssh__connect_impl(port, ptr, rust_vec_len, data_len),
+        43 => wire__crate__api__connection__SshClient_auth_password_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        44 => wire__crate__api__connection__SshClient_cancel_forward_remote_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        45 => wire__crate__api__connection__SshClient_connect_via_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        46 => wire__crate__api__connection__SshClient_disconnect_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        47 => wire__crate__api__connection__SshClient_forward_remote_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        49 => wire__crate__api__connection__SshClient_open_direct_tcpip_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        50 => wire__crate__api__connection__SshClient_open_session_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        51 => wire__crate__api__connection__SshClient_ping_impl(port, ptr, rust_vec_len, data_len),
+        53 => wire__crate__api__connection__SshClient_sftp_impl(port, ptr, rust_vec_len, data_len),
+        54 => wire__crate__api__connection__SshClient_wait_closed_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        55 => wire__crate__api__connection__connect_impl(port, ptr, rust_vec_len, data_len),
         57 => wire__crate__api__util__init_app_impl(port, ptr, rust_vec_len, data_len),
         58 => wire__crate__api__util__sha256_file_impl(port, ptr, rust_vec_len, data_len),
         _ => unreachable!(),
@@ -3757,59 +3823,69 @@ fn pde_ffi_dispatcher_sync_impl(
         1 => wire__crate__api__util__CancelToken_cancel_impl(ptr, rust_vec_len, data_len),
         2 => wire__crate__api__util__CancelToken_is_cancelled_impl(ptr, rust_vec_len, data_len),
         3 => wire__crate__api__util__CancelToken_new_impl(ptr, rust_vec_len, data_len),
-        4 => wire__crate__api__ssh__ForwardedConnection_auto_accessor_get_channel_impl(
+        4 => wire__crate__api__forwarding__ForwardedConnection_auto_accessor_get_channel_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        5 => wire__crate__api__ssh__ForwardedConnection_auto_accessor_get_connected_host_impl(
+        5 => {
+            wire__crate__api__forwarding__ForwardedConnection_auto_accessor_get_connected_host_impl(
+                ptr,
+                rust_vec_len,
+                data_len,
+            )
+        }
+        6 => {
+            wire__crate__api__forwarding__ForwardedConnection_auto_accessor_get_connected_port_impl(
+                ptr,
+                rust_vec_len,
+                data_len,
+            )
+        }
+        7 => wire__crate__api__forwarding__ForwardedConnection_auto_accessor_get_origin_host_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        6 => wire__crate__api__ssh__ForwardedConnection_auto_accessor_get_connected_port_impl(
+        8 => wire__crate__api__forwarding__ForwardedConnection_auto_accessor_get_origin_port_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        7 => wire__crate__api__ssh__ForwardedConnection_auto_accessor_get_origin_host_impl(
+        9 => wire__crate__api__forwarding__ForwardedConnection_auto_accessor_set_channel_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        8 => wire__crate__api__ssh__ForwardedConnection_auto_accessor_get_origin_port_impl(
+        10 => {
+            wire__crate__api__forwarding__ForwardedConnection_auto_accessor_set_connected_host_impl(
+                ptr,
+                rust_vec_len,
+                data_len,
+            )
+        }
+        11 => {
+            wire__crate__api__forwarding__ForwardedConnection_auto_accessor_set_connected_port_impl(
+                ptr,
+                rust_vec_len,
+                data_len,
+            )
+        }
+        12 => wire__crate__api__forwarding__ForwardedConnection_auto_accessor_set_origin_host_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        9 => wire__crate__api__ssh__ForwardedConnection_auto_accessor_set_channel_impl(
+        13 => wire__crate__api__forwarding__ForwardedConnection_auto_accessor_set_origin_port_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        10 => wire__crate__api__ssh__ForwardedConnection_auto_accessor_set_connected_host_impl(
-            ptr,
-            rust_vec_len,
-            data_len,
-        ),
-        11 => wire__crate__api__ssh__ForwardedConnection_auto_accessor_set_connected_port_impl(
-            ptr,
-            rust_vec_len,
-            data_len,
-        ),
-        12 => wire__crate__api__ssh__ForwardedConnection_auto_accessor_set_origin_host_impl(
-            ptr,
-            rust_vec_len,
-            data_len,
-        ),
-        13 => wire__crate__api__ssh__ForwardedConnection_auto_accessor_set_origin_port_impl(
-            ptr,
-            rust_vec_len,
-            data_len,
-        ),
-        31 => wire__crate__api__ssh__SshChannel_exit_status_impl(ptr, rust_vec_len, data_len),
-        48 => wire__crate__api__ssh__SshClient_is_closed_impl(ptr, rust_vec_len, data_len),
-        52 => wire__crate__api__ssh__SshClient_remote_version_impl(ptr, rust_vec_len, data_len),
+        31 => wire__crate__api__channel__SshChannel_exit_status_impl(ptr, rust_vec_len, data_len),
+        48 => wire__crate__api__connection__SshClient_is_closed_impl(ptr, rust_vec_len, data_len),
+        52 => {
+            wire__crate__api__connection__SshClient_remote_version_impl(ptr, rust_vec_len, data_len)
+        }
         56 => wire__crate__api__util__engine_version_impl(ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
@@ -3902,7 +3978,7 @@ impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<SshClient>> for SshClient {
     }
 }
 
-impl flutter_rust_bridge::IntoDart for crate::api::ssh::ChannelChunk {
+impl flutter_rust_bridge::IntoDart for crate::api::channel::ChannelChunk {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
             self.data.into_into_dart().into_dart(),
@@ -3913,16 +3989,19 @@ impl flutter_rust_bridge::IntoDart for crate::api::ssh::ChannelChunk {
         .into_dart()
     }
 }
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::api::ssh::ChannelChunk {}
-impl flutter_rust_bridge::IntoIntoDart<crate::api::ssh::ChannelChunk>
-    for crate::api::ssh::ChannelChunk
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::channel::ChannelChunk
 {
-    fn into_into_dart(self) -> crate::api::ssh::ChannelChunk {
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::channel::ChannelChunk>
+    for crate::api::channel::ChannelChunk
+{
+    fn into_into_dart(self) -> crate::api::channel::ChannelChunk {
         self
     }
 }
 
-impl flutter_rust_bridge::IntoDart for crate::api::ssh::ConnectParams {
+impl flutter_rust_bridge::IntoDart for crate::api::connection::ConnectParams {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
             self.host.into_into_dart().into_dart(),
@@ -3935,13 +4014,13 @@ impl flutter_rust_bridge::IntoDart for crate::api::ssh::ConnectParams {
     }
 }
 impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for crate::api::ssh::ConnectParams
+    for crate::api::connection::ConnectParams
 {
 }
-impl flutter_rust_bridge::IntoIntoDart<crate::api::ssh::ConnectParams>
-    for crate::api::ssh::ConnectParams
+impl flutter_rust_bridge::IntoIntoDart<crate::api::connection::ConnectParams>
+    for crate::api::connection::ConnectParams
 {
-    fn into_into_dart(self) -> crate::api::ssh::ConnectParams {
+    fn into_into_dart(self) -> crate::api::connection::ConnectParams {
         self
     }
 }
@@ -4163,7 +4242,7 @@ impl SseEncode for bool {
     }
 }
 
-impl SseEncode for crate::api::ssh::ChannelChunk {
+impl SseEncode for crate::api::channel::ChannelChunk {
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <Vec<u8>>::sse_encode(self.data, serializer);
         <Vec<u8>>::sse_encode(self.extended, serializer);
@@ -4172,7 +4251,7 @@ impl SseEncode for crate::api::ssh::ChannelChunk {
     }
 }
 
-impl SseEncode for crate::api::ssh::ConnectParams {
+impl SseEncode for crate::api::connection::ConnectParams {
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <String>::sse_encode(self.host, serializer);
         <u16>::sse_encode(self.port, serializer);
@@ -4383,8 +4462,10 @@ impl SseEncode for usize {
 mod io {
 
     use super::*;
+    use crate::api::channel::*;
+    use crate::api::connection::*;
+    use crate::api::forwarding::*;
     use crate::api::sftp::*;
-    use crate::api::ssh::*;
     use crate::api::util::*;
     use flutter_rust_bridge::for_generated::byteorder::{
         NativeEndian, ReadBytesExt, WriteBytesExt,
@@ -4485,8 +4566,10 @@ pub use io::*;
 mod web {
 
     use super::*;
+    use crate::api::channel::*;
+    use crate::api::connection::*;
+    use crate::api::forwarding::*;
     use crate::api::sftp::*;
-    use crate::api::ssh::*;
     use crate::api::util::*;
     use flutter_rust_bridge::for_generated::byteorder::{
         NativeEndian, ReadBytesExt, WriteBytesExt,

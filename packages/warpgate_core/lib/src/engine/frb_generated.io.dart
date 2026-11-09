@@ -1,6 +1,8 @@
+import 'api/channel.dart';
+import 'api/connection.dart';
 import 'api/error.dart';
+import 'api/forwarding.dart';
 import 'api/sftp.dart';
-import 'api/ssh.dart';
 import 'api/util.dart';
 
 import 'dart:async';

@@ -10,7 +10,7 @@ import 'package:warpgate_core/features/connection/engine/native/native_engine.da
 import 'package:warpgate_core/features/connection/engine/native/native_sftp.dart';
 import 'package:warpgate_core/features/connection/engine/tunnel_socket.dart';
 import 'package:warpgate_core/features/sftp/domain/file_endpoint.dart' show CancelToken;
-import 'package:warpgate_core/src/engine/api/ssh.dart' as rs;
+import 'package:warpgate_core/src/engine/api/connection.dart' as rs;
 import 'package:warpgate_core/src/engine/api/util.dart' as rs;
 
 class NativeSshClient implements SshClient {

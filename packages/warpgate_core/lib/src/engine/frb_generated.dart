@@ -1,6 +1,8 @@
+import 'api/channel.dart';
+import 'api/connection.dart';
 import 'api/error.dart';
+import 'api/forwarding.dart';
 import 'api/sftp.dart';
-import 'api/ssh.dart';
 import 'api/util.dart';
 
 import 'dart:async';
@@ -65,7 +67,7 @@ class WarpgateEngine
   String get codegenVersion => '2.12.0';
 
   @override
-  int get rustContentHash => 1760737308;
+  int get rustContentHash => 32411254;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -83,47 +85,47 @@ abstract class WarpgateEngineApi extends BaseApi {
 
   CancelToken crateApiUtilCancelTokenNew();
 
-  SshChannel crateApiSshForwardedConnectionAutoAccessorGetChannel({
+  SshChannel crateApiForwardingForwardedConnectionAutoAccessorGetChannel({
     required ForwardedConnection that,
   });
 
-  String crateApiSshForwardedConnectionAutoAccessorGetConnectedHost({
+  String crateApiForwardingForwardedConnectionAutoAccessorGetConnectedHost({
     required ForwardedConnection that,
   });
 
-  int crateApiSshForwardedConnectionAutoAccessorGetConnectedPort({
+  int crateApiForwardingForwardedConnectionAutoAccessorGetConnectedPort({
     required ForwardedConnection that,
   });
 
-  String crateApiSshForwardedConnectionAutoAccessorGetOriginHost({
+  String crateApiForwardingForwardedConnectionAutoAccessorGetOriginHost({
     required ForwardedConnection that,
   });
 
-  int crateApiSshForwardedConnectionAutoAccessorGetOriginPort({
+  int crateApiForwardingForwardedConnectionAutoAccessorGetOriginPort({
     required ForwardedConnection that,
   });
 
-  void crateApiSshForwardedConnectionAutoAccessorSetChannel({
+  void crateApiForwardingForwardedConnectionAutoAccessorSetChannel({
     required ForwardedConnection that,
     required SshChannel channel,
   });
 
-  void crateApiSshForwardedConnectionAutoAccessorSetConnectedHost({
+  void crateApiForwardingForwardedConnectionAutoAccessorSetConnectedHost({
     required ForwardedConnection that,
     required String connectedHost,
   });
 
-  void crateApiSshForwardedConnectionAutoAccessorSetConnectedPort({
+  void crateApiForwardingForwardedConnectionAutoAccessorSetConnectedPort({
     required ForwardedConnection that,
     required int connectedPort,
   });
 
-  void crateApiSshForwardedConnectionAutoAccessorSetOriginHost({
+  void crateApiForwardingForwardedConnectionAutoAccessorSetOriginHost({
     required ForwardedConnection that,
     required String originHost,
   });
 
-  void crateApiSshForwardedConnectionAutoAccessorSetOriginPort({
+  void crateApiForwardingForwardedConnectionAutoAccessorSetOriginPort({
     required ForwardedConnection that,
     required int originPort,
   });
@@ -195,66 +197,68 @@ abstract class WarpgateEngineApi extends BaseApi {
     required bool followLinks,
   });
 
-  Future<void> crateApiSshSshChannelClose({required SshChannel that});
+  Future<void> crateApiChannelSshChannelClose({required SshChannel that});
 
-  Future<void> crateApiSshSshChannelEof({required SshChannel that});
+  Future<void> crateApiChannelSshChannelEof({required SshChannel that});
 
-  Future<void> crateApiSshSshChannelExec({
+  Future<void> crateApiChannelSshChannelExec({
     required SshChannel that,
     required String command,
   });
 
-  int? crateApiSshSshChannelExitStatus({required SshChannel that});
+  int? crateApiChannelSshChannelExitStatus({required SshChannel that});
 
-  Future<ChannelChunk> crateApiSshSshChannelRead({
+  Future<ChannelChunk> crateApiChannelSshChannelRead({
     required SshChannel that,
     required int maxBytes,
   });
 
-  Future<void> crateApiSshSshChannelRequestPty({
+  Future<void> crateApiChannelSshChannelRequestPty({
     required SshChannel that,
     required String term,
     required int columns,
     required int rows,
   });
 
-  Future<void> crateApiSshSshChannelRequestShell({required SshChannel that});
+  Future<void> crateApiChannelSshChannelRequestShell({
+    required SshChannel that,
+  });
 
-  Future<void> crateApiSshSshChannelSetEnv({
+  Future<void> crateApiChannelSshChannelSetEnv({
     required SshChannel that,
     required String name,
     required String value,
   });
 
-  Future<void> crateApiSshSshChannelWindowChange({
+  Future<void> crateApiChannelSshChannelWindowChange({
     required SshChannel that,
     required int columns,
     required int rows,
   });
 
-  Future<void> crateApiSshSshChannelWrite({
+  Future<void> crateApiChannelSshChannelWrite({
     required SshChannel that,
     required List<int> data,
   });
 
-  Future<ForwardedConnection?> crateApiSshSshClientAcceptForwarded({
+  Future<ForwardedConnection?> crateApiConnectionSshClientAcceptForwarded({
     required SshClient that,
   });
 
-  Future<bool> crateApiSshSshClientAuthAgent({
+  Future<bool> crateApiConnectionSshClientAuthAgent({
     required SshClient that,
     required String user,
     String? socket,
   });
 
-  Future<bool> crateApiSshSshClientAuthKey({
+  Future<bool> crateApiConnectionSshClientAuthKey({
     required SshClient that,
     required String user,
     required String pem,
     String? passphrase,
   });
 
-  Future<bool> crateApiSshSshClientAuthKeyboardInteractive({
+  Future<bool> crateApiConnectionSshClientAuthKeyboardInteractive({
     required SshClient that,
     required String user,
     required FutureOr<List<String>?> Function(
@@ -266,59 +270,63 @@ abstract class WarpgateEngineApi extends BaseApi {
     responder,
   });
 
-  Future<bool> crateApiSshSshClientAuthNone({
+  Future<bool> crateApiConnectionSshClientAuthNone({
     required SshClient that,
     required String user,
   });
 
-  Future<bool> crateApiSshSshClientAuthPassword({
+  Future<bool> crateApiConnectionSshClientAuthPassword({
     required SshClient that,
     required String user,
     required String password,
   });
 
-  Future<void> crateApiSshSshClientCancelForwardRemote({
+  Future<void> crateApiConnectionSshClientCancelForwardRemote({
     required SshClient that,
     required String host,
     required int port,
   });
 
-  Future<SshClient> crateApiSshSshClientConnectVia({
+  Future<SshClient> crateApiConnectionSshClientConnectVia({
     required SshClient that,
     required ConnectParams params,
     required FutureOr<bool> Function(String, String) verifier,
   });
 
-  Future<void> crateApiSshSshClientDisconnect({required SshClient that});
+  Future<void> crateApiConnectionSshClientDisconnect({required SshClient that});
 
-  Future<int> crateApiSshSshClientForwardRemote({
+  Future<int> crateApiConnectionSshClientForwardRemote({
     required SshClient that,
     required String host,
     required int port,
   });
 
-  bool crateApiSshSshClientIsClosed({required SshClient that});
+  bool crateApiConnectionSshClientIsClosed({required SshClient that});
 
-  Future<SshChannel> crateApiSshSshClientOpenDirectTcpip({
+  Future<SshChannel> crateApiConnectionSshClientOpenDirectTcpip({
     required SshClient that,
     required String host,
     required int port,
   });
 
-  Future<SshChannel> crateApiSshSshClientOpenSession({required SshClient that});
+  Future<SshChannel> crateApiConnectionSshClientOpenSession({
+    required SshClient that,
+  });
 
-  Future<void> crateApiSshSshClientPing({
+  Future<void> crateApiConnectionSshClientPing({
     required SshClient that,
     required int timeoutMs,
   });
 
-  String? crateApiSshSshClientRemoteVersion({required SshClient that});
+  String? crateApiConnectionSshClientRemoteVersion({required SshClient that});
 
-  Future<SftpSession> crateApiSshSshClientSftp({required SshClient that});
+  Future<SftpSession> crateApiConnectionSshClientSftp({
+    required SshClient that,
+  });
 
-  Future<void> crateApiSshSshClientWaitClosed({required SshClient that});
+  Future<void> crateApiConnectionSshClientWaitClosed({required SshClient that});
 
-  Future<SshClient> crateApiSshConnect({
+  Future<SshClient> crateApiConnectionConnect({
     required ConnectParams params,
     required CancelToken cancel,
     required FutureOr<bool> Function(String, String) verifier,
@@ -468,7 +476,7 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
       const TaskConstMeta(debugName: "CancelToken_new", argNames: []);
 
   @override
-  SshChannel crateApiSshForwardedConnectionAutoAccessorGetChannel({
+  SshChannel crateApiForwardingForwardedConnectionAutoAccessorGetChannel({
     required ForwardedConnection that,
   }) {
     return handler.executeSync(
@@ -487,7 +495,7 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
           decodeErrorData: null,
         ),
         constMeta:
-            kCrateApiSshForwardedConnectionAutoAccessorGetChannelConstMeta,
+            kCrateApiForwardingForwardedConnectionAutoAccessorGetChannelConstMeta,
         argValues: [that],
         apiImpl: this,
       ),
@@ -495,14 +503,14 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
   }
 
   TaskConstMeta
-  get kCrateApiSshForwardedConnectionAutoAccessorGetChannelConstMeta =>
+  get kCrateApiForwardingForwardedConnectionAutoAccessorGetChannelConstMeta =>
       const TaskConstMeta(
         debugName: "ForwardedConnection_auto_accessor_get_channel",
         argNames: ["that"],
       );
 
   @override
-  String crateApiSshForwardedConnectionAutoAccessorGetConnectedHost({
+  String crateApiForwardingForwardedConnectionAutoAccessorGetConnectedHost({
     required ForwardedConnection that,
   }) {
     return handler.executeSync(
@@ -520,7 +528,7 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
           decodeErrorData: null,
         ),
         constMeta:
-            kCrateApiSshForwardedConnectionAutoAccessorGetConnectedHostConstMeta,
+            kCrateApiForwardingForwardedConnectionAutoAccessorGetConnectedHostConstMeta,
         argValues: [that],
         apiImpl: this,
       ),
@@ -528,14 +536,14 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
   }
 
   TaskConstMeta
-  get kCrateApiSshForwardedConnectionAutoAccessorGetConnectedHostConstMeta =>
+  get kCrateApiForwardingForwardedConnectionAutoAccessorGetConnectedHostConstMeta =>
       const TaskConstMeta(
         debugName: "ForwardedConnection_auto_accessor_get_connected_host",
         argNames: ["that"],
       );
 
   @override
-  int crateApiSshForwardedConnectionAutoAccessorGetConnectedPort({
+  int crateApiForwardingForwardedConnectionAutoAccessorGetConnectedPort({
     required ForwardedConnection that,
   }) {
     return handler.executeSync(
@@ -553,7 +561,7 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
           decodeErrorData: null,
         ),
         constMeta:
-            kCrateApiSshForwardedConnectionAutoAccessorGetConnectedPortConstMeta,
+            kCrateApiForwardingForwardedConnectionAutoAccessorGetConnectedPortConstMeta,
         argValues: [that],
         apiImpl: this,
       ),
@@ -561,14 +569,14 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
   }
 
   TaskConstMeta
-  get kCrateApiSshForwardedConnectionAutoAccessorGetConnectedPortConstMeta =>
+  get kCrateApiForwardingForwardedConnectionAutoAccessorGetConnectedPortConstMeta =>
       const TaskConstMeta(
         debugName: "ForwardedConnection_auto_accessor_get_connected_port",
         argNames: ["that"],
       );
 
   @override
-  String crateApiSshForwardedConnectionAutoAccessorGetOriginHost({
+  String crateApiForwardingForwardedConnectionAutoAccessorGetOriginHost({
     required ForwardedConnection that,
   }) {
     return handler.executeSync(
@@ -586,7 +594,7 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
           decodeErrorData: null,
         ),
         constMeta:
-            kCrateApiSshForwardedConnectionAutoAccessorGetOriginHostConstMeta,
+            kCrateApiForwardingForwardedConnectionAutoAccessorGetOriginHostConstMeta,
         argValues: [that],
         apiImpl: this,
       ),
@@ -594,14 +602,14 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
   }
 
   TaskConstMeta
-  get kCrateApiSshForwardedConnectionAutoAccessorGetOriginHostConstMeta =>
+  get kCrateApiForwardingForwardedConnectionAutoAccessorGetOriginHostConstMeta =>
       const TaskConstMeta(
         debugName: "ForwardedConnection_auto_accessor_get_origin_host",
         argNames: ["that"],
       );
 
   @override
-  int crateApiSshForwardedConnectionAutoAccessorGetOriginPort({
+  int crateApiForwardingForwardedConnectionAutoAccessorGetOriginPort({
     required ForwardedConnection that,
   }) {
     return handler.executeSync(
@@ -619,7 +627,7 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
           decodeErrorData: null,
         ),
         constMeta:
-            kCrateApiSshForwardedConnectionAutoAccessorGetOriginPortConstMeta,
+            kCrateApiForwardingForwardedConnectionAutoAccessorGetOriginPortConstMeta,
         argValues: [that],
         apiImpl: this,
       ),
@@ -627,14 +635,14 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
   }
 
   TaskConstMeta
-  get kCrateApiSshForwardedConnectionAutoAccessorGetOriginPortConstMeta =>
+  get kCrateApiForwardingForwardedConnectionAutoAccessorGetOriginPortConstMeta =>
       const TaskConstMeta(
         debugName: "ForwardedConnection_auto_accessor_get_origin_port",
         argNames: ["that"],
       );
 
   @override
-  void crateApiSshForwardedConnectionAutoAccessorSetChannel({
+  void crateApiForwardingForwardedConnectionAutoAccessorSetChannel({
     required ForwardedConnection that,
     required SshChannel channel,
   }) {
@@ -657,7 +665,7 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
           decodeErrorData: null,
         ),
         constMeta:
-            kCrateApiSshForwardedConnectionAutoAccessorSetChannelConstMeta,
+            kCrateApiForwardingForwardedConnectionAutoAccessorSetChannelConstMeta,
         argValues: [that, channel],
         apiImpl: this,
       ),
@@ -665,14 +673,14 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
   }
 
   TaskConstMeta
-  get kCrateApiSshForwardedConnectionAutoAccessorSetChannelConstMeta =>
+  get kCrateApiForwardingForwardedConnectionAutoAccessorSetChannelConstMeta =>
       const TaskConstMeta(
         debugName: "ForwardedConnection_auto_accessor_set_channel",
         argNames: ["that", "channel"],
       );
 
   @override
-  void crateApiSshForwardedConnectionAutoAccessorSetConnectedHost({
+  void crateApiForwardingForwardedConnectionAutoAccessorSetConnectedHost({
     required ForwardedConnection that,
     required String connectedHost,
   }) {
@@ -692,7 +700,7 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
           decodeErrorData: null,
         ),
         constMeta:
-            kCrateApiSshForwardedConnectionAutoAccessorSetConnectedHostConstMeta,
+            kCrateApiForwardingForwardedConnectionAutoAccessorSetConnectedHostConstMeta,
         argValues: [that, connectedHost],
         apiImpl: this,
       ),
@@ -700,14 +708,14 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
   }
 
   TaskConstMeta
-  get kCrateApiSshForwardedConnectionAutoAccessorSetConnectedHostConstMeta =>
+  get kCrateApiForwardingForwardedConnectionAutoAccessorSetConnectedHostConstMeta =>
       const TaskConstMeta(
         debugName: "ForwardedConnection_auto_accessor_set_connected_host",
         argNames: ["that", "connectedHost"],
       );
 
   @override
-  void crateApiSshForwardedConnectionAutoAccessorSetConnectedPort({
+  void crateApiForwardingForwardedConnectionAutoAccessorSetConnectedPort({
     required ForwardedConnection that,
     required int connectedPort,
   }) {
@@ -727,7 +735,7 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
           decodeErrorData: null,
         ),
         constMeta:
-            kCrateApiSshForwardedConnectionAutoAccessorSetConnectedPortConstMeta,
+            kCrateApiForwardingForwardedConnectionAutoAccessorSetConnectedPortConstMeta,
         argValues: [that, connectedPort],
         apiImpl: this,
       ),
@@ -735,14 +743,14 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
   }
 
   TaskConstMeta
-  get kCrateApiSshForwardedConnectionAutoAccessorSetConnectedPortConstMeta =>
+  get kCrateApiForwardingForwardedConnectionAutoAccessorSetConnectedPortConstMeta =>
       const TaskConstMeta(
         debugName: "ForwardedConnection_auto_accessor_set_connected_port",
         argNames: ["that", "connectedPort"],
       );
 
   @override
-  void crateApiSshForwardedConnectionAutoAccessorSetOriginHost({
+  void crateApiForwardingForwardedConnectionAutoAccessorSetOriginHost({
     required ForwardedConnection that,
     required String originHost,
   }) {
@@ -762,7 +770,7 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
           decodeErrorData: null,
         ),
         constMeta:
-            kCrateApiSshForwardedConnectionAutoAccessorSetOriginHostConstMeta,
+            kCrateApiForwardingForwardedConnectionAutoAccessorSetOriginHostConstMeta,
         argValues: [that, originHost],
         apiImpl: this,
       ),
@@ -770,14 +778,14 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
   }
 
   TaskConstMeta
-  get kCrateApiSshForwardedConnectionAutoAccessorSetOriginHostConstMeta =>
+  get kCrateApiForwardingForwardedConnectionAutoAccessorSetOriginHostConstMeta =>
       const TaskConstMeta(
         debugName: "ForwardedConnection_auto_accessor_set_origin_host",
         argNames: ["that", "originHost"],
       );
 
   @override
-  void crateApiSshForwardedConnectionAutoAccessorSetOriginPort({
+  void crateApiForwardingForwardedConnectionAutoAccessorSetOriginPort({
     required ForwardedConnection that,
     required int originPort,
   }) {
@@ -797,7 +805,7 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
           decodeErrorData: null,
         ),
         constMeta:
-            kCrateApiSshForwardedConnectionAutoAccessorSetOriginPortConstMeta,
+            kCrateApiForwardingForwardedConnectionAutoAccessorSetOriginPortConstMeta,
         argValues: [that, originPort],
         apiImpl: this,
       ),
@@ -805,7 +813,7 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
   }
 
   TaskConstMeta
-  get kCrateApiSshForwardedConnectionAutoAccessorSetOriginPortConstMeta =>
+  get kCrateApiForwardingForwardedConnectionAutoAccessorSetOriginPortConstMeta =>
       const TaskConstMeta(
         debugName: "ForwardedConnection_auto_accessor_set_origin_port",
         argNames: ["that", "originPort"],
@@ -1334,7 +1342,7 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
       );
 
   @override
-  Future<void> crateApiSshSshChannelClose({required SshChannel that}) {
+  Future<void> crateApiChannelSshChannelClose({required SshChannel that}) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
@@ -1354,18 +1362,18 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
           decodeSuccessData: sse_decode_unit,
           decodeErrorData: sse_decode_engine_error,
         ),
-        constMeta: kCrateApiSshSshChannelCloseConstMeta,
+        constMeta: kCrateApiChannelSshChannelCloseConstMeta,
         argValues: [that],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiSshSshChannelCloseConstMeta =>
+  TaskConstMeta get kCrateApiChannelSshChannelCloseConstMeta =>
       const TaskConstMeta(debugName: "SshChannel_close", argNames: ["that"]);
 
   @override
-  Future<void> crateApiSshSshChannelEof({required SshChannel that}) {
+  Future<void> crateApiChannelSshChannelEof({required SshChannel that}) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
@@ -1385,18 +1393,18 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
           decodeSuccessData: sse_decode_unit,
           decodeErrorData: sse_decode_engine_error,
         ),
-        constMeta: kCrateApiSshSshChannelEofConstMeta,
+        constMeta: kCrateApiChannelSshChannelEofConstMeta,
         argValues: [that],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiSshSshChannelEofConstMeta =>
+  TaskConstMeta get kCrateApiChannelSshChannelEofConstMeta =>
       const TaskConstMeta(debugName: "SshChannel_eof", argNames: ["that"]);
 
   @override
-  Future<void> crateApiSshSshChannelExec({
+  Future<void> crateApiChannelSshChannelExec({
     required SshChannel that,
     required String command,
   }) {
@@ -1420,20 +1428,21 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
           decodeSuccessData: sse_decode_unit,
           decodeErrorData: sse_decode_engine_error,
         ),
-        constMeta: kCrateApiSshSshChannelExecConstMeta,
+        constMeta: kCrateApiChannelSshChannelExecConstMeta,
         argValues: [that, command],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiSshSshChannelExecConstMeta => const TaskConstMeta(
-    debugName: "SshChannel_exec",
-    argNames: ["that", "command"],
-  );
+  TaskConstMeta get kCrateApiChannelSshChannelExecConstMeta =>
+      const TaskConstMeta(
+        debugName: "SshChannel_exec",
+        argNames: ["that", "command"],
+      );
 
   @override
-  int? crateApiSshSshChannelExitStatus({required SshChannel that}) {
+  int? crateApiChannelSshChannelExitStatus({required SshChannel that}) {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
@@ -1448,21 +1457,21 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
           decodeSuccessData: sse_decode_opt_box_autoadd_u_32,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiSshSshChannelExitStatusConstMeta,
+        constMeta: kCrateApiChannelSshChannelExitStatusConstMeta,
         argValues: [that],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiSshSshChannelExitStatusConstMeta =>
+  TaskConstMeta get kCrateApiChannelSshChannelExitStatusConstMeta =>
       const TaskConstMeta(
         debugName: "SshChannel_exit_status",
         argNames: ["that"],
       );
 
   @override
-  Future<ChannelChunk> crateApiSshSshChannelRead({
+  Future<ChannelChunk> crateApiChannelSshChannelRead({
     required SshChannel that,
     required int maxBytes,
   }) {
@@ -1486,20 +1495,21 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
           decodeSuccessData: sse_decode_channel_chunk,
           decodeErrorData: sse_decode_engine_error,
         ),
-        constMeta: kCrateApiSshSshChannelReadConstMeta,
+        constMeta: kCrateApiChannelSshChannelReadConstMeta,
         argValues: [that, maxBytes],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiSshSshChannelReadConstMeta => const TaskConstMeta(
-    debugName: "SshChannel_read",
-    argNames: ["that", "maxBytes"],
-  );
+  TaskConstMeta get kCrateApiChannelSshChannelReadConstMeta =>
+      const TaskConstMeta(
+        debugName: "SshChannel_read",
+        argNames: ["that", "maxBytes"],
+      );
 
   @override
-  Future<void> crateApiSshSshChannelRequestPty({
+  Future<void> crateApiChannelSshChannelRequestPty({
     required SshChannel that,
     required String term,
     required int columns,
@@ -1527,21 +1537,23 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
           decodeSuccessData: sse_decode_unit,
           decodeErrorData: sse_decode_engine_error,
         ),
-        constMeta: kCrateApiSshSshChannelRequestPtyConstMeta,
+        constMeta: kCrateApiChannelSshChannelRequestPtyConstMeta,
         argValues: [that, term, columns, rows],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiSshSshChannelRequestPtyConstMeta =>
+  TaskConstMeta get kCrateApiChannelSshChannelRequestPtyConstMeta =>
       const TaskConstMeta(
         debugName: "SshChannel_request_pty",
         argNames: ["that", "term", "columns", "rows"],
       );
 
   @override
-  Future<void> crateApiSshSshChannelRequestShell({required SshChannel that}) {
+  Future<void> crateApiChannelSshChannelRequestShell({
+    required SshChannel that,
+  }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
@@ -1561,21 +1573,21 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
           decodeSuccessData: sse_decode_unit,
           decodeErrorData: sse_decode_engine_error,
         ),
-        constMeta: kCrateApiSshSshChannelRequestShellConstMeta,
+        constMeta: kCrateApiChannelSshChannelRequestShellConstMeta,
         argValues: [that],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiSshSshChannelRequestShellConstMeta =>
+  TaskConstMeta get kCrateApiChannelSshChannelRequestShellConstMeta =>
       const TaskConstMeta(
         debugName: "SshChannel_request_shell",
         argNames: ["that"],
       );
 
   @override
-  Future<void> crateApiSshSshChannelSetEnv({
+  Future<void> crateApiChannelSshChannelSetEnv({
     required SshChannel that,
     required String name,
     required String value,
@@ -1601,21 +1613,21 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
           decodeSuccessData: sse_decode_unit,
           decodeErrorData: sse_decode_engine_error,
         ),
-        constMeta: kCrateApiSshSshChannelSetEnvConstMeta,
+        constMeta: kCrateApiChannelSshChannelSetEnvConstMeta,
         argValues: [that, name, value],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiSshSshChannelSetEnvConstMeta =>
+  TaskConstMeta get kCrateApiChannelSshChannelSetEnvConstMeta =>
       const TaskConstMeta(
         debugName: "SshChannel_set_env",
         argNames: ["that", "name", "value"],
       );
 
   @override
-  Future<void> crateApiSshSshChannelWindowChange({
+  Future<void> crateApiChannelSshChannelWindowChange({
     required SshChannel that,
     required int columns,
     required int rows,
@@ -1641,21 +1653,21 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
           decodeSuccessData: sse_decode_unit,
           decodeErrorData: sse_decode_engine_error,
         ),
-        constMeta: kCrateApiSshSshChannelWindowChangeConstMeta,
+        constMeta: kCrateApiChannelSshChannelWindowChangeConstMeta,
         argValues: [that, columns, rows],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiSshSshChannelWindowChangeConstMeta =>
+  TaskConstMeta get kCrateApiChannelSshChannelWindowChangeConstMeta =>
       const TaskConstMeta(
         debugName: "SshChannel_window_change",
         argNames: ["that", "columns", "rows"],
       );
 
   @override
-  Future<void> crateApiSshSshChannelWrite({
+  Future<void> crateApiChannelSshChannelWrite({
     required SshChannel that,
     required List<int> data,
   }) {
@@ -1679,20 +1691,21 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
           decodeSuccessData: sse_decode_unit,
           decodeErrorData: sse_decode_engine_error,
         ),
-        constMeta: kCrateApiSshSshChannelWriteConstMeta,
+        constMeta: kCrateApiChannelSshChannelWriteConstMeta,
         argValues: [that, data],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiSshSshChannelWriteConstMeta => const TaskConstMeta(
-    debugName: "SshChannel_write",
-    argNames: ["that", "data"],
-  );
+  TaskConstMeta get kCrateApiChannelSshChannelWriteConstMeta =>
+      const TaskConstMeta(
+        debugName: "SshChannel_write",
+        argNames: ["that", "data"],
+      );
 
   @override
-  Future<ForwardedConnection?> crateApiSshSshClientAcceptForwarded({
+  Future<ForwardedConnection?> crateApiConnectionSshClientAcceptForwarded({
     required SshClient that,
   }) {
     return handler.executeNormal(
@@ -1715,21 +1728,21 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
               sse_decode_opt_box_autoadd_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerForwardedConnection,
           decodeErrorData: sse_decode_engine_error,
         ),
-        constMeta: kCrateApiSshSshClientAcceptForwardedConstMeta,
+        constMeta: kCrateApiConnectionSshClientAcceptForwardedConstMeta,
         argValues: [that],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiSshSshClientAcceptForwardedConstMeta =>
+  TaskConstMeta get kCrateApiConnectionSshClientAcceptForwardedConstMeta =>
       const TaskConstMeta(
         debugName: "SshClient_accept_forwarded",
         argNames: ["that"],
       );
 
   @override
-  Future<bool> crateApiSshSshClientAuthAgent({
+  Future<bool> crateApiConnectionSshClientAuthAgent({
     required SshClient that,
     required String user,
     String? socket,
@@ -1755,21 +1768,21 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
           decodeSuccessData: sse_decode_bool,
           decodeErrorData: sse_decode_engine_error,
         ),
-        constMeta: kCrateApiSshSshClientAuthAgentConstMeta,
+        constMeta: kCrateApiConnectionSshClientAuthAgentConstMeta,
         argValues: [that, user, socket],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiSshSshClientAuthAgentConstMeta =>
+  TaskConstMeta get kCrateApiConnectionSshClientAuthAgentConstMeta =>
       const TaskConstMeta(
         debugName: "SshClient_auth_agent",
         argNames: ["that", "user", "socket"],
       );
 
   @override
-  Future<bool> crateApiSshSshClientAuthKey({
+  Future<bool> crateApiConnectionSshClientAuthKey({
     required SshClient that,
     required String user,
     required String pem,
@@ -1797,21 +1810,21 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
           decodeSuccessData: sse_decode_bool,
           decodeErrorData: sse_decode_engine_error,
         ),
-        constMeta: kCrateApiSshSshClientAuthKeyConstMeta,
+        constMeta: kCrateApiConnectionSshClientAuthKeyConstMeta,
         argValues: [that, user, pem, passphrase],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiSshSshClientAuthKeyConstMeta =>
+  TaskConstMeta get kCrateApiConnectionSshClientAuthKeyConstMeta =>
       const TaskConstMeta(
         debugName: "SshClient_auth_key",
         argNames: ["that", "user", "pem", "passphrase"],
       );
 
   @override
-  Future<bool> crateApiSshSshClientAuthKeyboardInteractive({
+  Future<bool> crateApiConnectionSshClientAuthKeyboardInteractive({
     required SshClient that,
     required String user,
     required FutureOr<List<String>?> Function(
@@ -1846,21 +1859,22 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
           decodeSuccessData: sse_decode_bool,
           decodeErrorData: sse_decode_engine_error,
         ),
-        constMeta: kCrateApiSshSshClientAuthKeyboardInteractiveConstMeta,
+        constMeta: kCrateApiConnectionSshClientAuthKeyboardInteractiveConstMeta,
         argValues: [that, user, responder],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiSshSshClientAuthKeyboardInteractiveConstMeta =>
+  TaskConstMeta
+  get kCrateApiConnectionSshClientAuthKeyboardInteractiveConstMeta =>
       const TaskConstMeta(
         debugName: "SshClient_auth_keyboard_interactive",
         argNames: ["that", "user", "responder"],
       );
 
   @override
-  Future<bool> crateApiSshSshClientAuthNone({
+  Future<bool> crateApiConnectionSshClientAuthNone({
     required SshClient that,
     required String user,
   }) {
@@ -1884,21 +1898,21 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
           decodeSuccessData: sse_decode_bool,
           decodeErrorData: sse_decode_engine_error,
         ),
-        constMeta: kCrateApiSshSshClientAuthNoneConstMeta,
+        constMeta: kCrateApiConnectionSshClientAuthNoneConstMeta,
         argValues: [that, user],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiSshSshClientAuthNoneConstMeta =>
+  TaskConstMeta get kCrateApiConnectionSshClientAuthNoneConstMeta =>
       const TaskConstMeta(
         debugName: "SshClient_auth_none",
         argNames: ["that", "user"],
       );
 
   @override
-  Future<bool> crateApiSshSshClientAuthPassword({
+  Future<bool> crateApiConnectionSshClientAuthPassword({
     required SshClient that,
     required String user,
     required String password,
@@ -1924,21 +1938,21 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
           decodeSuccessData: sse_decode_bool,
           decodeErrorData: sse_decode_engine_error,
         ),
-        constMeta: kCrateApiSshSshClientAuthPasswordConstMeta,
+        constMeta: kCrateApiConnectionSshClientAuthPasswordConstMeta,
         argValues: [that, user, password],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiSshSshClientAuthPasswordConstMeta =>
+  TaskConstMeta get kCrateApiConnectionSshClientAuthPasswordConstMeta =>
       const TaskConstMeta(
         debugName: "SshClient_auth_password",
         argNames: ["that", "user", "password"],
       );
 
   @override
-  Future<void> crateApiSshSshClientCancelForwardRemote({
+  Future<void> crateApiConnectionSshClientCancelForwardRemote({
     required SshClient that,
     required String host,
     required int port,
@@ -1964,21 +1978,21 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
           decodeSuccessData: sse_decode_unit,
           decodeErrorData: sse_decode_engine_error,
         ),
-        constMeta: kCrateApiSshSshClientCancelForwardRemoteConstMeta,
+        constMeta: kCrateApiConnectionSshClientCancelForwardRemoteConstMeta,
         argValues: [that, host, port],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiSshSshClientCancelForwardRemoteConstMeta =>
+  TaskConstMeta get kCrateApiConnectionSshClientCancelForwardRemoteConstMeta =>
       const TaskConstMeta(
         debugName: "SshClient_cancel_forward_remote",
         argNames: ["that", "host", "port"],
       );
 
   @override
-  Future<SshClient> crateApiSshSshClientConnectVia({
+  Future<SshClient> crateApiConnectionSshClientConnectVia({
     required SshClient that,
     required ConnectParams params,
     required FutureOr<bool> Function(String, String) verifier,
@@ -2008,21 +2022,23 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
               sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSshClient,
           decodeErrorData: sse_decode_engine_error,
         ),
-        constMeta: kCrateApiSshSshClientConnectViaConstMeta,
+        constMeta: kCrateApiConnectionSshClientConnectViaConstMeta,
         argValues: [that, params, verifier],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiSshSshClientConnectViaConstMeta =>
+  TaskConstMeta get kCrateApiConnectionSshClientConnectViaConstMeta =>
       const TaskConstMeta(
         debugName: "SshClient_connect_via",
         argNames: ["that", "params", "verifier"],
       );
 
   @override
-  Future<void> crateApiSshSshClientDisconnect({required SshClient that}) {
+  Future<void> crateApiConnectionSshClientDisconnect({
+    required SshClient that,
+  }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
@@ -2042,21 +2058,21 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
           decodeSuccessData: sse_decode_unit,
           decodeErrorData: sse_decode_engine_error,
         ),
-        constMeta: kCrateApiSshSshClientDisconnectConstMeta,
+        constMeta: kCrateApiConnectionSshClientDisconnectConstMeta,
         argValues: [that],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiSshSshClientDisconnectConstMeta =>
+  TaskConstMeta get kCrateApiConnectionSshClientDisconnectConstMeta =>
       const TaskConstMeta(
         debugName: "SshClient_disconnect",
         argNames: ["that"],
       );
 
   @override
-  Future<int> crateApiSshSshClientForwardRemote({
+  Future<int> crateApiConnectionSshClientForwardRemote({
     required SshClient that,
     required String host,
     required int port,
@@ -2082,21 +2098,21 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
           decodeSuccessData: sse_decode_u_32,
           decodeErrorData: sse_decode_engine_error,
         ),
-        constMeta: kCrateApiSshSshClientForwardRemoteConstMeta,
+        constMeta: kCrateApiConnectionSshClientForwardRemoteConstMeta,
         argValues: [that, host, port],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiSshSshClientForwardRemoteConstMeta =>
+  TaskConstMeta get kCrateApiConnectionSshClientForwardRemoteConstMeta =>
       const TaskConstMeta(
         debugName: "SshClient_forward_remote",
         argNames: ["that", "host", "port"],
       );
 
   @override
-  bool crateApiSshSshClientIsClosed({required SshClient that}) {
+  bool crateApiConnectionSshClientIsClosed({required SshClient that}) {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
@@ -2111,18 +2127,18 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
           decodeSuccessData: sse_decode_bool,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiSshSshClientIsClosedConstMeta,
+        constMeta: kCrateApiConnectionSshClientIsClosedConstMeta,
         argValues: [that],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiSshSshClientIsClosedConstMeta =>
+  TaskConstMeta get kCrateApiConnectionSshClientIsClosedConstMeta =>
       const TaskConstMeta(debugName: "SshClient_is_closed", argNames: ["that"]);
 
   @override
-  Future<SshChannel> crateApiSshSshClientOpenDirectTcpip({
+  Future<SshChannel> crateApiConnectionSshClientOpenDirectTcpip({
     required SshClient that,
     required String host,
     required int port,
@@ -2149,21 +2165,21 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
               sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSshChannel,
           decodeErrorData: sse_decode_engine_error,
         ),
-        constMeta: kCrateApiSshSshClientOpenDirectTcpipConstMeta,
+        constMeta: kCrateApiConnectionSshClientOpenDirectTcpipConstMeta,
         argValues: [that, host, port],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiSshSshClientOpenDirectTcpipConstMeta =>
+  TaskConstMeta get kCrateApiConnectionSshClientOpenDirectTcpipConstMeta =>
       const TaskConstMeta(
         debugName: "SshClient_open_direct_tcpip",
         argNames: ["that", "host", "port"],
       );
 
   @override
-  Future<SshChannel> crateApiSshSshClientOpenSession({
+  Future<SshChannel> crateApiConnectionSshClientOpenSession({
     required SshClient that,
   }) {
     return handler.executeNormal(
@@ -2186,21 +2202,21 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
               sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSshChannel,
           decodeErrorData: sse_decode_engine_error,
         ),
-        constMeta: kCrateApiSshSshClientOpenSessionConstMeta,
+        constMeta: kCrateApiConnectionSshClientOpenSessionConstMeta,
         argValues: [that],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiSshSshClientOpenSessionConstMeta =>
+  TaskConstMeta get kCrateApiConnectionSshClientOpenSessionConstMeta =>
       const TaskConstMeta(
         debugName: "SshClient_open_session",
         argNames: ["that"],
       );
 
   @override
-  Future<void> crateApiSshSshClientPing({
+  Future<void> crateApiConnectionSshClientPing({
     required SshClient that,
     required int timeoutMs,
   }) {
@@ -2224,20 +2240,21 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
           decodeSuccessData: sse_decode_unit,
           decodeErrorData: sse_decode_engine_error,
         ),
-        constMeta: kCrateApiSshSshClientPingConstMeta,
+        constMeta: kCrateApiConnectionSshClientPingConstMeta,
         argValues: [that, timeoutMs],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiSshSshClientPingConstMeta => const TaskConstMeta(
-    debugName: "SshClient_ping",
-    argNames: ["that", "timeoutMs"],
-  );
+  TaskConstMeta get kCrateApiConnectionSshClientPingConstMeta =>
+      const TaskConstMeta(
+        debugName: "SshClient_ping",
+        argNames: ["that", "timeoutMs"],
+      );
 
   @override
-  String? crateApiSshSshClientRemoteVersion({required SshClient that}) {
+  String? crateApiConnectionSshClientRemoteVersion({required SshClient that}) {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
@@ -2252,21 +2269,23 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
           decodeSuccessData: sse_decode_opt_String,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiSshSshClientRemoteVersionConstMeta,
+        constMeta: kCrateApiConnectionSshClientRemoteVersionConstMeta,
         argValues: [that],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiSshSshClientRemoteVersionConstMeta =>
+  TaskConstMeta get kCrateApiConnectionSshClientRemoteVersionConstMeta =>
       const TaskConstMeta(
         debugName: "SshClient_remote_version",
         argNames: ["that"],
       );
 
   @override
-  Future<SftpSession> crateApiSshSshClientSftp({required SshClient that}) {
+  Future<SftpSession> crateApiConnectionSshClientSftp({
+    required SshClient that,
+  }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
@@ -2287,18 +2306,20 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
               sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSftpSession,
           decodeErrorData: sse_decode_engine_error,
         ),
-        constMeta: kCrateApiSshSshClientSftpConstMeta,
+        constMeta: kCrateApiConnectionSshClientSftpConstMeta,
         argValues: [that],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiSshSshClientSftpConstMeta =>
+  TaskConstMeta get kCrateApiConnectionSshClientSftpConstMeta =>
       const TaskConstMeta(debugName: "SshClient_sftp", argNames: ["that"]);
 
   @override
-  Future<void> crateApiSshSshClientWaitClosed({required SshClient that}) {
+  Future<void> crateApiConnectionSshClientWaitClosed({
+    required SshClient that,
+  }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
@@ -2318,21 +2339,21 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
           decodeSuccessData: sse_decode_unit,
           decodeErrorData: sse_decode_engine_error,
         ),
-        constMeta: kCrateApiSshSshClientWaitClosedConstMeta,
+        constMeta: kCrateApiConnectionSshClientWaitClosedConstMeta,
         argValues: [that],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiSshSshClientWaitClosedConstMeta =>
+  TaskConstMeta get kCrateApiConnectionSshClientWaitClosedConstMeta =>
       const TaskConstMeta(
         debugName: "SshClient_wait_closed",
         argNames: ["that"],
       );
 
   @override
-  Future<SshClient> crateApiSshConnect({
+  Future<SshClient> crateApiConnectionConnect({
     required ConnectParams params,
     required CancelToken cancel,
     required FutureOr<bool> Function(String, String) verifier,
@@ -2362,14 +2383,14 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
               sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSshClient,
           decodeErrorData: sse_decode_engine_error,
         ),
-        constMeta: kCrateApiSshConnectConstMeta,
+        constMeta: kCrateApiConnectionConnectConstMeta,
         argValues: [params, cancel, verifier],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiSshConnectConstMeta => const TaskConstMeta(
+  TaskConstMeta get kCrateApiConnectionConnectConstMeta => const TaskConstMeta(
     debugName: "connect",
     argNames: ["params", "cancel", "verifier"],
   );
@@ -3997,46 +4018,54 @@ class ForwardedConnectionImpl extends RustOpaque
   );
 
   SshChannel get channel => WarpgateEngine.instance.api
-      .crateApiSshForwardedConnectionAutoAccessorGetChannel(that: this);
+      .crateApiForwardingForwardedConnectionAutoAccessorGetChannel(that: this);
 
   String get connectedHost => WarpgateEngine.instance.api
-      .crateApiSshForwardedConnectionAutoAccessorGetConnectedHost(that: this);
+      .crateApiForwardingForwardedConnectionAutoAccessorGetConnectedHost(
+        that: this,
+      );
 
   int get connectedPort => WarpgateEngine.instance.api
-      .crateApiSshForwardedConnectionAutoAccessorGetConnectedPort(that: this);
+      .crateApiForwardingForwardedConnectionAutoAccessorGetConnectedPort(
+        that: this,
+      );
 
   String get originHost => WarpgateEngine.instance.api
-      .crateApiSshForwardedConnectionAutoAccessorGetOriginHost(that: this);
+      .crateApiForwardingForwardedConnectionAutoAccessorGetOriginHost(
+        that: this,
+      );
 
   int get originPort => WarpgateEngine.instance.api
-      .crateApiSshForwardedConnectionAutoAccessorGetOriginPort(that: this);
+      .crateApiForwardingForwardedConnectionAutoAccessorGetOriginPort(
+        that: this,
+      );
 
   set channel(SshChannel channel) => WarpgateEngine.instance.api
-      .crateApiSshForwardedConnectionAutoAccessorSetChannel(
+      .crateApiForwardingForwardedConnectionAutoAccessorSetChannel(
         that: this,
         channel: channel,
       );
 
   set connectedHost(String connectedHost) => WarpgateEngine.instance.api
-      .crateApiSshForwardedConnectionAutoAccessorSetConnectedHost(
+      .crateApiForwardingForwardedConnectionAutoAccessorSetConnectedHost(
         that: this,
         connectedHost: connectedHost,
       );
 
   set connectedPort(int connectedPort) => WarpgateEngine.instance.api
-      .crateApiSshForwardedConnectionAutoAccessorSetConnectedPort(
+      .crateApiForwardingForwardedConnectionAutoAccessorSetConnectedPort(
         that: this,
         connectedPort: connectedPort,
       );
 
   set originHost(String originHost) => WarpgateEngine.instance.api
-      .crateApiSshForwardedConnectionAutoAccessorSetOriginHost(
+      .crateApiForwardingForwardedConnectionAutoAccessorSetOriginHost(
         that: this,
         originHost: originHost,
       );
 
   set originPort(int originPort) => WarpgateEngine.instance.api
-      .crateApiSshForwardedConnectionAutoAccessorSetOriginPort(
+      .crateApiForwardingForwardedConnectionAutoAccessorSetOriginPort(
         that: this,
         originPort: originPort,
       );
@@ -4168,52 +4197,52 @@ class SshChannelImpl extends RustOpaque implements SshChannel {
   );
 
   Future<void> close() =>
-      WarpgateEngine.instance.api.crateApiSshSshChannelClose(that: this);
+      WarpgateEngine.instance.api.crateApiChannelSshChannelClose(that: this);
 
   Future<void> eof() =>
-      WarpgateEngine.instance.api.crateApiSshSshChannelEof(that: this);
+      WarpgateEngine.instance.api.crateApiChannelSshChannelEof(that: this);
 
   Future<void> exec({required String command}) => WarpgateEngine.instance.api
-      .crateApiSshSshChannelExec(that: this, command: command);
+      .crateApiChannelSshChannelExec(that: this, command: command);
 
-  int? exitStatus() =>
-      WarpgateEngine.instance.api.crateApiSshSshChannelExitStatus(that: this);
+  int? exitStatus() => WarpgateEngine.instance.api
+      .crateApiChannelSshChannelExitStatus(that: this);
 
   Future<ChannelChunk> read({required int maxBytes}) => WarpgateEngine
       .instance
       .api
-      .crateApiSshSshChannelRead(that: this, maxBytes: maxBytes);
+      .crateApiChannelSshChannelRead(that: this, maxBytes: maxBytes);
 
   Future<void> requestPty({
     required String term,
     required int columns,
     required int rows,
-  }) => WarpgateEngine.instance.api.crateApiSshSshChannelRequestPty(
+  }) => WarpgateEngine.instance.api.crateApiChannelSshChannelRequestPty(
     that: this,
     term: term,
     columns: columns,
     rows: rows,
   );
 
-  Future<void> requestShell() =>
-      WarpgateEngine.instance.api.crateApiSshSshChannelRequestShell(that: this);
+  Future<void> requestShell() => WarpgateEngine.instance.api
+      .crateApiChannelSshChannelRequestShell(that: this);
 
   Future<void> setEnv({required String name, required String value}) =>
-      WarpgateEngine.instance.api.crateApiSshSshChannelSetEnv(
+      WarpgateEngine.instance.api.crateApiChannelSshChannelSetEnv(
         that: this,
         name: name,
         value: value,
       );
 
   Future<void> windowChange({required int columns, required int rows}) =>
-      WarpgateEngine.instance.api.crateApiSshSshChannelWindowChange(
+      WarpgateEngine.instance.api.crateApiChannelSshChannelWindowChange(
         that: this,
         columns: columns,
         rows: rows,
       );
 
   Future<void> write({required List<int> data}) => WarpgateEngine.instance.api
-      .crateApiSshSshChannelWrite(that: this, data: data);
+      .crateApiChannelSshChannelWrite(that: this, data: data);
 }
 
 @sealed
@@ -4236,10 +4265,10 @@ class SshClientImpl extends RustOpaque implements SshClient {
   );
 
   Future<ForwardedConnection?> acceptForwarded() => WarpgateEngine.instance.api
-      .crateApiSshSshClientAcceptForwarded(that: this);
+      .crateApiConnectionSshClientAcceptForwarded(that: this);
 
   Future<bool> authAgent({required String user, String? socket}) =>
-      WarpgateEngine.instance.api.crateApiSshSshClientAuthAgent(
+      WarpgateEngine.instance.api.crateApiConnectionSshClientAuthAgent(
         that: this,
         user: user,
         socket: socket,
@@ -4249,7 +4278,7 @@ class SshClientImpl extends RustOpaque implements SshClient {
     required String user,
     required String pem,
     String? passphrase,
-  }) => WarpgateEngine.instance.api.crateApiSshSshClientAuthKey(
+  }) => WarpgateEngine.instance.api.crateApiConnectionSshClientAuthKey(
     that: this,
     user: user,
     pem: pem,
@@ -4265,72 +4294,74 @@ class SshClientImpl extends RustOpaque implements SshClient {
       List<bool>,
     )
     responder,
-  }) => WarpgateEngine.instance.api.crateApiSshSshClientAuthKeyboardInteractive(
-    that: this,
-    user: user,
-    responder: responder,
-  );
+  }) => WarpgateEngine.instance.api
+      .crateApiConnectionSshClientAuthKeyboardInteractive(
+        that: this,
+        user: user,
+        responder: responder,
+      );
 
   Future<bool> authNone({required String user}) => WarpgateEngine.instance.api
-      .crateApiSshSshClientAuthNone(that: this, user: user);
+      .crateApiConnectionSshClientAuthNone(that: this, user: user);
 
   Future<bool> authPassword({required String user, required String password}) =>
-      WarpgateEngine.instance.api.crateApiSshSshClientAuthPassword(
+      WarpgateEngine.instance.api.crateApiConnectionSshClientAuthPassword(
         that: this,
         user: user,
         password: password,
       );
 
   Future<void> cancelForwardRemote({required String host, required int port}) =>
-      WarpgateEngine.instance.api.crateApiSshSshClientCancelForwardRemote(
-        that: this,
-        host: host,
-        port: port,
-      );
+      WarpgateEngine.instance.api
+          .crateApiConnectionSshClientCancelForwardRemote(
+            that: this,
+            host: host,
+            port: port,
+          );
 
   Future<SshClient> connectVia({
     required ConnectParams params,
     required FutureOr<bool> Function(String, String) verifier,
-  }) => WarpgateEngine.instance.api.crateApiSshSshClientConnectVia(
+  }) => WarpgateEngine.instance.api.crateApiConnectionSshClientConnectVia(
     that: this,
     params: params,
     verifier: verifier,
   );
 
-  Future<void> disconnect() =>
-      WarpgateEngine.instance.api.crateApiSshSshClientDisconnect(that: this);
+  Future<void> disconnect() => WarpgateEngine.instance.api
+      .crateApiConnectionSshClientDisconnect(that: this);
 
   Future<int> forwardRemote({required String host, required int port}) =>
-      WarpgateEngine.instance.api.crateApiSshSshClientForwardRemote(
+      WarpgateEngine.instance.api.crateApiConnectionSshClientForwardRemote(
         that: this,
         host: host,
         port: port,
       );
 
-  bool isClosed() =>
-      WarpgateEngine.instance.api.crateApiSshSshClientIsClosed(that: this);
+  bool isClosed() => WarpgateEngine.instance.api
+      .crateApiConnectionSshClientIsClosed(that: this);
 
   Future<SshChannel> openDirectTcpip({
     required String host,
     required int port,
-  }) => WarpgateEngine.instance.api.crateApiSshSshClientOpenDirectTcpip(
+  }) => WarpgateEngine.instance.api.crateApiConnectionSshClientOpenDirectTcpip(
     that: this,
     host: host,
     port: port,
   );
 
-  Future<SshChannel> openSession() =>
-      WarpgateEngine.instance.api.crateApiSshSshClientOpenSession(that: this);
+  Future<SshChannel> openSession() => WarpgateEngine.instance.api
+      .crateApiConnectionSshClientOpenSession(that: this);
 
   Future<void> ping({required int timeoutMs}) => WarpgateEngine.instance.api
-      .crateApiSshSshClientPing(that: this, timeoutMs: timeoutMs);
+      .crateApiConnectionSshClientPing(that: this, timeoutMs: timeoutMs);
 
-  String? remoteVersion() =>
-      WarpgateEngine.instance.api.crateApiSshSshClientRemoteVersion(that: this);
+  String? remoteVersion() => WarpgateEngine.instance.api
+      .crateApiConnectionSshClientRemoteVersion(that: this);
 
   Future<SftpSession> sftp() =>
-      WarpgateEngine.instance.api.crateApiSshSshClientSftp(that: this);
+      WarpgateEngine.instance.api.crateApiConnectionSshClientSftp(that: this);
 
-  Future<void> waitClosed() =>
-      WarpgateEngine.instance.api.crateApiSshSshClientWaitClosed(that: this);
+  Future<void> waitClosed() => WarpgateEngine.instance.api
+      .crateApiConnectionSshClientWaitClosed(that: this);
 }

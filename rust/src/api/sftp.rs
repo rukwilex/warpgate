@@ -3,8 +3,8 @@ use std::sync::Arc;
 use russh_sftp::client::RawSftpSession;
 use russh_sftp::protocol::{FileAttributes, OpenFlags, StatusCode};
 
+use crate::api::connection::SshClient;
 use crate::api::error::{EngineError, EngineErrorKind};
-use crate::api::ssh::SshClient;
 use crate::api::util::on_runtime;
 
 pub struct SftpEntry {
