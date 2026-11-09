@@ -26,10 +26,15 @@ class LogTailSession {
     status.value = const LinkStatus(LinkState.connecting);
     try {
       final client = await _pool.client(hostId);
-      _pool.retain(hostId);
+      if (_disposed) return;
       final session = await client.execute(
         'tail -n 500 -F ${KeyCodec.shellQuote(path)}',
       );
+      if (_disposed) {
+        session.close();
+        return;
+      }
+      final hold = _pool.hold(hostId);
       _session = session;
       status.value = const LinkStatus(LinkState.connected);
       void pipe(Stream<List<int>> stream) => _subscriptions.add(
@@ -39,18 +44,18 @@ class LogTailSession {
       );
       pipe(session.stdout);
       pipe(session.stderr);
-      unawaited(
-        session.done.whenComplete(() {
-          _pool.release(hostId);
-          _session = null;
-          if (!_disposed) {
-            status.value = const LinkStatus(
-              LinkState.dropped,
-              message: 'The log stream stopped',
-            );
-          }
-        }),
-      );
+      void ended() {
+        hold.release();
+        _session = null;
+        if (!_disposed) {
+          status.value = const LinkStatus(
+            LinkState.dropped,
+            message: 'The log stream stopped',
+          );
+        }
+      }
+
+      unawaited(session.done.then((_) => ended(), onError: (Object _) => ended()));
     } on Object catch (error) {
       if (!_disposed) {
         status.value = LinkStatus(

@@ -92,4 +92,17 @@ void main() {
     await forwarder.start('a', spec);
     expect(forwarder.isRunning('a', 'web'), isTrue);
   });
+
+  test('a forward that cannot bind fails and does not keep the connection open', () async {
+    final blocker = await ServerSocket.bind('127.0.0.1', spec.bindPort);
+    addTearDown(blocker.close);
+    await forwarder.start('a', spec);
+    expect(forwarder.forwards.single.state, ForwardState.failed);
+    final client = connector.clientFor('a')!;
+    final deadline = DateTime.now().add(const Duration(seconds: 3));
+    while (!client.closed && DateTime.now().isBefore(deadline)) {
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+    }
+    expect(client.closed, isTrue);
+  });
 }

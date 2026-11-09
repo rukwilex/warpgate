@@ -22,6 +22,23 @@ export 'package:warpgate_core/features/connection/data/ssh_defaults.dart';
 
 typedef HostLookup = Host? Function(String id);
 
+class PoolHold {
+  new _(this._release);
+
+  static final none = PoolHold._(() {});
+
+  final void Function() _release;
+  bool _released = false;
+
+  bool get isReleased => _released;
+
+  void release() {
+    if (_released) return;
+    _released = true;
+    _release();
+  }
+}
+
 class _Entry {
   final cancel = CancelToken();
   late final Future<SshClient> client;
@@ -222,8 +239,21 @@ class ConnectionPool {
   void release(String hostId) {
     final entry = _entries[hostId];
     if (entry == null) return;
+    _releaseEntry(hostId, entry);
+  }
+
+  PoolHold hold(String hostId) {
+    final entry = _entries[hostId];
+    if (entry == null || entry.closing) return PoolHold.none;
+    entry
+      ..holders += 1
+      ..idleTimer?.cancel();
+    return PoolHold._(() => _releaseEntry(hostId, entry));
+  }
+
+  void _releaseEntry(String hostId, _Entry entry) {
     entry.holders = entry.holders > 0 ? entry.holders - 1 : 0;
-    _scheduleIdle(hostId, entry);
+    if (_current(hostId, entry)) _scheduleIdle(hostId, entry);
   }
 
   void _scheduleIdle(String hostId, _Entry entry) {
@@ -400,15 +430,27 @@ class ConnectionPool {
   Future<SshClient> _open(Host host, CancelToken cancel) async {
     final jumpId = host.jumpHostId;
     if (jumpId == null) return await _connector.open(host, cancel: cancel);
+    _checkChain(host);
     final jump = await client(jumpId);
-    retain(jumpId);
+    final held = hold(jumpId);
     try {
       final opened = await _connector.open(host, jump: jump, cancel: cancel);
-      unawaited(opened.done.then((_) => release(jumpId), onError: (_) => release(jumpId)));
+      unawaited(opened.done.then((_) => held.release(), onError: (_) => held.release()));
       return opened;
     } on Object {
-      release(jumpId);
+      held.release();
       rethrow;
+    }
+  }
+
+  void _checkChain(Host host) {
+    final seen = <String>{host.id};
+    var next = host.jumpHostId;
+    while (next != null) {
+      if (!seen.add(next)) {
+        throw StateError('The jump hosts of ${host.label} lead back to themselves. Pick a different jump host');
+      }
+      next = _lookup(next)?.jumpHostId;
     }
   }
 }

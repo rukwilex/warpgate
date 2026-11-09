@@ -289,7 +289,45 @@ void main() {
     });
   });
 
+  group('holds', () {
+    test('releasing a hold from a dropped connection leaves the new one held', () async {
+      build(idleTimeout: short);
+      final first = await pool.client('a') as FakeSshClient;
+      final stale = pool.hold('a');
+      first.drop(SSHSocketError(const SocketException('reset')));
+      await settle();
+      final second = await pool.client('a') as FakeSshClient;
+      final current = pool.hold('a');
+      stale.release();
+      await Future<void>.delayed(short * 3);
+      expect(second.closed, isFalse);
+      current.release();
+      await until(() => second.closed);
+    });
+
+    test('a hold is released only once', () async {
+      build(idleTimeout: short);
+      final client = await pool.client('a') as FakeSshClient;
+      final keep = pool.hold('a');
+      pool.hold('a')
+        ..release()
+        ..release();
+      await Future<void>.delayed(short * 3);
+      expect(client.closed, isFalse);
+      keep.release();
+      await until(() => client.closed);
+    });
+  });
+
   group('jump hosts', () {
+    test('a jump host loop fails instead of recursing', () async {
+      hosts['x'] = const Host(id: 'x', label: 'x', address: 'x', username: 'u', jumpHostId: 'y');
+      hosts['y'] = const Host(id: 'y', label: 'y', address: 'y', username: 'u', jumpHostId: 'x');
+      build();
+      await expectLater(pool.client('x'), throwsStateError);
+      expect(connector.calls, isEmpty);
+    });
+
     test('a chain connects each hop through the previous one', () async {
       build();
       final target = await pool.client('c') as FakeSshClient;

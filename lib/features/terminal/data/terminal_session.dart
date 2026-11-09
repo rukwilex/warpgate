@@ -102,7 +102,7 @@ class TerminalSession extends IngestSink {
   int _generation = 0;
   int _columns = 80;
   int _rows = 24;
-  bool _retained = false;
+  PoolHold _hold = PoolHold.none;
 
   SessionTarget get target => _target;
 
@@ -168,12 +168,11 @@ class TerminalSession extends IngestSink {
         return LocalPtyBackend(pty);
       case SshTarget(:final host, :final tmuxSession, :final directory):
         final client = await _pool.client(host.id);
+        if (_disposed) throw const ConnectCancelledException();
+        _hold.release();
+        _hold = _pool.hold(host.id);
         _columns = terminal.viewWidth;
         _rows = terminal.viewHeight;
-        if (!_retained) {
-          _pool.retain(host.id);
-          _retained = true;
-        }
         final pty = SSHPtyConfig(width: _columns, height: _rows);
         if (tmuxSession != null) {
           final probe = await _pool.exec(
@@ -500,7 +499,7 @@ class TerminalSession extends IngestSink {
     _retryTimer?.cancel();
     _backend?.close();
     _teardown();
-    if (_retained && hostId != null) _pool.release(hostId!);
+    _hold.release();
     status.dispose();
     notice.dispose();
     title.dispose();

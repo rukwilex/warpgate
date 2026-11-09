@@ -66,19 +66,22 @@ class PortForwarder {
       spec: spec,
       state: ForwardState.starting,
     );
-    if (_forwards[initial.key]?.state == ForwardState.active) return;
+    final current = _forwards[initial.key]?.state;
+    if (current == ForwardState.active || current == ForwardState.starting) return;
     _set(initial);
+    var hold = PoolHold.none;
     try {
       final ssh = await _pool.client(hostId);
-      _pool.retain(hostId);
+      hold = _pool.hold(hostId);
       final stop = switch (spec.kind) {
         ForwardKind.local => await _local(ssh, initial),
         ForwardKind.remote => await _remote(ssh, initial),
         ForwardKind.dynamic => await _dynamic(ssh, spec),
       };
+      final held = hold;
       _stoppers[initial.key] = () async {
         await stop();
-        _pool.release(hostId);
+        held.release();
       };
       _set(initial.copyWith(state: ForwardState.active));
       void ended() {
@@ -90,6 +93,7 @@ class PortForwarder {
 
       unawaited(ssh.done.then((_) => ended(), onError: (Object _) => ended()));
     } on Object catch (error) {
+      hold.release();
       _set(
         initial.copyWith(
           state: ForwardState.failed,
