@@ -5,15 +5,18 @@ use std::time::Duration;
 use anyhow::{anyhow, bail};
 use flutter_rust_bridge::DartFnFuture;
 use futures::FutureExt;
-use russh::client::{self, Handle, KeyboardInteractiveAuthResponse, Msg, Session};
+use russh::client::{
+    self, DisconnectReason, Handle, KeyboardInteractiveAuthResponse, Msg, Session,
+};
 use russh::keys::agent::client::AgentClient;
 use russh::keys::{HashAlg, PrivateKeyWithHashAlg, PublicKeyOrCertificate};
 use russh::{Channel, ChannelMsg, ChannelReadHalf, ChannelWriteHalf, Disconnect};
-use tokio::sync::{mpsc, watch, Mutex};
+use tokio::sync::{mpsc, watch, Mutex, Notify, RwLock};
 
 use crate::api::util::{on_runtime, until_cancelled, CancelToken};
 
 type Verifier = Arc<dyn Fn(String, String) -> DartFnFuture<bool> + Send + Sync>;
+type Reason = Arc<std::sync::Mutex<Option<String>>>;
 
 pub struct ConnectParams {
     pub host: String,
@@ -42,6 +45,7 @@ struct ClientHandler {
     verifier: Verifier,
     closed: watch::Sender<bool>,
     forwarded: mpsc::Sender<ForwardedConnection>,
+    reason: Reason,
 }
 
 impl Drop for ClientHandler {
@@ -64,6 +68,23 @@ impl client::Handler for ClientHandler {
         let kind = public.algorithm().as_str().to_string();
         let fingerprint = public.fingerprint(HashAlg::Sha256).to_string();
         Ok((self.verifier)(kind, fingerprint).await)
+    }
+
+    async fn disconnected(
+        &mut self,
+        reason: DisconnectReason<Self::Error>,
+    ) -> Result<(), Self::Error> {
+        let (text, result) = match reason {
+            DisconnectReason::ReceivedDisconnect(info) => (
+                format!("disconnect {}: {}", info.reason_code as u32, info.message),
+                Ok(()),
+            ),
+            DisconnectReason::Error(error) => (format!("socket: {error:#}"), Err(error)),
+        };
+        if let Ok(mut slot) = self.reason.lock() {
+            slot.get_or_insert(text);
+        }
+        result
     }
 
     async fn server_channel_open_forwarded_tcpip(
@@ -94,11 +115,30 @@ impl client::Handler for ClientHandler {
     }
 }
 
+struct Stopper {
+    notify: Arc<Notify>,
+    flag: Arc<AtomicBool>,
+}
+
+impl Stopper {
+    async fn guard<T>(
+        self,
+        body: impl std::future::Future<Output = anyhow::Result<T>>,
+    ) -> anyhow::Result<T> {
+        tokio::select! {
+            _ = until_cancelled(self.notify, self.flag) => bail!("cancelled: the connection was closed"),
+            result = body => result,
+        }
+    }
+}
+
 pub struct SshClient {
-    handle: Arc<Mutex<Handle<ClientHandler>>>,
+    handle: Arc<RwLock<Handle<ClientHandler>>>,
     closed: watch::Receiver<bool>,
     forwarded: Arc<Mutex<mpsc::Receiver<ForwardedConnection>>>,
     disconnected: Arc<AtomicBool>,
+    shutdown: Arc<Notify>,
+    reason: Reason,
 }
 
 fn config(client_id: &str) -> Arc<client::Config> {
@@ -124,10 +164,12 @@ where
 {
     let (closed_tx, closed_rx) = watch::channel(false);
     let (forward_tx, forward_rx) = mpsc::channel(64);
+    let reason: Reason = Arc::new(std::sync::Mutex::new(None));
     let handler = ClientHandler {
         verifier,
         closed: closed_tx,
         forwarded: forward_tx,
+        reason: reason.clone(),
     };
     let timeout = Duration::from_millis(params.handshake_timeout_ms as u64);
     let handle = match tokio::time::timeout(
@@ -150,10 +192,12 @@ where
         Err(_) => bail!("timeout: the SSH handshake did not finish in time"),
     };
     Ok(SshClient {
-        handle: Arc::new(Mutex::new(handle)),
+        handle: Arc::new(RwLock::new(handle)),
         closed: closed_rx,
         forwarded: Arc::new(Mutex::new(forward_rx)),
         disconnected: Arc::new(AtomicBool::new(false)),
+        shutdown: Arc::new(Notify::new()),
+        reason,
     })
 }
 
@@ -196,7 +240,7 @@ impl SshClient {
         let handle = self.handle.clone();
         on_runtime(async move {
             let channel = {
-                let handle = handle.lock().await;
+                let handle = handle.read().await;
                 handle
                     .channel_open_direct_tcpip(
                         params.host.clone(),
@@ -216,22 +260,24 @@ impl SshClient {
 
     pub async fn auth_none(&self, user: String) -> anyhow::Result<bool> {
         let handle = self.handle.clone();
-        on_runtime(async move {
-            let mut handle = handle.lock().await;
+        let stop = self.stopper();
+        on_runtime(stop.guard(async move {
+            let mut handle = handle.write().await;
             Ok(handle.authenticate_none(user).await?.success())
-        })
+        }))
         .await
     }
 
     pub async fn auth_password(&self, user: String, password: String) -> anyhow::Result<bool> {
         let handle = self.handle.clone();
-        on_runtime(async move {
-            let mut handle = handle.lock().await;
+        let stop = self.stopper();
+        on_runtime(stop.guard(async move {
+            let mut handle = handle.write().await;
             Ok(handle
                 .authenticate_password(user, password)
                 .await?
                 .success())
-        })
+        }))
         .await
     }
 
@@ -242,7 +288,8 @@ impl SshClient {
         passphrase: Option<String>,
     ) -> anyhow::Result<bool> {
         let handle = self.handle.clone();
-        on_runtime(async move {
+        let stop = self.stopper();
+        on_runtime(stop.guard(async move {
             let key =
                 russh::keys::decode_secret_key(&pem, passphrase.as_deref()).map_err(|error| {
                     let text = error.to_string();
@@ -255,7 +302,7 @@ impl SshClient {
                         anyhow!("key_decode: {text}")
                     }
                 })?;
-            let mut handle = handle.lock().await;
+            let mut handle = handle.write().await;
             let hash = handle
                 .best_supported_rsa_hash()
                 .await
@@ -264,13 +311,14 @@ impl SshClient {
                 .flatten();
             let key = PrivateKeyWithHashAlg::new(Arc::new(key), hash);
             Ok(handle.authenticate_publickey(user, key).await?.success())
-        })
+        }))
         .await
     }
 
     pub async fn auth_agent(&self, user: String, socket: Option<String>) -> anyhow::Result<bool> {
         let handle = self.handle.clone();
-        on_runtime(async move {
+        let stop = self.stopper();
+        on_runtime(stop.guard(async move {
             #[cfg(unix)]
             let mut agent = match socket {
                 Some(path) => AgentClient::connect_uds(path).await?.dynamic(),
@@ -284,7 +332,7 @@ impl SshClient {
                     .dynamic(),
             };
             let identities = agent.request_identities().await?;
-            let mut handle = handle.lock().await;
+            let mut handle = handle.write().await;
             let hash = handle
                 .best_supported_rsa_hash()
                 .await
@@ -303,7 +351,7 @@ impl SshClient {
                 }
             }
             Ok(false)
-        })
+        }))
         .await
     }
 
@@ -317,8 +365,9 @@ impl SshClient {
     ) -> anyhow::Result<bool> {
         let handle = self.handle.clone();
         let responder = Arc::new(responder);
-        on_runtime(async move {
-            let mut handle = handle.lock().await;
+        let stop = self.stopper();
+        on_runtime(stop.guard(async move {
+            let mut handle = handle.write().await;
             let mut reply = handle
                 .authenticate_keyboard_interactive_start(user, None)
                 .await?;
@@ -344,14 +393,14 @@ impl SshClient {
                 }
             }
             Ok(false)
-        })
+        }))
         .await
     }
 
     pub async fn open_session(&self) -> anyhow::Result<SshChannel> {
         let handle = self.handle.clone();
         on_runtime(async move {
-            let handle = handle.lock().await;
+            let handle = handle.read().await;
             let channel = handle
                 .channel_open_session()
                 .await
@@ -364,7 +413,7 @@ impl SshClient {
     pub async fn open_direct_tcpip(&self, host: String, port: u32) -> anyhow::Result<SshChannel> {
         let handle = self.handle.clone();
         on_runtime(async move {
-            let handle = handle.lock().await;
+            let handle = handle.read().await;
             let channel = handle
                 .channel_open_direct_tcpip(host, port, "127.0.0.1", 0)
                 .await
@@ -377,7 +426,7 @@ impl SshClient {
     pub async fn forward_remote(&self, host: String, port: u32) -> anyhow::Result<u32> {
         let handle = self.handle.clone();
         on_runtime(async move {
-            let handle = handle.lock().await;
+            let handle = handle.read().await;
             let assigned = handle.tcpip_forward(host, port).await?;
             Ok(if port == 0 { assigned } else { port })
         })
@@ -387,7 +436,7 @@ impl SshClient {
     pub async fn cancel_forward_remote(&self, host: String, port: u32) -> anyhow::Result<()> {
         let handle = self.handle.clone();
         on_runtime(async move {
-            let handle = handle.lock().await;
+            let handle = handle.read().await;
             handle.cancel_tcpip_forward(host, port).await?;
             Ok(())
         })
@@ -411,7 +460,7 @@ impl SshClient {
         let handle = self.handle.clone();
         on_runtime(async move {
             let ping = async {
-                let handle = handle.lock().await;
+                let handle = handle.read().await;
                 handle.send_ping().await
             };
             match tokio::time::timeout(Duration::from_millis(timeout_ms as u64), ping).await {
@@ -430,18 +479,27 @@ impl SshClient {
 
     pub async fn wait_closed(&self) -> anyhow::Result<()> {
         let mut closed = self.closed.clone();
+        let reason = self.reason.clone();
+        let disconnected = self.disconnected.clone();
         on_runtime(async move {
             let _ = closed.wait_for(|value| *value).await;
-            Ok(())
+            if disconnected.load(Ordering::SeqCst) {
+                return Ok(());
+            }
+            match reason.lock().ok().and_then(|mut slot| slot.take()) {
+                Some(text) => Err(anyhow!(text)),
+                None => Ok(()),
+            }
         })
         .await
     }
 
     pub async fn disconnect(&self) -> anyhow::Result<()> {
         self.disconnected.store(true, Ordering::SeqCst);
+        self.shutdown.notify_waiters();
         let handle = self.handle.clone();
         on_runtime(async move {
-            let handle = handle.lock().await;
+            let handle = handle.read().await;
             let _ = handle.disconnect(Disconnect::ByApplication, "", "en").await;
             Ok(())
         })
@@ -520,70 +578,14 @@ impl SshChannel {
             let mut guard = read.lock().await;
             let mut stashed: Vec<ChannelMsg> = std::mem::take(&mut *pending.lock().unwrap());
             stashed.reverse();
-            let mut chunk = ChannelChunk {
-                data: Vec::new(),
-                extended: Vec::new(),
-                exit_status: None,
-                closed: false,
-            };
-            let Some(reader) = guard.as_mut() else {
-                chunk.closed = true;
-                chunk.exit_status = *exit.lock().unwrap();
-                return Ok(chunk);
-            };
-            let limit = max_bytes as usize;
-            let mut first = true;
-            let mut deadline = tokio::time::Instant::now() + Duration::from_millis(1);
-            loop {
-                let next = if let Some(message) = stashed.pop() {
-                    first = false;
-                    Some(message)
-                } else if first {
-                    first = false;
-                    let message = reader.wait().await;
-                    deadline = tokio::time::Instant::now() + Duration::from_millis(1);
-                    message
-                } else {
-                    match reader.wait().now_or_never() {
-                        Some(message) => message,
-                        None => {
-                            let small = chunk.data.len() + chunk.extended.len() < 16 * 1024;
-                            let remaining =
-                                deadline.saturating_duration_since(tokio::time::Instant::now());
-                            if !small || remaining.is_zero() {
-                                break;
-                            }
-                            match tokio::time::timeout(remaining, reader.wait()).await {
-                                Ok(message) => message,
-                                Err(_) => break,
-                            }
-                        }
-                    }
-                };
-                match next {
-                    Some(ChannelMsg::Data { data }) => chunk.data.extend_from_slice(&data),
-                    Some(ChannelMsg::ExtendedData { data, .. }) => {
-                        chunk.extended.extend_from_slice(&data)
-                    }
-                    Some(ChannelMsg::ExitStatus { exit_status }) => {
-                        *exit.lock().unwrap() = Some(exit_status);
-                        chunk.exit_status = Some(exit_status);
-                    }
-                    Some(ChannelMsg::Close) | None => {
-                        chunk.closed = true;
-                        *guard = None;
-                        break;
-                    }
-                    Some(_) => {}
-                }
-                if chunk.data.len() + chunk.extended.len() >= limit {
-                    break;
-                }
+            let result = read_into(&mut guard, &mut stashed, &exit, max_bytes as usize).await;
+            if !stashed.is_empty() {
+                stashed.reverse();
+                let mut slot = pending.lock().unwrap();
+                stashed.append(&mut slot);
+                *slot = stashed;
             }
-            if chunk.exit_status.is_none() {
-                chunk.exit_status = *exit.lock().unwrap();
-            }
-            Ok(chunk)
+            result
         })
         .await
     }
@@ -599,7 +601,6 @@ impl SshChannel {
         })
         .await
     }
-
     pub async fn window_change(&self, columns: u32, rows: u32) -> anyhow::Result<()> {
         let write = self.write.clone();
         on_runtime(async move {
@@ -633,6 +634,76 @@ impl SshChannel {
     }
 }
 
+type ReadGuard<'a> = tokio::sync::MutexGuard<'a, Option<ChannelReadHalf>>;
+
+async fn read_into(
+    guard: &mut ReadGuard<'_>,
+    stashed: &mut Vec<ChannelMsg>,
+    exit: &std::sync::Mutex<Option<u32>>,
+    limit: usize,
+) -> anyhow::Result<ChannelChunk> {
+    let mut chunk = ChannelChunk {
+        data: Vec::new(),
+        extended: Vec::new(),
+        exit_status: None,
+        closed: false,
+    };
+    let Some(reader) = guard.as_mut() else {
+        chunk.closed = true;
+        chunk.exit_status = *exit.lock().unwrap();
+        return Ok(chunk);
+    };
+    let mut first = true;
+    let mut deadline = tokio::time::Instant::now() + Duration::from_millis(1);
+    loop {
+        let next = if let Some(message) = stashed.pop() {
+            first = false;
+            Some(message)
+        } else if first {
+            first = false;
+            let message = reader.wait().await;
+            deadline = tokio::time::Instant::now() + Duration::from_millis(1);
+            message
+        } else {
+            match reader.wait().now_or_never() {
+                Some(message) => message,
+                None => {
+                    let small = chunk.data.len() + chunk.extended.len() < 16 * 1024;
+                    let remaining = deadline.saturating_duration_since(tokio::time::Instant::now());
+                    if !small || remaining.is_zero() {
+                        break;
+                    }
+                    match tokio::time::timeout(remaining, reader.wait()).await {
+                        Ok(message) => message,
+                        Err(_) => break,
+                    }
+                }
+            }
+        };
+        match next {
+            Some(ChannelMsg::Data { data }) => chunk.data.extend_from_slice(&data),
+            Some(ChannelMsg::ExtendedData { data, .. }) => chunk.extended.extend_from_slice(&data),
+            Some(ChannelMsg::ExitStatus { exit_status }) => {
+                *exit.lock().unwrap() = Some(exit_status);
+                chunk.exit_status = Some(exit_status);
+            }
+            Some(ChannelMsg::Close) | None => {
+                chunk.closed = true;
+                **guard = None;
+                break;
+            }
+            Some(_) => {}
+        }
+        if chunk.data.len() + chunk.extended.len() >= limit {
+            break;
+        }
+    }
+    if chunk.exit_status.is_none() {
+        chunk.exit_status = *exit.lock().unwrap();
+    }
+    Ok(chunk)
+}
+
 async fn expect_success(
     read: &Arc<Mutex<Option<ChannelReadHalf>>>,
     pending: &Pending,
@@ -664,7 +735,7 @@ impl SshClient {
         &self,
         name: &str,
     ) -> anyhow::Result<russh::ChannelStream<Msg>> {
-        let handle = self.handle.lock().await;
+        let handle = self.handle.read().await;
         let channel = handle
             .channel_open_session()
             .await
@@ -673,12 +744,21 @@ impl SshClient {
         Ok(channel.into_stream())
     }
 
+    fn stopper(&self) -> Stopper {
+        Stopper {
+            notify: self.shutdown.clone(),
+            flag: self.disconnected.clone(),
+        }
+    }
+
     pub(crate) fn clone_ref(&self) -> SshClient {
         SshClient {
             handle: self.handle.clone(),
             closed: self.closed.clone(),
             forwarded: self.forwarded.clone(),
             disconnected: self.disconnected.clone(),
+            shutdown: self.shutdown.clone(),
+            reason: self.reason.clone(),
         }
     }
 }
