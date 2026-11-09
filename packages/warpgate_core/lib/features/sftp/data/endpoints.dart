@@ -140,7 +140,12 @@ class SftpEndpoint extends FileEndpoint {
     try {
       final writer = file.write(data, offset: offset, onProgress: onProgress);
       cancel?.onCancel(() => unawaited(writer.abort()));
-      await writer.done;
+      try {
+        await _guard(() => writer.done);
+      } on Object {
+        cancel?.throwIfCancelled();
+        rethrow;
+      }
       cancel?.throwIfCancelled();
     } finally {
       await file.close();
