@@ -111,6 +111,7 @@ class ShellHostList extends ConsumerWidget {
           count: value.ungrouped.length,
           renamable: false,
           dense: true,
+          first: true,
         ),
       if (!ungroupedCollapsed || groups.isEmpty)
         for (final host in value.ungrouped) (_) => row(host),
@@ -121,6 +122,7 @@ class ShellHostList extends ConsumerWidget {
           name: group.name,
           count: value.inGroup(group.id).length,
           dense: true,
+          first: value.ungrouped.isEmpty && identical(group, groups.first),
           trailing: value.inGroup(group.id).isEmpty
               ? null
               : WgIconButton(

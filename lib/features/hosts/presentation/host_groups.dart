@@ -72,6 +72,7 @@ class HostGroupHeader extends ConsumerStatefulWidget {
     this.trailing,
     this.renamable = true,
     this.dense = false,
+    this.first = false,
   });
 
   final String groupKey;
@@ -81,6 +82,7 @@ class HostGroupHeader extends ConsumerStatefulWidget {
   final Widget? trailing;
   final bool renamable;
   final bool dense;
+  final bool first;
 
   @override
   ConsumerState<HostGroupHeader> createState() => _HostGroupHeaderState();
@@ -142,7 +144,7 @@ class _HostGroupHeaderState extends ConsumerState<HostGroupHeader> {
       builder: (context, candidates, _) {
         final dropping = candidates.isNotEmpty;
         return Container(
-          margin: EdgeInsets.only(top: widget.dense ? space.lg : space.xl),
+          margin: EdgeInsets.only(top: widget.first ? 0 : widget.dense ? space.lg : space.xl),
           padding: EdgeInsets.only(left: space.xs, right: space.sm),
           height: sizes.touch ? sizes.touchTarget : sizes.rowCompact,
           decoration: BoxDecoration(
