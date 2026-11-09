@@ -8,6 +8,7 @@ import 'package:warpgate/features/mcp/presentation/mcp_activity_screen.dart';
 import 'package:warpgate/features/multi_exec/presentation/multi_exec_screen.dart';
 import 'package:warpgate/features/settings/presentation/settings_screen.dart';
 import 'package:warpgate/features/shell/presentation/app_shell.dart';
+import 'package:warpgate/features/shell/presentation/shell_layout.dart';
 import 'package:warpgate/features/snippets/presentation/snippets_screen.dart';
 import 'package:warpgate/features/transfers/presentation/transfers_screen.dart';
 import 'package:warpgate/features/workspace/presentation/workbench_screen.dart';
