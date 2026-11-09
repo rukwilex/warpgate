@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:warpgate/design_system/design_system.dart';
+import 'package:warpgate/features/sftp/presentation/file_browser_constants.dart';
 import 'package:warpgate/features/sftp/presentation/widgets/file_editor_dialog.dart';
 import 'package:warpgate/features/sftp/presentation/widgets/file_permissions_dialog.dart';
 import 'package:warpgate/features/sftp/presentation/widgets/file_preview_dialog.dart';
+import 'package:warpgate/features/sftp/utils/folder_title.dart';
 import 'package:warpgate_core/core/util/format.dart';
 import 'package:warpgate_core/features/sftp/domain/file_endpoint.dart';
 
@@ -86,6 +88,79 @@ Future<void> showProperties(
               ],
             ),
           ),
+      ],
+    ),
+  ),
+);
+
+Future<String?> showQuickJump(
+  BuildContext context, {
+  required List<String> favorites,
+  required List<String> recents,
+  required List<String> subfolders,
+  required String hostLabel,
+}) => showGeneralDialog<String>(
+  context: context,
+  barrierDismissible: true,
+  barrierLabel: 'Close',
+  barrierColor: context.colors.scrim,
+  transitionDuration: context.motion.fast,
+  pageBuilder: (dialogContext, _, _) => WgFloatingPanel(
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: EdgeInsets.fromLTRB(
+            context.space.lg,
+            context.space.md,
+            context.space.lg,
+            0,
+          ),
+          child: Semantics(
+            header: true,
+            child: Text(
+              'Jump to a folder on $hostLabel',
+              style: context.type.label,
+            ),
+          ),
+        ),
+        WgSearchList<String>(
+          placeholder: 'Folder name or path',
+          emptyTitle: 'No folder matches',
+          emptyBody: 'Star a folder to keep it here. Folders you open show up as recent.',
+          onCancel: () => Navigator.of(dialogContext).pop(),
+          onSelected: (value) => Navigator.of(dialogContext).pop(value),
+          items: (query) {
+            final lower = query.toLowerCase();
+            bool matches(String path) =>
+                lower.isEmpty || path.toLowerCase().contains(lower);
+            final seen = <String>{};
+            WgSearchItem<String>? item(String path, String section) {
+              if (!matches(path) || !seen.add(path)) return null;
+              return WgSearchItem<String>(
+                value: path,
+                title: folderTitle(path),
+                subtitle: path,
+                section: section,
+                leading: Icon(
+                  section == FileBrowserConstants.favoritesSection
+                      ? WgIcons.star
+                      : WgIcons.folder,
+                ),
+              );
+            }
+
+            return [
+              for (final path in favorites)
+                ?item(path, FileBrowserConstants.favoritesSection),
+              for (final path in recents)
+                ?item(path, FileBrowserConstants.recentSection),
+              for (final path in subfolders)
+                ?item(path, FileBrowserConstants.subfolderSection),
+            ];
+          },
+        ),
       ],
     ),
   ),

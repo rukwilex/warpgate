@@ -11,6 +11,7 @@ import 'package:warpgate/features/connection/presentation/link_dot.dart';
 import 'package:warpgate/features/hosts/presentation/hosts_controller.dart';
 import 'package:warpgate/features/palette/presentation/command_registry.dart';
 import 'package:warpgate/features/settings/presentation/settings_controller.dart';
+import 'package:warpgate/features/sftp/application/terminal_link.dart';
 import 'package:warpgate/features/sftp/presentation/endpoint_providers.dart';
 import 'package:warpgate/features/sftp/presentation/file_browser.dart';
 import 'package:warpgate/features/sftp/presentation/file_drop.dart';

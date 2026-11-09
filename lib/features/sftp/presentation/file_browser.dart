@@ -1,10 +1,7 @@
 import 'dart:async';
 
-import 'package:collection/collection.dart';
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:file_selector/file_selector.dart';
-import 'package:flutter/foundation.dart';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -16,16 +13,27 @@ import 'package:warpgate/features/hosts/presentation/host_picker.dart';
 import 'package:warpgate/features/hosts/presentation/hosts_controller.dart';
 import 'package:warpgate/features/settings/presentation/settings_controller.dart';
 import 'package:warpgate/features/sftp/application/file_places.dart';
+import 'package:warpgate/features/sftp/application/file_selection.dart';
 import 'package:warpgate/features/sftp/application/file_sort_key.dart';
 import 'package:warpgate/features/sftp/application/path_bar_controller.dart';
+import 'package:warpgate/features/sftp/application/repeat_tap_detector.dart';
+import 'package:warpgate/features/sftp/application/terminal_link.dart';
+import 'package:warpgate/features/sftp/application/type_ahead_buffer.dart';
+import 'package:warpgate/features/sftp/application/view_mode.dart';
 import 'package:warpgate/features/sftp/presentation/endpoint_providers.dart';
+import 'package:warpgate/features/sftp/presentation/file_browser_constants.dart';
+import 'package:warpgate/features/sftp/presentation/file_browser_shortcuts.dart';
 import 'package:warpgate/features/sftp/presentation/file_columns.dart';
 import 'package:warpgate/features/sftp/presentation/file_dialogs.dart';
 import 'package:warpgate/features/sftp/presentation/file_drop.dart';
 import 'package:warpgate/features/sftp/presentation/folder_tree.dart';
-import 'package:warpgate/features/sftp/presentation/path_bar.dart';
+import 'package:warpgate/features/sftp/presentation/widgets/file_browser_filter_bar.dart';
+import 'package:warpgate/features/sftp/presentation/widgets/file_browser_footer.dart';
+import 'package:warpgate/features/sftp/presentation/widgets/file_browser_toolbar.dart';
+import 'package:warpgate/features/sftp/utils/file_filter.dart';
 import 'package:warpgate/features/sftp/utils/file_icon.dart';
 import 'package:warpgate/features/sftp/utils/file_sorting.dart';
+import 'package:warpgate/features/sftp/utils/transfer_changes.dart';
 import 'package:warpgate/features/sftp/utils/type_ahead.dart';
 import 'package:warpgate/features/shell/presentation/prompts.dart';
 import 'package:warpgate/features/transfers/presentation/transfer_actions.dart';
@@ -40,24 +48,6 @@ import 'package:warpgate_core/features/workspace/domain/pane.dart';
 
 export 'package:warpgate/features/sftp/application/file_sort_key.dart'
     show SortKey;
-
-enum ViewMode { list, grid }
-
-class TerminalLink {
-  const new({
-    required this.cwd,
-    required this.follow,
-    required this.onFollow,
-    required this.cdHere,
-    this.onInstallHook,
-  });
-
-  final ValueListenable<String?> cwd;
-  final bool follow;
-  final ValueChanged<bool> onFollow;
-  final ValueChanged<String> cdHere;
-  final VoidCallback? onInstallHook;
-}
 
 class FileBrowser extends ConsumerStatefulWidget {
   const new({
@@ -91,8 +81,7 @@ class _FileBrowserState extends ConsumerState<FileBrowser> {
   List<FileEntry>? _entries;
   Object? _error;
   bool _loading = false;
-  final Set<String> _selected = {};
-  String? _anchor;
+  final _selected = FileSelection();
   SortKey _sort = SortKey.name;
   bool _ascending = true;
   ViewMode _view = ViewMode.list;
@@ -106,7 +95,7 @@ class _FileBrowserState extends ConsumerState<FileBrowser> {
   final _pathBar = PathBarController();
   final _filterText = TextEditingController();
   int _generation = 0;
-  String _typed = '';
+  final _typeAheadBuffer = TypeAheadBuffer();
   bool _localTree = false;
 
   bool get _showTree =>
@@ -120,8 +109,6 @@ class _FileBrowserState extends ConsumerState<FileBrowser> {
       change(!widget.showTree);
     }
   }
-
-  DateTime _typedAt = DateTime(0);
 
   String? get _hostId => widget.side.hostId;
 
@@ -222,10 +209,9 @@ class _FileBrowserState extends ConsumerState<FileBrowser> {
         _entries = entries;
         _loading = false;
         if (changed) {
-          _selected.clear();
-          _anchor = null;
+          _selected.reset();
         } else {
-          _selected.retainWhere((p) => entries.any((e) => e.path == p));
+          _selected.retainIn(entries);
         }
       });
       if (changed && _scroll.hasClients) _scroll.jumpTo(0);
@@ -254,12 +240,7 @@ class _FileBrowserState extends ConsumerState<FileBrowser> {
     if (entry != null && !entry.isDirectory) {
       await _list(endpoint.paths.dirname(resolved));
       if (!mounted) return;
-      setState(() {
-        _selected
-          ..clear()
-          ..add(resolved);
-        _anchor = resolved;
-      });
+      setState(() => _selected.only(resolved));
       final index = _visible.indexWhere((item) => item.path == resolved);
       if (index >= 0) _reveal(index);
       return;
@@ -282,14 +263,12 @@ class _FileBrowserState extends ConsumerState<FileBrowser> {
     final key = (_entries, _filter, _showHidden, _sort, _ascending);
     final cached = _visibleCache;
     if (cached != null && key == _visibleKey) return cached;
-    final query = _filter.toLowerCase();
     final result = FileSorting.sorted(
-      [
-        for (final entry in _entries ?? const <FileEntry>[])
-          if ((_showHidden || !entry.isHidden) &&
-              (query.isEmpty || entry.name.toLowerCase().contains(query)))
-            entry,
-      ],
+      filterFileEntries(
+        _entries ?? const <FileEntry>[],
+        _filter,
+        showHidden: _showHidden,
+      ),
       _sort,
       ascending: _ascending,
     );
@@ -297,57 +276,43 @@ class _FileBrowserState extends ConsumerState<FileBrowser> {
     return _visibleCache = result;
   }
 
-  List<FileEntry> get _selection => [
-    for (final entry in _visible)
-      if (_selected.contains(entry.path)) entry,
-  ];
+  List<FileEntry> get _selection => _selected.entriesIn(_visible);
 
   String get _hostLabel => _hostId == null
       ? 'This device'
       : ref.read(hostsProvider).value?.host(_hostId)?.label ?? 'Removed host';
 
-  String? _lastTapPath;
-  DateTime _lastTapAt = DateTime(0);
+  final _taps = RepeatTapDetector();
 
   void _tap(FileEntry entry, List<FileEntry> visible) {
     _focus.requestFocus();
     final now = DateTime.now();
     final keyboard = HardwareKeyboard.instance;
-    final repeat =
-        _lastTapPath == entry.path &&
-        now.difference(_lastTapAt) <= kDoubleTapTimeout &&
-        !keyboard.isShiftPressed &&
-        !keyboard.isMetaPressed &&
-        !keyboard.isControlPressed;
-    _lastTapPath = repeat ? null : entry.path;
-    _lastTapAt = now;
+    final repeat = _taps.repeats(
+      entry.path,
+      now: now,
+      modified:
+          keyboard.isShiftPressed ||
+          keyboard.isMetaPressed ||
+          keyboard.isControlPressed,
+    );
     if (repeat) {
       _activate(entry);
       return;
     }
     setState(() {
-      if (keyboard.isShiftPressed && _anchor != null) {
-        final a = visible.indexWhere((e) => e.path == _anchor);
-        final b = visible.indexOf(entry);
-        if (a >= 0 && b >= 0) {
-          _selected
-            ..clear()
-            ..addAll(
-              visible
-                  .sublist(a < b ? a : b, (a < b ? b : a) + 1)
-                  .map((e) => e.path),
-            );
-          return;
-        }
+      if (keyboard.isShiftPressed &&
+          _selected.anchor != null &&
+          _selected.selectRange(visible, entry)) {
+        return;
       }
       if (keyboard.isMetaPressed || keyboard.isControlPressed) {
-        if (!_selected.remove(entry.path)) _selected.add(entry.path);
-      } else {
         _selected
-          ..clear()
-          ..add(entry.path);
+          ..toggle(entry.path)
+          ..anchor = entry.path;
+      } else {
+        _selected.only(entry.path);
       }
-      _anchor = entry.path;
     });
   }
 
@@ -563,7 +528,11 @@ class _FileBrowserState extends ConsumerState<FileBrowser> {
     }
     if (entries.isEmpty || !mounted) return;
     await _deliver(
-      FileDragPayload(hostId: null, entries: entries, sourcePaneKey: 'os'),
+      FileDragPayload(
+        hostId: null,
+        entries: entries,
+        sourcePaneKey: FileBrowserConstants.osDropSource,
+      ),
       target,
       move: false,
     );
@@ -601,7 +570,7 @@ class _FileBrowserState extends ConsumerState<FileBrowser> {
       FileDragPayload(
         hostId: clip.hostId,
         entries: clip.entries,
-        sourcePaneKey: 'clipboard',
+        sourcePaneKey: FileBrowserConstants.clipboardSource,
       ),
       path,
       move: clip.cut,
@@ -667,18 +636,13 @@ class _FileBrowserState extends ConsumerState<FileBrowser> {
 
   void _menu(Offset position, FileEntry? entry) {
     if (entry != null && !_selected.contains(entry.path)) {
-      setState(() {
-        _selected
-          ..clear()
-          ..add(entry.path);
-        _anchor = entry.path;
-      });
+      setState(() => _selected.only(entry.path));
     }
     final selection = _selection;
     final single = selection.length == 1 ? selection.first : null;
     final target = widget.copyTarget;
     final clip = ref.read(fileClipboardProvider);
-    final keys = _Keys.of();
+    final keys = FileBrowserShortcuts.of();
     final folder = single?.isDirectory ?? false ? single!.path : _path;
     unawaited(
       showWgMenu(
@@ -817,14 +781,11 @@ class _FileBrowserState extends ConsumerState<FileBrowser> {
     final next = index.clamp(0, visible.length - 1);
     final entry = visible[next];
     setState(() {
-      if (extend && _anchor != null) {
-        _selected.add(entry.path);
+      if (extend && _selected.anchor != null) {
+        _selected.extend(entry.path);
       } else {
-        _selected
-          ..clear()
-          ..add(entry.path);
+        _selected.only(entry.path);
       }
-      _anchor = entry.path;
     });
     _reveal(next);
   }
@@ -843,12 +804,13 @@ class _FileBrowserState extends ConsumerState<FileBrowser> {
   }
 
   void _typeAhead(String character, List<FileEntry> visible) {
-    final now = DateTime.now();
-    final fresh = now.difference(_typedAt) > context.motion.typeAhead;
-    _typed = (fresh ? '' : _typed) + character.toLowerCase();
-    _typedAt = now;
+    final typed = _typeAheadBuffer.add(
+      character,
+      now: DateTime.now(),
+      window: context.motion.typeAhead,
+    );
     final index = visible.indexWhere(
-      (entry) => entry.name.toLowerCase().startsWith(_typed),
+      (entry) => entry.name.toLowerCase().startsWith(typed),
     );
     if (index >= 0) _select(visible, index);
   }
@@ -864,12 +826,12 @@ class _FileBrowserState extends ConsumerState<FileBrowser> {
         ? keyboard.isMetaPressed
         : keyboard.isControlPressed;
     final shift = keyboard.isShiftPressed;
-    final index = visible.indexWhere((entry) => entry.path == _anchor);
+    final index = visible.indexWhere((entry) => entry.path == _selected.anchor);
     final focused = index >= 0 ? visible[index] : null;
     final page = _scroll.hasClients
         ? (_scroll.position.viewportDimension / context.sizes.rowCompact)
               .floor()
-        : 10;
+        : FileBrowserConstants.fallbackPageRows;
     if (primary && key == LogicalKeyboardKey.arrowUp) {
       _up();
     } else if (primary && key == LogicalKeyboardKey.arrowDown) {
@@ -904,7 +866,7 @@ class _FileBrowserState extends ConsumerState<FileBrowser> {
     } else if (key == LogicalKeyboardKey.f5 && widget.copyTarget != null) {
       unawaited(_copyTo(_selection, widget.copyTarget!));
     } else if (primary && key == LogicalKeyboardKey.keyA) {
-      setState(() => _selected.addAll(visible.map((entry) => entry.path)));
+      setState(() => _selected.addAll(visible));
     } else if (primary && key == LogicalKeyboardKey.keyC) {
       _clip(cut: false);
     } else if (primary && key == LogicalKeyboardKey.keyX) {
@@ -946,18 +908,13 @@ class _FileBrowserState extends ConsumerState<FileBrowser> {
     ref.listen<List<TransferJob>>(transferQueueProvider, (previous, next) {
       final path = _path;
       if (path == null || previous == null) return;
-      final touched = next.any((job) {
-        if (job.status != TransferStatus.completed) return false;
-        final before = previous.firstWhereOrNull((item) => item.id == job.id);
-        if (before?.status == TransferStatus.completed) return false;
-        final target = job.target;
-        final source = job.source;
-        return (target.hostId == hostId &&
-                _endpoint?.paths.dirname(target.path) == path) ||
-            (job.move &&
-                source.hostId == hostId &&
-                _endpoint?.paths.dirname(source.path) == path);
-      });
+      final touched = completedTransfersTouch(
+        previous,
+        next,
+        hostId: hostId,
+        path: path,
+        paths: _endpoint?.paths,
+      );
       if (touched) unawaited(_refresh());
     });
     final visible = _visible;
@@ -1025,7 +982,7 @@ class _FileBrowserState extends ConsumerState<FileBrowser> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _Toolbar(
+          FileBrowserToolbar(
             label: label,
             dot: hostId == null
                 ? WgDotState.connected
@@ -1075,7 +1032,7 @@ class _FileBrowserState extends ConsumerState<FileBrowser> {
                 : () => unawaited(Clipboard.setData(ClipboardData(text: path))),
           ),
           if (_filtering)
-            _FilterBar(
+            FileBrowserFilterBar(
               controller: _filterText,
               onChanged: (value) => setState(() => _filter = value.trim()),
               onClose: () => setState(() {
@@ -1086,7 +1043,7 @@ class _FileBrowserState extends ConsumerState<FileBrowser> {
               }),
             ),
           Expanded(child: body),
-          _Footer(
+          FileBrowserFooter(
             total: visible.length,
             selected: _selection,
             copyLabel: widget.copyTarget == null ? null : widget.copyLabel,
@@ -1128,7 +1085,10 @@ class _FileBrowserState extends ConsumerState<FileBrowser> {
       );
     }
     if (_entries == null) {
-      return const WgSkeletonList(rows: 10, label: 'Loading folder');
+      return const WgSkeletonList(
+        rows: FileBrowserConstants.folderSkeletonRows,
+        label: 'Loading folder',
+      );
     }
     if (visible.isEmpty) {
       return Stack(
@@ -1169,8 +1129,8 @@ class _FileBrowserState extends ConsumerState<FileBrowser> {
     final list = _view == ViewMode.list
         ? FileColumnsView(
             entries: visible,
-            selected: _selected,
-            focusedPath: _anchor,
+            selected: _selected.paths,
+            focusedPath: _selected.anchor,
             sort: _sort,
             ascending: _ascending,
             onSort: (key) => setState(() {
@@ -1268,9 +1228,7 @@ class _FileBrowserState extends ConsumerState<FileBrowser> {
 
   void _activateOrSelect(FileEntry entry) {
     if (_selected.isNotEmpty) {
-      setState(() {
-        if (!_selected.remove(entry.path)) _selected.add(entry.path);
-      });
+      setState(() => _selected.toggle(entry.path));
       return;
     }
     _activate(entry);
@@ -1323,7 +1281,7 @@ class _FileBrowserState extends ConsumerState<FileBrowser> {
                   SizedBox(height: context.space.sm),
                   Text(
                     entry.name,
-                    maxLines: 2,
+                    maxLines: FileBrowserConstants.gridNameLines,
                     textAlign: TextAlign.center,
                     overflow: TextOverflow.ellipsis,
                     style: context.type.caption.copyWith(
@@ -1339,522 +1297,3 @@ class _FileBrowserState extends ConsumerState<FileBrowser> {
     );
   }
 }
-
-class _Keys {
-  const new({required this.cut, required this.copy, required this.paste});
-
-  factory of() {
-    final apple = PlatformInfo.isApple;
-    SingleActivator key(LogicalKeyboardKey key) =>
-        SingleActivator(key, meta: apple, control: !apple);
-    return _Keys(
-      cut: key(LogicalKeyboardKey.keyX),
-      copy: key(LogicalKeyboardKey.keyC),
-      paste: key(LogicalKeyboardKey.keyV),
-    );
-  }
-
-  final SingleActivator cut;
-  final SingleActivator copy;
-  final SingleActivator paste;
-}
-
-class _Toolbar extends StatelessWidget {
-  const new({
-    required this.label,
-    required this.dot,
-    required this.attached,
-    required this.following,
-    required this.onFollow,
-    required this.onGoToTerminal,
-    required this.onInstallHook,
-    required this.path,
-    required this.endpoint,
-    required this.pathBar,
-    required this.favorite,
-    required this.onFavorite,
-    required this.onQuickJump,
-    required this.onPickEndpoint,
-    required this.onNavigate,
-    required this.onUp,
-    required this.onRefresh,
-    required this.onNewFolder,
-    required this.onUpload,
-    required this.showHidden,
-    required this.onToggleHidden,
-    required this.showTree,
-    required this.onToggleTree,
-    required this.view,
-    required this.onView,
-    required this.filtering,
-    required this.onToggleFilter,
-    required this.onOpenTerminal,
-    required this.onCopyPath,
-  });
-
-  final String label;
-  final WgDotState dot;
-  final bool attached;
-  final bool following;
-  final VoidCallback? onFollow;
-  final VoidCallback? onGoToTerminal;
-  final VoidCallback? onInstallHook;
-  final String? path;
-  final FileEndpoint? endpoint;
-  final PathBarController pathBar;
-  final bool favorite;
-  final VoidCallback? onFavorite;
-  final VoidCallback onQuickJump;
-  final VoidCallback onPickEndpoint;
-  final ValueChanged<String> onNavigate;
-  final VoidCallback onUp;
-  final VoidCallback onRefresh;
-  final VoidCallback onNewFolder;
-  final VoidCallback? onUpload;
-  final bool showHidden;
-  final VoidCallback onToggleHidden;
-  final bool showTree;
-  final VoidCallback onToggleTree;
-  final ViewMode view;
-  final ValueChanged<ViewMode> onView;
-  final bool filtering;
-  final VoidCallback onToggleFilter;
-  final VoidCallback? onOpenTerminal;
-  final VoidCallback? onCopyPath;
-
-  @override
-  Widget build(BuildContext context) => LayoutBuilder(
-    builder: (context, constraints) => _build(context, constraints.maxWidth),
-  );
-
-  Widget _build(BuildContext context, double width) {
-    final colors = context.colors;
-    final space = context.space;
-    final sizes = context.sizes;
-    final keyName = PlatformInfo.isApple ? 'Cmd' : 'Ctrl';
-    final button = sizes.rowCompact - space.sm + space.hair;
-    final roomy = width - space.xs * 2 >= sizes.columnName + button * 7;
-    final leading = attached
-        ? Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              WgIconButton(
-                icon: following ? WgIcons.follow : WgIcons.followOff,
-                label: following
-                    ? 'Stop following the terminal'
-                    : 'Follow the terminal',
-                compact: true,
-                selected: following,
-                onPressed: onFollow,
-              ),
-              if (onGoToTerminal != null) ...[
-                SizedBox(width: space.hair),
-                if (roomy)
-                  Flexible(
-                    child: WgButton.ghost(
-                      label: 'Go to terminal folder',
-                      icon: WgIcons.goTo,
-                      onPressed: onGoToTerminal,
-                    ),
-                  )
-                else
-                  WgIconButton(
-                    icon: WgIcons.goTo,
-                    label: 'Go to terminal folder',
-                    compact: true,
-                    onPressed: onGoToTerminal,
-                  ),
-              ],
-            ],
-          )
-        : WgPressable(
-            semanticLabel: 'Location: $label. Change',
-            onPressed: onPickEndpoint,
-            borderRadius: context.radii.smAll,
-            builder: (context, state) => Container(
-              height: sizes.rowCompact - space.xs,
-              padding: EdgeInsets.symmetric(horizontal: space.sm),
-              decoration: BoxDecoration(
-                color: state.highlighted ? colors.raised : colors.transparent,
-                borderRadius: context.radii.smAll,
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  WgStatusDot(state: dot, subject: label),
-                  if (roomy) ...[
-                    SizedBox(width: space.sm),
-                    Flexible(
-                      child: Text(
-                        label,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: context.type.label,
-                      ),
-                    ),
-                  ],
-                  SizedBox(width: space.xs),
-                  Icon(
-                    WgIcons.chevronDown,
-                    size: sizes.icon,
-                    color: colors.textMuted,
-                  ),
-                ],
-              ),
-            ),
-          );
-    final primary = SingleActivator(
-      LogicalKeyboardKey.arrowUp,
-      meta: PlatformInfo.isApple,
-      control: !PlatformInfo.isApple,
-    );
-    final actions = <Widget>[
-      WgIconButton(
-        icon: WgIcons.arrowUp,
-        label: 'Up one folder',
-        compact: true,
-        shortcut: primary,
-        onPressed: onUp,
-      ),
-      WgIconButton(
-        icon: WgIcons.refresh,
-        label: 'Refresh',
-        compact: true,
-        onPressed: onRefresh,
-      ),
-      if (roomy) ...[
-        WgIconButton(
-          icon: WgIcons.search,
-          label: 'Filter',
-          compact: true,
-          selected: filtering,
-          onPressed: onToggleFilter,
-        ),
-        WgIconButton(
-          icon: showHidden ? WgIcons.eye : WgIcons.hidden,
-          label: showHidden ? 'Hide hidden files' : 'Show hidden files',
-          compact: true,
-          selected: showHidden,
-          onPressed: onToggleHidden,
-        ),
-        WgIconButton(
-          icon: favorite ? WgIcons.star : WgIcons.starOff,
-          label: favorite ? 'Remove from favorites' : 'Add to favorites',
-          compact: true,
-          selected: favorite,
-          onPressed: onFavorite,
-        ),
-        WgIconButton(
-          icon: WgIcons.folderTree,
-          label: showTree ? 'Hide folder tree' : 'Show folder tree',
-          compact: true,
-          selected: showTree,
-          onPressed: onToggleTree,
-        ),
-      ],
-      WgMenuButton(
-        icon: WgIcons.more,
-        label: 'More file actions',
-        compact: true,
-        entries: () => [
-          if (!roomy) ...[
-            WgMenuEntry(
-              label: filtering ? 'Close filter' : 'Filter',
-              icon: WgIcons.search,
-              onSelected: onToggleFilter,
-            ),
-            WgMenuEntry(
-              label: showHidden ? 'Hide hidden files' : 'Show hidden files',
-              icon: showHidden ? WgIcons.eye : WgIcons.hidden,
-              onSelected: onToggleHidden,
-            ),
-            WgMenuEntry(
-              label: favorite ? 'Remove from favorites' : 'Add to favorites',
-              icon: WgIcons.star,
-              enabled: onFavorite != null,
-              onSelected: () => onFavorite?.call(),
-            ),
-            WgMenuEntry(
-              label: showTree ? 'Hide folder tree' : 'Show folder tree',
-              icon: WgIcons.folderTree,
-              onSelected: onToggleTree,
-            ),
-            const WgMenuEntry.divider(),
-          ],
-          WgMenuEntry(
-            label: 'Jump to folder…',
-            icon: WgIcons.goTo,
-            shortcut: SingleActivator(
-              LogicalKeyboardKey.keyP,
-              meta: PlatformInfo.isApple,
-              control: !PlatformInfo.isApple,
-            ),
-            onSelected: onQuickJump,
-          ),
-          WgMenuEntry(
-            label: 'Type a path…',
-            icon: WgIcons.textCursor,
-            shortcut: SingleActivator(
-              LogicalKeyboardKey.keyL,
-              meta: PlatformInfo.isApple,
-              control: !PlatformInfo.isApple,
-            ),
-            onSelected: pathBar.edit,
-          ),
-          WgMenuEntry(
-            label: view == ViewMode.list ? 'Show as grid' : 'Show as list',
-            icon: view == ViewMode.list ? WgIcons.grid : WgIcons.list,
-            onSelected: () =>
-                onView(view == ViewMode.list ? ViewMode.grid : ViewMode.list),
-          ),
-          const WgMenuEntry.divider(),
-          WgMenuEntry(
-            label: 'New folder',
-            icon: WgIcons.folderPlus,
-            onSelected: onNewFolder,
-          ),
-          if (onUpload != null)
-            WgMenuEntry(
-              label: 'Upload files…',
-              icon: WgIcons.upload,
-              onSelected: onUpload,
-            ),
-          WgMenuEntry(
-            label: 'Copy path',
-            icon: WgIcons.copy,
-            enabled: onCopyPath != null,
-            onSelected: () => onCopyPath?.call(),
-          ),
-          if (onOpenTerminal != null)
-            WgMenuEntry(
-              label: attached
-                  ? 'Change the terminal to this folder'
-                  : 'Open terminal here',
-              icon: WgIcons.terminal,
-              onSelected: onOpenTerminal,
-            ),
-          if (onInstallHook != null) ...[
-            const WgMenuEntry.divider(),
-            WgMenuEntry(
-              label: 'Set up folder tracking on this host…',
-              icon: WgIcons.follow,
-              onSelected: onInstallHook,
-            ),
-          ],
-        ],
-      ),
-    ];
-    final pathBarWidget = Semantics(
-      hint: 'Click to type a path. $keyName+L also works',
-      child: PathBar(
-        endpoint: endpoint,
-        path: path,
-        onNavigate: onNavigate,
-        controller: pathBar,
-      ),
-    );
-    final actionRow = [
-      for (final (index, action) in actions.indexed) ...[
-        if (index > 0) SizedBox(width: space.hair),
-        action,
-      ],
-    ];
-    final inline = width >= sizes.dialogWide;
-    return Container(
-      decoration: BoxDecoration(
-        color: colors.canvasDeep,
-        border: Border(bottom: BorderSide(color: colors.hairline)),
-      ),
-      padding: EdgeInsets.all(space.xs),
-      child: inline
-          ? Row(
-              children: [
-                leading,
-                SizedBox(width: space.sm),
-                Expanded(child: pathBarWidget),
-                SizedBox(width: space.sm),
-                ...actionRow,
-              ],
-            )
-          : Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Align(
-                        alignment: AlignmentDirectional.centerStart,
-                        child: leading,
-                      ),
-                    ),
-                    SizedBox(width: space.xs),
-                    ...actionRow,
-                  ],
-                ),
-                SizedBox(height: space.xs),
-                pathBarWidget,
-              ],
-            ),
-    );
-  }
-}
-
-class _FilterBar extends StatelessWidget {
-  const new({
-    required this.controller,
-    required this.onChanged,
-    required this.onClose,
-  });
-
-  final TextEditingController controller;
-  final ValueChanged<String> onChanged;
-  final VoidCallback onClose;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.all(context.space.xs),
-      decoration: BoxDecoration(
-        color: context.colors.canvasDeep,
-        border: Border(bottom: BorderSide(color: context.colors.hairline)),
-      ),
-      child: CallbackShortcuts(
-        bindings: {const SingleActivator(LogicalKeyboardKey.escape): onClose},
-        child: WgTextField(
-          controller: controller,
-          autofocus: true,
-          placeholder: 'Filter this folder',
-          leadingIcon: WgIcons.search,
-          onChanged: onChanged,
-          trailing: WgIconButton(
-            icon: WgIcons.close,
-            label: 'Clear filter',
-            compact: true,
-            onPressed: onClose,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _Footer extends StatelessWidget {
-  const new({
-    required this.total,
-    required this.selected,
-    this.copyLabel,
-    this.onCopy,
-  });
-
-  final int total;
-  final List<FileEntry> selected;
-  final String? copyLabel;
-  final VoidCallback? onCopy;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.colors;
-    final bytes = selected
-        .where((entry) => !entry.isDirectory)
-        .fold<int>(0, (sum, entry) => sum + entry.size);
-    final text = selected.isEmpty
-        ? Format.plural(total, 'item')
-        : '${selected.length} of $total selected${bytes > 0 ? ' · ${Format.bytes(bytes)}' : ''}';
-    return Container(
-      height: context.sizes.rowCompact,
-      padding: EdgeInsets.symmetric(horizontal: context.space.sm),
-      decoration: BoxDecoration(
-        color: colors.canvasDeep,
-        border: Border(top: BorderSide(color: colors.hairline)),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              text,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: context.type.monoSmall.copyWith(color: colors.textMuted),
-            ),
-          ),
-          if (copyLabel != null)
-            WgButton.ghost(
-              label: 'Copy to $copyLabel',
-              icon: WgIcons.arrowRight,
-              shortcut: const SingleActivator(LogicalKeyboardKey.f5),
-              onPressed: onCopy,
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-Future<String?> showQuickJump(
-  BuildContext context, {
-  required List<String> favorites,
-  required List<String> recents,
-  required List<String> subfolders,
-  required String hostLabel,
-}) => showGeneralDialog<String>(
-  context: context,
-  barrierDismissible: true,
-  barrierLabel: 'Close',
-  barrierColor: context.colors.scrim,
-  transitionDuration: context.motion.fast,
-  pageBuilder: (dialogContext, _, _) => WgFloatingPanel(
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Padding(
-          padding: EdgeInsets.fromLTRB(
-            context.space.lg,
-            context.space.md,
-            context.space.lg,
-            0,
-          ),
-          child: Semantics(
-            header: true,
-            child: Text(
-              'Jump to a folder on $hostLabel',
-              style: context.type.label,
-            ),
-          ),
-        ),
-        WgSearchList<String>(
-          placeholder: 'Folder name or path',
-          emptyTitle: 'No folder matches',
-          emptyBody: 'Star a folder to keep it here. Folders you open show up as recent.',
-          onCancel: () => Navigator.of(dialogContext).pop(),
-          onSelected: (value) => Navigator.of(dialogContext).pop(value),
-          items: (query) {
-            final lower = query.toLowerCase();
-            bool matches(String path) =>
-                lower.isEmpty || path.toLowerCase().contains(lower);
-            final seen = <String>{};
-            WgSearchItem<String>? item(String path, String section) {
-              if (!matches(path) || !seen.add(path)) return null;
-              final name = path.split('/').where((part) => part.isNotEmpty);
-              return WgSearchItem<String>(
-                value: path,
-                title: name.isEmpty ? path : name.last,
-                subtitle: path,
-                section: section,
-                leading: Icon(
-                  section == 'Favorites' ? WgIcons.star : WgIcons.folder,
-                ),
-              );
-            }
-
-            return [
-              for (final path in favorites) ?item(path, 'Favorites'),
-              for (final path in recents) ?item(path, 'Recent'),
-              for (final path in subfolders) ?item(path, 'In this folder'),
-            ];
-          },
-        ),
-      ],
-    ),
-  ),
-);
