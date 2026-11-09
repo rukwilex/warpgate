@@ -22,7 +22,7 @@ class DirectTransfer {
   final ConnectionPool _pool;
 
   static String _sshTarget(Host target) =>
-      '${target.username}@${target.address}';
+      KeyCodec.shellQuote('${target.username}@${target.address}');
 
   static String sshOptions(Host target) =>
       '-o BatchMode=yes -o ConnectTimeout=6 -o StrictHostKeyChecking=accept-new -p ${target.port}';
@@ -72,13 +72,14 @@ class DirectTransfer {
     required DirectTool tool,
     required CancelToken cancel,
     required void Function(double fraction, double bytesPerSecond) onProgress,
+    bool isDirectory = false,
   }) async {
     final ssh = await _pool.client(source.id);
     final remote = '${_sshTarget(target)}:${KeyCodec.shellQuote(targetPath)}';
     final command = switch (tool) {
       DirectTool.rsync =>
         'rsync -a --partial --info=progress2 -e ${KeyCodec.shellQuote('ssh ${sshOptions(target)}')} '
-            '${KeyCodec.shellQuote(sourcePath)} $remote',
+            '${KeyCodec.shellQuote(isDirectory ? '$sourcePath/' : sourcePath)} $remote',
       DirectTool.scp =>
         'scp -r -p ${sshOptions(target).replaceAll('-p ', '-P ')} ${KeyCodec.shellQuote(sourcePath)} $remote',
     };

@@ -330,6 +330,7 @@ class TransferScheduler {
         target: target,
         sourcePath: job.source.path,
         targetPath: job.target.path,
+        isDirectory: job.isDirectory,
         tool: probe.tool!,
         cancel: token,
         onProgress: (fraction, speed) => _replace(
