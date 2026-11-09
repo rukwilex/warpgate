@@ -1,3 +1,4 @@
 tags:
   perf:
     timeout: 10x
+  integration:

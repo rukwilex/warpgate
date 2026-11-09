@@ -58,7 +58,9 @@ abstract final class NativeEngine {
     final errors = <String>[];
     if (Platform.isMacOS || Platform.isIOS) {
       try {
-        await WarpgateEngine.init(externalLibrary: ExternalLibrary.process(iKnowHowToUseIt: true));
+        await WarpgateEngine.init(
+          externalLibrary: ExternalLibrary.process(iKnowHowToUseIt: true),
+        );
         _available = true;
         return true;
       } on Object catch (error) {
@@ -106,8 +108,13 @@ Object nativeError(Object error) {
     'timeout' => TimeoutException(message),
     'socket' => SSHSocketError(SocketException(message)),
     'handshake' => SSHHandshakeError(message),
-    'channel' || 'channel_request' => SSHChannelOpenError(2, message),
+    'channel' => SSHChannelOpenError(2, message),
+    'channel_request' => SSHChannelRequestError(message),
     'cancelled' => SSHAuthAbortError(message),
+    _ when kind.startsWith('disconnect') => SSHDisconnectError(
+      int.tryParse(kind.split(' ').last) ?? 11,
+      message,
+    ),
     _ when kind.startsWith('sftp_status') => SftpStatusError(
       int.tryParse(kind.split(' ').last) ?? 4,
       message,
@@ -208,31 +215,52 @@ class NativeSshClient implements SSHClient {
   bool _closed = false;
 
   Future<void> _authenticate(NativeAuth auth) async {
+    try {
+      await _tryMethods(auth);
+      _authenticated.complete();
+    } on Object catch (error, stack) {
+      _authenticated
+        ..completeError(error, stack)
+        ..future.ignore();
+      rethrow;
+    }
+  }
+
+  Future<void> _tryMethods(NativeAuth auth) async {
     final user = auth.username;
+    SSHKeyDecodeError? keyError;
+    var rejected = false;
     for (final credential in auth.credentials) {
-      final ok = await _guard(
-        () => switch (credential) {
-          AgentCredential(:final socket) =>
-            _client
-                .authAgent(user: user, socket: socket)
-                .catchError((_) => false),
-          KeyCredential(:final pem, :final passphrase) => _client.authKey(
-            user: user,
-            pem: pem,
-            passphrase: passphrase,
-          ),
-        },
-      );
-      if (ok) return _authenticated.complete();
+      try {
+        final ok = await _guard(
+          () => switch (credential) {
+            AgentCredential(:final socket) =>
+              _client
+                  .authAgent(user: user, socket: socket)
+                  .catchError((_) => false),
+            KeyCredential(:final pem, :final passphrase) => _client.authKey(
+              user: user,
+              pem: pem,
+              passphrase: passphrase,
+            ),
+          },
+        );
+        if (ok) return;
+        rejected = true;
+      } on SSHKeyDecodeError catch (error) {
+        keyError ??= error;
+      }
     }
     final password = auth.password;
     if (password != null) {
       final value = await password();
-      if (value != null &&
-          await _guard(
-            () => _client.authPassword(user: user, password: value),
-          )) {
-        return _authenticated.complete();
+      if (value != null) {
+        if (await _guard(
+          () => _client.authPassword(user: user, password: value),
+        )) {
+          return;
+        }
+        rejected = true;
       }
     }
     final interactive = auth.keyboardInteractive;
@@ -248,16 +276,19 @@ class NativeSshClient implements SSHClient {
           ),
         ),
       );
-      if (ok) return _authenticated.complete();
+      if (ok) return;
+      rejected = true;
     }
+    if (keyError != null && !rejected) throw keyError;
     throw SSHAuthFailError('All authentication methods failed');
   }
 
   void _finish(Object? error) {
     if (_done.isCompleted) return;
+    final requested = _closed;
     _closed = true;
     LiveObjects.closed('native ssh client');
-    if (error == null || _closed) {
+    if (error == null || requested) {
       _done.complete();
     } else {
       _done.completeError(error);
@@ -398,9 +429,9 @@ class NativeSshClient implements SSHClient {
       while (!isClosed && _remotes.isNotEmpty) {
         final next = await _client.acceptForwarded();
         if (next == null) break;
-        final target =
-            _remotes.where((r) => r.port == next.connectedPort).firstOrNull ??
-            _remotes.firstOrNull;
+        final target = _remotes
+            .where((r) => r.port == next.connectedPort)
+            .firstOrNull;
         final channel = NativeForwardChannel(next.channel);
         if (target == null ||
             (target.filter != null &&
@@ -801,7 +832,7 @@ class NativeSftpFile implements SftpFile {
     var delivered = 0;
     var eof = false;
     Future<Uint8List?> request(int at, int size) =>
-        _guard(() => _file.read(offset: BigInt.from(at), len: size));
+        _guard(() => _file.read(offset: BigInt.from(at), len: size))..ignore();
     void fill() {
       while (!eof &&
           inflight.length < maxPendingRequests &&
@@ -819,9 +850,6 @@ class NativeSftpFile implements SftpFile {
       final data = await pending;
       if (data == null || data.isEmpty) {
         eof = true;
-        for (final (_, _, rest) in inflight) {
-          unawaited(rest.then((_) {}, onError: (_) {}));
-        }
         inflight.clear();
         break;
       }
@@ -873,57 +901,59 @@ class NativeSftpWriter implements SftpFileWriter {
     Stream<Uint8List> stream,
     int offset,
     void Function(int total)? onProgress,
-  ) {
-    unawaited(_run(stream, offset, onProgress));
+  ) : _input = StreamIterator(stream) {
+    unawaited(_run(offset, onProgress));
   }
 
   static const window = 16;
 
   final NativeSftpFile _owner;
+  final StreamIterator<Uint8List> _input;
   final _done = Completer<void>();
   bool _aborted = false;
-  StreamSubscription<Uint8List>? _subscription;
 
-  Future<void> _run(
-    Stream<Uint8List> stream,
-    int offset,
-    void Function(int total)? onProgress,
-  ) async {
+  Future<void> _run(int offset, void Function(int total)? onProgress) async {
     var position = offset;
     var acknowledged = 0;
     final inflight = <Future<int>>[];
     final buffer = BytesBuilder(copy: false);
+    Future<void> settle(Future<int> pending) async {
+      acknowledged += await pending;
+      if (!_aborted) onProgress?.call(acknowledged);
+    }
+
     Future<void> send(Uint8List data) async {
       final at = position;
       position += data.length;
       inflight.add(
         _guard(() => _owner._file.write(offset: BigInt.from(at), data: data))
-            .then((_) => data.length),
+            .then((_) => data.length)
+          ..ignore(),
       );
       while (inflight.length >= window) {
-        acknowledged += await inflight.removeAt(0);
-        onProgress?.call(acknowledged);
+        await settle(inflight.removeAt(0));
       }
     }
 
     try {
-      await for (final data in stream) {
-        if (_aborted) break;
-        buffer.add(data);
+      while (!_aborted && await _input.moveNext()) {
+        buffer.add(_input.current);
         while (buffer.length >= NativeSftpFile.chunk) {
           final bytes = buffer.takeBytes();
           await send(Uint8List.sublistView(bytes, 0, NativeSftpFile.chunk));
-          if (bytes.length > NativeSftpFile.chunk)
+          if (bytes.length > NativeSftpFile.chunk) {
             buffer.add(Uint8List.sublistView(bytes, NativeSftpFile.chunk));
+          }
         }
       }
       if (!_aborted && buffer.isNotEmpty) await send(buffer.takeBytes());
-      for (final pending in inflight) {
-        acknowledged += await pending;
-        onProgress?.call(acknowledged);
+      while (inflight.isNotEmpty) {
+        await settle(inflight.removeAt(0));
       }
       if (!_done.isCompleted) _done.complete();
     } on Object catch (error, stack) {
+      inflight.clear();
+      unawaited(_input.cancel());
       if (!_done.isCompleted) _done.completeError(error, stack);
     }
   }
@@ -934,9 +964,12 @@ class NativeSftpWriter implements SftpFileWriter {
   @override
   Future<void> abort() async {
     _aborted = true;
-    await _subscription?.cancel();
-    if (!_done.isCompleted)
-      _done.completeError(SftpAbortError('The transfer was cancelled'));
+    if (!_done.isCompleted) {
+      _done
+        ..completeError(SftpAbortError('The transfer was cancelled'))
+        ..future.ignore();
+    }
+    await _input.cancel();
   }
 
   @override

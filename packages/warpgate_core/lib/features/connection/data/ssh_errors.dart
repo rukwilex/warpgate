@@ -22,14 +22,29 @@ abstract final class SshErrorText {
         when message.contains('Failed host lookup') =>
       'The address could not be resolved',
     SocketException() => 'The host could not be reached',
-    SSHSocketError() => 'The connection was lost',
+    SSHSocketError(:final error) => _withDetail(
+      'The connection was lost',
+      error,
+    ),
     TimeoutException() => 'The host did not answer in time',
-    SSHDisconnectError() => 'The server closed the connection',
+    SSHDisconnectError(:final message) => _withDetail(
+      'The server closed the connection',
+      message,
+    ),
     MissingCredentialsException(:final message) => message,
-    DeadLinkError() => 'The server stopped answering, so the connection was closed',
+    DeadLinkError() =>
+      'The server stopped answering, so the connection was closed',
     StateError(:final message) => message,
     _ => error.toString(),
   };
+
+  static String _withDetail(String summary, Object detail) {
+    final text = switch (detail) {
+      SocketException(:final message) => message,
+      _ => '$detail',
+    }.trim();
+    return text.isEmpty ? summary : '$summary: $text';
+  }
 
   static bool isPermanent(Object error) =>
       error is SSHAuthError ||
