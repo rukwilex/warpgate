@@ -238,13 +238,16 @@ class ConnectionPool {
   }
 
   Future<SftpClient> sftp(String hostId) async {
-    await client(hostId);
-    final entry = _entries[hostId]!;
-    final pending = entry.sftp ??= entry.client.then((ssh) => ssh.sftp());
+    final ssh = await client(hostId);
+    final entry = _entries[hostId];
+    if (entry == null || entry.closing || !identical(entry.live, ssh)) {
+      throw StateError('The connection to this host closed. Try again');
+    }
+    final pending = entry.sftp ??= ssh.sftp();
     try {
       return await pending;
     } on Object {
-      entry.sftp = null;
+      if (identical(entry.sftp, pending)) entry.sftp = null;
       rethrow;
     }
   }
