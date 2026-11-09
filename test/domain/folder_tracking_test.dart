@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
-import 'package:warpgate/features/sftp/presentation/path_bar.dart';
+import 'package:warpgate/features/sftp/utils/path_completion.dart';
 import 'package:warpgate/features/terminal/data/terminal_session.dart';
 
 void main() {

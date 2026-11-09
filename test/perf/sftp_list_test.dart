@@ -2,7 +2,8 @@
 library;
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:warpgate/features/sftp/presentation/file_columns.dart';
+import 'package:warpgate/features/sftp/application/file_sort_key.dart';
+import 'package:warpgate/features/sftp/utils/file_sorting.dart';
 import 'package:warpgate_core/features/sftp/domain/file_endpoint.dart';
 
 import 'support/probe.dart';

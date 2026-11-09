@@ -16,12 +16,17 @@ import 'package:warpgate/features/hosts/presentation/host_picker.dart';
 import 'package:warpgate/features/hosts/presentation/hosts_controller.dart';
 import 'package:warpgate/features/settings/presentation/settings_controller.dart';
 import 'package:warpgate/features/sftp/application/file_places.dart';
+import 'package:warpgate/features/sftp/application/file_sort_key.dart';
+import 'package:warpgate/features/sftp/application/path_bar_controller.dart';
 import 'package:warpgate/features/sftp/presentation/endpoint_providers.dart';
 import 'package:warpgate/features/sftp/presentation/file_columns.dart';
 import 'package:warpgate/features/sftp/presentation/file_dialogs.dart';
 import 'package:warpgate/features/sftp/presentation/file_drop.dart';
 import 'package:warpgate/features/sftp/presentation/folder_tree.dart';
 import 'package:warpgate/features/sftp/presentation/path_bar.dart';
+import 'package:warpgate/features/sftp/utils/file_icon.dart';
+import 'package:warpgate/features/sftp/utils/file_sorting.dart';
+import 'package:warpgate/features/sftp/utils/type_ahead.dart';
 import 'package:warpgate/features/shell/presentation/prompts.dart';
 import 'package:warpgate/features/transfers/presentation/transfer_actions.dart';
 import 'package:warpgate/features/transfers/presentation/transfer_queue.dart';
@@ -33,7 +38,7 @@ import 'package:warpgate_core/features/sftp/domain/file_endpoint.dart';
 import 'package:warpgate_core/features/transfers/domain/transfer_job.dart';
 import 'package:warpgate_core/features/workspace/domain/pane.dart';
 
-export 'package:warpgate/features/sftp/presentation/file_columns.dart'
+export 'package:warpgate/features/sftp/application/file_sort_key.dart'
     show SortKey;
 
 enum ViewMode { list, grid }

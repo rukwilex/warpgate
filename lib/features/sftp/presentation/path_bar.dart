@@ -2,75 +2,12 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:path/path.dart' as p;
 import 'package:warpgate/design_system/design_system.dart';
+import 'package:warpgate/features/sftp/application/path_bar_controller.dart';
+import 'package:warpgate/features/sftp/presentation/file_browser_constants.dart';
+import 'package:warpgate/features/sftp/presentation/widgets/path_bar_suggestions.dart';
+import 'package:warpgate/features/sftp/utils/path_completion.dart';
 import 'package:warpgate_core/features/sftp/domain/file_endpoint.dart';
-
-abstract final class PathCompletion {
-  static (String, String) split(String input, p.Context paths) {
-    final separator = paths.separator;
-    final index = input.lastIndexOf(separator);
-    if (index < 0) return ('', input);
-    final directory = index == 0 ? separator : input.substring(0, index);
-    return (directory, input.substring(index + 1));
-  }
-
-  static List<String> matches(Iterable<String> names, String prefix) {
-    final lower = prefix.toLowerCase();
-    final exact = [
-      for (final name in names)
-        if (name.startsWith(prefix)) name,
-    ];
-    if (exact.isNotEmpty || prefix.isEmpty) return exact..sort();
-    return [
-      for (final name in names)
-        if (name.toLowerCase().startsWith(lower)) name,
-    ]..sort();
-  }
-
-  static String commonPrefix(List<String> names) {
-    if (names.isEmpty) return '';
-    var prefix = names.first;
-    for (final name in names.skip(1)) {
-      var i = 0;
-      while (i < prefix.length && i < name.length && prefix[i] == name[i]) {
-        i++;
-      }
-      prefix = prefix.substring(0, i);
-    }
-    return prefix;
-  }
-
-  static String? complete(String input, List<String> folders, p.Context paths) {
-    final (directory, prefix) = split(input, paths);
-    final found = matches(folders, prefix);
-    if (found.isEmpty) return null;
-    final base = directory == paths.separator
-        ? paths.separator
-        : directory.isEmpty
-        ? ''
-        : '$directory${paths.separator}';
-    if (found.length == 1) return '$base${found.single}${paths.separator}';
-    final common = commonPrefix(found);
-    if (common.length <= prefix.length) return null;
-    return '$base$common';
-  }
-}
-
-class PathBarController extends ChangeNotifier {
-  bool _editRequested = false;
-
-  void edit() {
-    _editRequested = true;
-    notifyListeners();
-  }
-
-  bool takeEditRequest() {
-    final value = _editRequested;
-    _editRequested = false;
-    return value;
-  }
-}
 
 class PathBar extends StatefulWidget {
   const new({
@@ -191,7 +128,7 @@ class _PathBarState extends State<PathBar> {
     if (!mounted || generation != _generation || !_editing) return;
     final found = PathCompletion.matches(folders, prefix);
     setState(() {
-      _suggestions = found.take(50).toList();
+      _suggestions = found.take(FileBrowserConstants.suggestionLimit).toList();
       _highlight = -1;
     });
     if (_suggestions.isEmpty) {
@@ -307,7 +244,7 @@ class _PathBarState extends State<PathBar> {
         link: _link,
         child: OverlayPortal(
           controller: _portal,
-          overlayChildBuilder: (context) => _Suggestions(
+          overlayChildBuilder: (context) => PathBarSuggestions(
             link: _link,
             suggestions: _suggestions,
             highlight: _highlight,
@@ -406,89 +343,6 @@ class _PathBarState extends State<PathBar> {
                         ),
                       ],
                     ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _Suggestions extends StatelessWidget {
-  const new({
-    required this.link,
-    required this.suggestions,
-    required this.highlight,
-    required this.onPick,
-  });
-
-  final LayerLink link;
-  final List<String> suggestions;
-  final int highlight;
-  final ValueChanged<String> onPick;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.colors;
-    final space = context.space;
-    final sizes = context.sizes;
-    final width = link.leaderSize?.width ?? sizes.completionList;
-    return CompositedTransformFollower(
-      link: link,
-      targetAnchor: Alignment.bottomLeft,
-      offset: Offset(0, space.xs),
-      child: Align(
-        alignment: Alignment.topLeft,
-        child: SizedBox(
-          width: width,
-          child: Material(
-            color: colors.raised,
-            borderRadius: context.radii.mdAll,
-            child: Container(
-              constraints: BoxConstraints(maxHeight: sizes.completionList),
-              decoration: BoxDecoration(
-                borderRadius: context.radii.mdAll,
-                border: Border.all(color: colors.hairlineStrong),
-              ),
-              child: ListView.builder(
-                padding: EdgeInsets.all(space.xs),
-                shrinkWrap: true,
-                itemCount: suggestions.length,
-                itemBuilder: (context, index) => WgPressable(
-                  semanticLabel: suggestions[index],
-                  selected: index == highlight,
-                  borderRadius: context.radii.smAll,
-                  onPressed: () => onPick(suggestions[index]),
-                  builder: (context, state) => Container(
-                    height: sizes.rowCompact,
-                    padding: EdgeInsets.symmetric(horizontal: space.sm),
-                    decoration: BoxDecoration(
-                      color: index == highlight || state.highlighted
-                          ? colors.pressed
-                          : colors.transparent,
-                      borderRadius: context.radii.smAll,
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          WgIcons.folder,
-                          size: sizes.icon,
-                          color: colors.textSecondary,
-                        ),
-                        SizedBox(width: space.sm),
-                        Expanded(
-                          child: Text(
-                            suggestions[index],
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: context.type.monoSmall,
-                          ),
-                        ),
-                      ],
-                    ),
                   ),
                 ),
               ),
