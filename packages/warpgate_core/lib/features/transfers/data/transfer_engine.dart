@@ -105,133 +105,152 @@ class TransferEngine {
       lastPublish = now;
       return true;
     }
-    for (final item in plan) {
-      cancel.throwIfCancelled();
-      final sourcePath = item.relative.isEmpty
-          ? sourceRoot
-          : source.paths.join(sourceRoot, item.relative);
-      var targetPath = item.relative.isEmpty
-          ? targetRoot
-          : target.paths.joinAll([
-              targetRoot,
-              ...source.paths.split(item.relative),
-            ]);
-      if (item.isDirectory) {
-        if (!await target.exists(targetPath)) {
-          await target.createDirectory(targetPath);
-          if (item.mode != null) await _tryMode(target, targetPath, item.mode!);
+    String? writing;
+    try {
+      for (final item in plan) {
+        cancel.throwIfCancelled();
+        final sourcePath = item.relative.isEmpty
+            ? sourceRoot
+            : source.paths.join(sourceRoot, item.relative);
+        var targetPath = item.relative.isEmpty
+            ? targetRoot
+            : target.paths.joinAll([
+                targetRoot,
+                ...source.paths.split(item.relative),
+              ]);
+        if (item.isDirectory) {
+          if (!await target.exists(targetPath)) {
+            await target.createDirectory(targetPath);
+            if (item.mode != null) await _tryMode(target, targetPath, item.mode!);
+          }
+          continue;
         }
-        continue;
-      }
-      if (job.completedFiles.contains(item.relative)) continue;
+        if (job.completedFiles.contains(item.relative)) continue;
 
-      var offset = 0;
-      final existing = await target.stat(targetPath);
-      final resumable =
-          job.partialFile == item.relative &&
-          existing != null &&
-          existing.size < item.size;
-      if (resumable) {
-        offset = existing.size;
-      } else if (existing != null) {
-        var resolution = sticky;
-        if (resolution == null) {
-          final answer = await askConflict(
-            ConflictRequest(
-              path: targetPath,
-              targetLabel: target.label,
-              existingSize: existing.size,
-              incomingSize: item.size,
+        var offset = 0;
+        final existing = await target.stat(targetPath);
+        final resumable =
+            job.partialFile == item.relative &&
+            existing != null &&
+            existing.size < item.size;
+        if (resumable) {
+          offset = existing.size;
+        } else if (existing != null) {
+          var resolution = sticky;
+          if (resolution == null) {
+            final answer = await askConflict(
+              ConflictRequest(
+                path: targetPath,
+                targetLabel: target.label,
+                existingSize: existing.size,
+                incomingSize: item.size,
+              ),
+            );
+            resolution = answer.resolution;
+            if (answer.applyToAll) sticky = resolution;
+          }
+          switch (resolution) {
+            case ConflictResolution.skip:
+              skippedItems.add(item.relative);
+              done += item.size;
+              completed.add(item.relative);
+              filesDone++;
+              if (due()) {
+                final bytes = done;
+                final count = filesDone;
+                update(
+                  (job) => job.copyWith(
+                    doneBytes: bytes,
+                    filesDone: count,
+                    completedFiles: completed,
+                  ),
+                );
+              }
+              continue;
+            case ConflictResolution.rename:
+              targetPath = await target.uniqueName(targetPath);
+            case ConflictResolution.resume:
+              if (existing.size < item.size) offset = existing.size;
+            case ConflictResolution.overwrite:
+              break;
+          }
+        }
+
+        final relative = item.relative;
+        final fileName = source.paths.basename(sourcePath);
+        if (item.size >= 1 << 20 || due()) {
+          update(
+            (job) => job.copyWith(
+              currentFile: () => fileName,
+              partialFile: () => relative,
             ),
           );
-          resolution = answer.resolution;
-          if (answer.applyToAll) sticky = resolution;
         }
-        switch (resolution) {
-          case ConflictResolution.skip:
-            skippedItems.add(item.relative);
-            done += item.size;
-            completed.add(item.relative);
-            filesDone++;
+        writing = relative;
+        final base = done + offset;
+        await target.write(
+          targetPath,
+          source.read(sourcePath, offset: offset),
+          offset: offset,
+          cancel: cancel,
+          onProgress: (written) {
+            final now = base + written;
+            final speed = meter.add(now);
             if (due()) {
-              final bytes = done;
-              final count = filesDone;
               update(
-                (job) => job.copyWith(
-                  doneBytes: bytes,
-                  filesDone: count,
-                  completedFiles: completed,
-                ),
+                (job) => job.copyWith(doneBytes: now, bytesPerSecond: speed),
               );
             }
-            continue;
-          case ConflictResolution.rename:
-            targetPath = await target.uniqueName(targetPath);
-          case ConflictResolution.resume:
-            if (existing.size < item.size) offset = existing.size;
-          case ConflictResolution.overwrite:
-            break;
+          },
+        );
+        cancel.throwIfCancelled();
+        if (item.mode != null) await _tryMode(target, targetPath, item.mode!);
+        if (job.move || job.verify) {
+          await _verify(
+            job,
+            source: source,
+            sourcePath: sourcePath,
+            target: target,
+            targetPath: targetPath,
+            size: item.size,
+          );
+          final verified = relative;
+          update(
+            (job) =>
+                job.copyWith(verifiedFiles: {...job.verifiedFiles, verified}),
+          );
+        }
+        done += item.size;
+        completed.add(relative);
+        writing = null;
+        filesDone++;
+        if (item.size >= 1 << 20 || due()) {
+          final bytes = done;
+          final count = filesDone;
+          update(
+            (job) => job.copyWith(
+              doneBytes: bytes,
+              filesDone: count,
+              completedFiles: completed,
+              partialFile: () => null,
+            ),
+          );
         }
       }
-
-      final relative = item.relative;
-      final fileName = source.paths.basename(sourcePath);
-      if (item.size >= 1 << 20 || due()) {
-        update(
-          (job) => job.copyWith(
-            currentFile: () => fileName,
-            partialFile: () => relative,
-          ),
-        );
-      }
-      final base = done + offset;
-      await target.write(
-        targetPath,
-        source.read(sourcePath, offset: offset),
-        offset: offset,
-        cancel: cancel,
-        onProgress: (written) {
-          final now = base + written;
-          final speed = meter.add(now);
-          if (due()) {
-            update(
-              (job) => job.copyWith(doneBytes: now, bytesPerSecond: speed),
-            );
-          }
-        },
+    } on Object {
+      final bytes = done;
+      final count = filesDone;
+      final partial = writing;
+      final finished = {...completed};
+      update(
+        (job) => job.copyWith(
+          doneBytes: bytes,
+          filesDone: count,
+          completedFiles: finished,
+          partialFile: () => partial,
+        ),
       );
-      cancel.throwIfCancelled();
-      if (item.mode != null) await _tryMode(target, targetPath, item.mode!);
-      if (job.move || job.verify) {
-        await _verify(
-          job,
-          source: source,
-          sourcePath: sourcePath,
-          target: target,
-          targetPath: targetPath,
-          size: item.size,
-        );
-        final verified = relative;
-        update(
-          (job) =>
-              job.copyWith(verifiedFiles: {...job.verifiedFiles, verified}),
-        );
-      }
-      done += item.size;
-      completed.add(relative);
-      filesDone++;
-      if (item.size >= 1 << 20 || due()) {
-        final bytes = done;
-        final count = filesDone;
-        update(
-          (job) => job.copyWith(
-            doneBytes: bytes,
-            filesDone: count,
-            completedFiles: completed,
-            partialFile: () => null,
-          ),
-        );
-      }
+      rethrow;
     }
     final bytes = done;
     final count = filesDone;
