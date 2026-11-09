@@ -100,9 +100,7 @@ class WgListRow extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: context.type.body.copyWith(
-                        color: selected
-                            ? colors.textPrimary
-                            : colors.textPrimary,
+                        color: colors.textPrimary,
                       ),
                     ),
                     if (subtitle != null)
@@ -117,7 +115,7 @@ class WgListRow extends StatelessWidget {
                   ],
                 ),
               ),
-              if (meta != null) ...[
+              if (meta != null && constraints.maxWidth >= sizes.metaMinRow) ...[
                 SizedBox(width: space.sm),
                 ConstrainedBox(
                   constraints: BoxConstraints(

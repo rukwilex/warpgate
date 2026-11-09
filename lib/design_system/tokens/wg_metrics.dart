@@ -126,10 +126,11 @@ class WgSizes extends ThemeExtension<WgSizes> {
     this.completionList = 240,
     this.logoMark = 18,
     this.logoLarge = 40,
+    this.metaMinRow = 360,
   });
 
   factory forDensity(WgDensity density, {required bool touch}) {
-    if (touch) return const WgSizes(row: 44, control: 44, touch: true);
+    if (touch) return const WgSizes(row: 44, control: 44, rowCompact: 44, touch: true);
     return switch (density) {
       WgDensity.compact => const WgSizes(row: 32, control: 32, titleBar: 36),
       WgDensity.comfortable => const WgSizes(row: 36, control: 36),
@@ -194,6 +195,7 @@ class WgSizes extends ThemeExtension<WgSizes> {
   final double completionList;
   final double logoMark;
   final double logoLarge;
+  final double metaMinRow;
 
   @override
   WgSizes copyWith() => this;
