@@ -1,10 +1,10 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:dartssh2/dartssh2.dart';
 import 'package:meta/meta.dart';
 import 'package:warpgate_core/features/connection/data/connection_pool.dart';
 import 'package:warpgate_core/features/connection/data/ssh_errors.dart';
+import 'package:warpgate_core/features/connection/domain/ssh_client.dart';
 import 'package:warpgate_core/features/hosts/domain/host.dart';
 
 enum ForwardState { starting, active, failed, stopped }
@@ -126,7 +126,7 @@ class PortForwarder {
   }
 
   Future<Future<void> Function()> _local(
-    SSHClient ssh,
+    SshClient ssh,
     ActiveForward forward,
   ) async {
     final spec = forward.spec;
@@ -149,7 +149,7 @@ class PortForwarder {
   }
 
   Future<Future<void> Function()> _remote(
-    SSHClient ssh,
+    SshClient ssh,
     ActiveForward forward,
   ) async {
     final spec = forward.spec;
@@ -175,7 +175,7 @@ class PortForwarder {
   }
 
   Future<Future<void> Function()> _dynamic(
-    SSHClient ssh,
+    SshClient ssh,
     PortForwardSpec spec,
   ) async {
     final forward = await ssh.forwardDynamic(
@@ -185,7 +185,7 @@ class PortForwarder {
     return forward.close;
   }
 
-  Future<void> _pipe(Socket socket, SSHForwardChannel channel) async {
+  Future<void> _pipe(Socket socket, SshTunnel channel) async {
     final upstream = socket.cast<List<int>>().pipe(channel.sink);
     final downstream = channel.stream.cast<List<int>>().pipe(socket);
     await Future.any([upstream, downstream]);

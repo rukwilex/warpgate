@@ -1,4 +1,5 @@
 import '../frb_generated.dart';
+import 'error.dart';
 
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
@@ -107,6 +108,8 @@ abstract class SshClient implements RustOpaqueInterface {
   Future<SshChannel> openSession();
 
   Future<void> ping({required int timeoutMs});
+
+  String? remoteVersion();
 
   Future<SftpSession> sftp();
 

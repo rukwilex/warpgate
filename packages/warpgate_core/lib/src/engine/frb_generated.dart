@@ -1,3 +1,4 @@
+import 'api/error.dart';
 import 'api/sftp.dart';
 import 'api/ssh.dart';
 import 'api/util.dart';
@@ -64,7 +65,7 @@ class WarpgateEngine
   String get codegenVersion => '2.12.0';
 
   @override
-  int get rustContentHash => -741912197;
+  int get rustContentHash => 1760737308;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -310,6 +311,8 @@ abstract class WarpgateEngineApi extends BaseApi {
     required SshClient that,
     required int timeoutMs,
   });
+
+  String? crateApiSshSshClientRemoteVersion({required SshClient that});
 
   Future<SftpSession> crateApiSshSshClientSftp({required SshClient that});
 
@@ -827,7 +830,7 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
-          decodeErrorData: sse_decode_AnyhowException,
+          decodeErrorData: sse_decode_engine_error,
         ),
         constMeta: kCrateApiSftpSftpFileCloseConstMeta,
         argValues: [that],
@@ -864,7 +867,7 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_opt_list_prim_u_8_strict,
-          decodeErrorData: sse_decode_AnyhowException,
+          decodeErrorData: sse_decode_engine_error,
         ),
         constMeta: kCrateApiSftpSftpFileReadConstMeta,
         argValues: [that, offset, len],
@@ -897,7 +900,7 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_opt_box_autoadd_u_64,
-          decodeErrorData: sse_decode_AnyhowException,
+          decodeErrorData: sse_decode_engine_error,
         ),
         constMeta: kCrateApiSftpSftpFileSizeConstMeta,
         argValues: [that],
@@ -934,7 +937,7 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
-          decodeErrorData: sse_decode_AnyhowException,
+          decodeErrorData: sse_decode_engine_error,
         ),
         constMeta: kCrateApiSftpSftpFileWriteConstMeta,
         argValues: [that, offset, data],
@@ -967,7 +970,7 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
-          decodeErrorData: sse_decode_AnyhowException,
+          decodeErrorData: sse_decode_engine_error,
         ),
         constMeta: kCrateApiSftpSftpSessionCloseConstMeta,
         argValues: [that],
@@ -1002,7 +1005,7 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_list_sftp_entry,
-          decodeErrorData: sse_decode_AnyhowException,
+          decodeErrorData: sse_decode_engine_error,
         ),
         constMeta: kCrateApiSftpSftpSessionListConstMeta,
         argValues: [that, path],
@@ -1040,7 +1043,7 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
-          decodeErrorData: sse_decode_AnyhowException,
+          decodeErrorData: sse_decode_engine_error,
         ),
         constMeta: kCrateApiSftpSftpSessionMkdirConstMeta,
         argValues: [that, path],
@@ -1081,7 +1084,7 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
         codec: SseCodec(
           decodeSuccessData:
               sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSftpFile,
-          decodeErrorData: sse_decode_AnyhowException,
+          decodeErrorData: sse_decode_engine_error,
         ),
         constMeta: kCrateApiSftpSftpSessionOpenConstMeta,
         argValues: [that, path, flags],
@@ -1119,7 +1122,7 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_String,
-          decodeErrorData: sse_decode_AnyhowException,
+          decodeErrorData: sse_decode_engine_error,
         ),
         constMeta: kCrateApiSftpSftpSessionRealpathConstMeta,
         argValues: [that, path],
@@ -1157,7 +1160,7 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
-          decodeErrorData: sse_decode_AnyhowException,
+          decodeErrorData: sse_decode_engine_error,
         ),
         constMeta: kCrateApiSftpSftpSessionRemoveConstMeta,
         argValues: [that, path],
@@ -1197,7 +1200,7 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
-          decodeErrorData: sse_decode_AnyhowException,
+          decodeErrorData: sse_decode_engine_error,
         ),
         constMeta: kCrateApiSftpSftpSessionRenameConstMeta,
         argValues: [that, from, to],
@@ -1235,7 +1238,7 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
-          decodeErrorData: sse_decode_AnyhowException,
+          decodeErrorData: sse_decode_engine_error,
         ),
         constMeta: kCrateApiSftpSftpSessionRmdirConstMeta,
         argValues: [that, path],
@@ -1275,7 +1278,7 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
-          decodeErrorData: sse_decode_AnyhowException,
+          decodeErrorData: sse_decode_engine_error,
         ),
         constMeta: kCrateApiSftpSftpSessionSetPermissionsConstMeta,
         argValues: [that, path, mode],
@@ -1315,7 +1318,7 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_sftp_attrs,
-          decodeErrorData: sse_decode_AnyhowException,
+          decodeErrorData: sse_decode_engine_error,
         ),
         constMeta: kCrateApiSftpSftpSessionStatConstMeta,
         argValues: [that, path, followLinks],
@@ -1349,7 +1352,7 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
-          decodeErrorData: sse_decode_AnyhowException,
+          decodeErrorData: sse_decode_engine_error,
         ),
         constMeta: kCrateApiSshSshChannelCloseConstMeta,
         argValues: [that],
@@ -1380,7 +1383,7 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
-          decodeErrorData: sse_decode_AnyhowException,
+          decodeErrorData: sse_decode_engine_error,
         ),
         constMeta: kCrateApiSshSshChannelEofConstMeta,
         argValues: [that],
@@ -1415,7 +1418,7 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
-          decodeErrorData: sse_decode_AnyhowException,
+          decodeErrorData: sse_decode_engine_error,
         ),
         constMeta: kCrateApiSshSshChannelExecConstMeta,
         argValues: [that, command],
@@ -1481,7 +1484,7 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_channel_chunk,
-          decodeErrorData: sse_decode_AnyhowException,
+          decodeErrorData: sse_decode_engine_error,
         ),
         constMeta: kCrateApiSshSshChannelReadConstMeta,
         argValues: [that, maxBytes],
@@ -1522,7 +1525,7 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
-          decodeErrorData: sse_decode_AnyhowException,
+          decodeErrorData: sse_decode_engine_error,
         ),
         constMeta: kCrateApiSshSshChannelRequestPtyConstMeta,
         argValues: [that, term, columns, rows],
@@ -1556,7 +1559,7 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
-          decodeErrorData: sse_decode_AnyhowException,
+          decodeErrorData: sse_decode_engine_error,
         ),
         constMeta: kCrateApiSshSshChannelRequestShellConstMeta,
         argValues: [that],
@@ -1596,7 +1599,7 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
-          decodeErrorData: sse_decode_AnyhowException,
+          decodeErrorData: sse_decode_engine_error,
         ),
         constMeta: kCrateApiSshSshChannelSetEnvConstMeta,
         argValues: [that, name, value],
@@ -1636,7 +1639,7 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
-          decodeErrorData: sse_decode_AnyhowException,
+          decodeErrorData: sse_decode_engine_error,
         ),
         constMeta: kCrateApiSshSshChannelWindowChangeConstMeta,
         argValues: [that, columns, rows],
@@ -1674,7 +1677,7 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
-          decodeErrorData: sse_decode_AnyhowException,
+          decodeErrorData: sse_decode_engine_error,
         ),
         constMeta: kCrateApiSshSshChannelWriteConstMeta,
         argValues: [that, data],
@@ -1710,7 +1713,7 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
         codec: SseCodec(
           decodeSuccessData:
               sse_decode_opt_box_autoadd_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerForwardedConnection,
-          decodeErrorData: sse_decode_AnyhowException,
+          decodeErrorData: sse_decode_engine_error,
         ),
         constMeta: kCrateApiSshSshClientAcceptForwardedConstMeta,
         argValues: [that],
@@ -1750,7 +1753,7 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_bool,
-          decodeErrorData: sse_decode_AnyhowException,
+          decodeErrorData: sse_decode_engine_error,
         ),
         constMeta: kCrateApiSshSshClientAuthAgentConstMeta,
         argValues: [that, user, socket],
@@ -1792,7 +1795,7 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_bool,
-          decodeErrorData: sse_decode_AnyhowException,
+          decodeErrorData: sse_decode_engine_error,
         ),
         constMeta: kCrateApiSshSshClientAuthKeyConstMeta,
         argValues: [that, user, pem, passphrase],
@@ -1841,7 +1844,7 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_bool,
-          decodeErrorData: sse_decode_AnyhowException,
+          decodeErrorData: sse_decode_engine_error,
         ),
         constMeta: kCrateApiSshSshClientAuthKeyboardInteractiveConstMeta,
         argValues: [that, user, responder],
@@ -1879,7 +1882,7 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_bool,
-          decodeErrorData: sse_decode_AnyhowException,
+          decodeErrorData: sse_decode_engine_error,
         ),
         constMeta: kCrateApiSshSshClientAuthNoneConstMeta,
         argValues: [that, user],
@@ -1919,7 +1922,7 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_bool,
-          decodeErrorData: sse_decode_AnyhowException,
+          decodeErrorData: sse_decode_engine_error,
         ),
         constMeta: kCrateApiSshSshClientAuthPasswordConstMeta,
         argValues: [that, user, password],
@@ -1959,7 +1962,7 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
-          decodeErrorData: sse_decode_AnyhowException,
+          decodeErrorData: sse_decode_engine_error,
         ),
         constMeta: kCrateApiSshSshClientCancelForwardRemoteConstMeta,
         argValues: [that, host, port],
@@ -2003,7 +2006,7 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
         codec: SseCodec(
           decodeSuccessData:
               sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSshClient,
-          decodeErrorData: sse_decode_AnyhowException,
+          decodeErrorData: sse_decode_engine_error,
         ),
         constMeta: kCrateApiSshSshClientConnectViaConstMeta,
         argValues: [that, params, verifier],
@@ -2037,7 +2040,7 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
-          decodeErrorData: sse_decode_AnyhowException,
+          decodeErrorData: sse_decode_engine_error,
         ),
         constMeta: kCrateApiSshSshClientDisconnectConstMeta,
         argValues: [that],
@@ -2077,7 +2080,7 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_u_32,
-          decodeErrorData: sse_decode_AnyhowException,
+          decodeErrorData: sse_decode_engine_error,
         ),
         constMeta: kCrateApiSshSshClientForwardRemoteConstMeta,
         argValues: [that, host, port],
@@ -2144,7 +2147,7 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
         codec: SseCodec(
           decodeSuccessData:
               sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSshChannel,
-          decodeErrorData: sse_decode_AnyhowException,
+          decodeErrorData: sse_decode_engine_error,
         ),
         constMeta: kCrateApiSshSshClientOpenDirectTcpipConstMeta,
         argValues: [that, host, port],
@@ -2181,7 +2184,7 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
         codec: SseCodec(
           decodeSuccessData:
               sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSshChannel,
-          decodeErrorData: sse_decode_AnyhowException,
+          decodeErrorData: sse_decode_engine_error,
         ),
         constMeta: kCrateApiSshSshClientOpenSessionConstMeta,
         argValues: [that],
@@ -2219,7 +2222,7 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
-          decodeErrorData: sse_decode_AnyhowException,
+          decodeErrorData: sse_decode_engine_error,
         ),
         constMeta: kCrateApiSshSshClientPingConstMeta,
         argValues: [that, timeoutMs],
@@ -2234,6 +2237,35 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
   );
 
   @override
+  String? crateApiSshSshClientRemoteVersion({required SshClient that}) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSshClient(
+            that,
+            serializer,
+          );
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 52)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_opt_String,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiSshSshClientRemoteVersionConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiSshSshClientRemoteVersionConstMeta =>
+      const TaskConstMeta(
+        debugName: "SshClient_remote_version",
+        argNames: ["that"],
+      );
+
+  @override
   Future<SftpSession> crateApiSshSshClientSftp({required SshClient that}) {
     return handler.executeNormal(
       NormalTask(
@@ -2246,14 +2278,14 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 52,
+            funcId: 53,
             port: port_,
           );
         },
         codec: SseCodec(
           decodeSuccessData:
               sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSftpSession,
-          decodeErrorData: sse_decode_AnyhowException,
+          decodeErrorData: sse_decode_engine_error,
         ),
         constMeta: kCrateApiSshSshClientSftpConstMeta,
         argValues: [that],
@@ -2278,13 +2310,13 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 53,
+            funcId: 54,
             port: port_,
           );
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
-          decodeErrorData: sse_decode_AnyhowException,
+          decodeErrorData: sse_decode_engine_error,
         ),
         constMeta: kCrateApiSshSshClientWaitClosedConstMeta,
         argValues: [that],
@@ -2321,14 +2353,14 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 54,
+            funcId: 55,
             port: port_,
           );
         },
         codec: SseCodec(
           decodeSuccessData:
               sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSshClient,
-          decodeErrorData: sse_decode_AnyhowException,
+          decodeErrorData: sse_decode_engine_error,
         ),
         constMeta: kCrateApiSshConnectConstMeta,
         argValues: [params, cancel, verifier],
@@ -2348,7 +2380,7 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 55)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 56)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_String,
@@ -2373,7 +2405,7 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 56,
+            funcId: 57,
             port: port_,
           );
         },
@@ -2401,13 +2433,13 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 57,
+            funcId: 58,
             port: port_,
           );
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_String,
-          decodeErrorData: sse_decode_AnyhowException,
+          decodeErrorData: sse_decode_engine_error,
         ),
         constMeta: kCrateApiUtilSha256FileConstMeta,
         argValues: [path],
@@ -2780,6 +2812,28 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
       handshakeTimeoutMs: dco_decode_u_32(arr[3]),
       clientId: dco_decode_String(arr[4]),
     );
+  }
+
+  @protected
+  EngineError dco_decode_engine_error(dynamic raw) {
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return EngineError(
+      kind: dco_decode_engine_error_kind(arr[0]),
+      message: dco_decode_String(arr[1]),
+      code: dco_decode_opt_box_autoadd_u_32(arr[2]),
+    );
+  }
+
+  @protected
+  EngineErrorKind dco_decode_engine_error_kind(dynamic raw) {
+    return EngineErrorKind.values[raw as int];
+  }
+
+  @protected
+  int dco_decode_i_32(dynamic raw) {
+    return raw as int;
   }
 
   @protected
@@ -3196,6 +3250,25 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
   }
 
   @protected
+  EngineError sse_decode_engine_error(SseDeserializer deserializer) {
+    var var_kind = sse_decode_engine_error_kind(deserializer);
+    var var_message = sse_decode_String(deserializer);
+    var var_code = sse_decode_opt_box_autoadd_u_32(deserializer);
+    return EngineError(kind: var_kind, message: var_message, code: var_code);
+  }
+
+  @protected
+  EngineErrorKind sse_decode_engine_error_kind(SseDeserializer deserializer) {
+    var inner = sse_decode_i_32(deserializer);
+    return EngineErrorKind.values[inner];
+  }
+
+  @protected
+  int sse_decode_i_32(SseDeserializer deserializer) {
+    return deserializer.buffer.getInt32();
+  }
+
+  @protected
   PlatformInt64 sse_decode_isize(SseDeserializer deserializer) {
     return deserializer.buffer.getPlatformInt64();
   }
@@ -3357,11 +3430,6 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
   @protected
   BigInt sse_decode_usize(SseDeserializer deserializer) {
     return deserializer.buffer.getBigUint64();
-  }
-
-  @protected
-  int sse_decode_i_32(SseDeserializer deserializer) {
-    return deserializer.buffer.getInt32();
   }
 
   @protected
@@ -3698,6 +3766,26 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
   }
 
   @protected
+  void sse_encode_engine_error(EngineError self, SseSerializer serializer) {
+    sse_encode_engine_error_kind(self.kind, serializer);
+    sse_encode_String(self.message, serializer);
+    sse_encode_opt_box_autoadd_u_32(self.code, serializer);
+  }
+
+  @protected
+  void sse_encode_engine_error_kind(
+    EngineErrorKind self,
+    SseSerializer serializer,
+  ) {
+    sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
+  void sse_encode_i_32(int self, SseSerializer serializer) {
+    serializer.buffer.putInt32(self);
+  }
+
+  @protected
   void sse_encode_isize(PlatformInt64 self, SseSerializer serializer) {
     serializer.buffer.putPlatformInt64(self);
   }
@@ -3853,11 +3941,6 @@ class WarpgateEngineApiImpl extends WarpgateEngineApiImplPlatform
   @protected
   void sse_encode_usize(BigInt self, SseSerializer serializer) {
     serializer.buffer.putBigUint64(self);
-  }
-
-  @protected
-  void sse_encode_i_32(int self, SseSerializer serializer) {
-    serializer.buffer.putInt32(self);
   }
 }
 
@@ -4241,6 +4324,9 @@ class SshClientImpl extends RustOpaque implements SshClient {
 
   Future<void> ping({required int timeoutMs}) => WarpgateEngine.instance.api
       .crateApiSshSshClientPing(that: this, timeoutMs: timeoutMs);
+
+  String? remoteVersion() =>
+      WarpgateEngine.instance.api.crateApiSshSshClientRemoteVersion(that: this);
 
   Future<SftpSession> sftp() =>
       WarpgateEngine.instance.api.crateApiSshSshClientSftp(that: this);

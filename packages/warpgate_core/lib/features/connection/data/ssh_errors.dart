@@ -32,6 +32,7 @@ abstract final class SshErrorText {
       message,
     ),
     MissingCredentialsException(:final message) => message,
+    ConnectCancelledException() => 'Connecting was cancelled',
     DeadLinkError() =>
       'The server stopped answering, so the connection was closed',
     StateError(:final message) => message,
@@ -50,7 +51,8 @@ abstract final class SshErrorText {
       error is SSHAuthError ||
       error is SSHHostkeyError ||
       error is SSHKeyDecodeError ||
-      error is MissingCredentialsException;
+      error is MissingCredentialsException ||
+      error is ConnectCancelledException;
 }
 
 class MissingCredentialsException implements Exception {
@@ -67,4 +69,11 @@ class DeadLinkError implements Exception {
 
   @override
   String toString() => 'The server stopped answering keep-alive checks';
+}
+
+class ConnectCancelledException implements Exception {
+  const new();
+
+  @override
+  String toString() => 'Connecting was cancelled';
 }

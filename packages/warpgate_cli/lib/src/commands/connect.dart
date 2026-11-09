@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:dartssh2/dartssh2.dart';
+import 'package:warpgate_core/features/connection/domain/ssh_client.dart';
 import 'package:warpgate_cli/src/args.dart';
 import 'package:warpgate_cli/src/cli.dart';
 import 'package:warpgate_cli/src/terminal.dart';
@@ -79,7 +79,7 @@ abstract final class ConnectCommands {
     return started;
   }
 
-  static Future<int> _shell(SSHClient client, {String? command}) async {
+  static Future<int> _shell(SshClient client, {String? command}) async {
     final columns = stdout.hasTerminal ? stdout.terminalColumns : 80;
     final rows = stdout.hasTerminal ? stdout.terminalLines : 24;
     final pty = SSHPtyConfig(
@@ -141,7 +141,7 @@ abstract final class ConnectCommands {
     }
   }
 
-  static Future<int> _stream(SSHClient client, String command, {Duration? timeout}) async {
+  static Future<int> _stream(SshClient client, String command, {Duration? timeout}) async {
     final session = await client.execute(command);
     final outDone = session.stdout.forEach(stdout.add);
     final errDone = session.stderr.forEach(stderr.add);

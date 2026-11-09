@@ -20,7 +20,7 @@ import 'package:warpgate/features/workspace/presentation/workbench_controller.da
 import 'package:warpgate_core/core/data/app_data_migration.dart';
 import 'package:warpgate_core/core/diagnostics/app_log.dart';
 import 'package:warpgate_core/core/platform/app_paths.dart';
-import 'package:warpgate_core/features/connection/engine/native_ssh.dart';
+import 'package:warpgate_core/features/connection/engine/native/native_engine.dart';
 import 'package:warpgate_core/features/sftp/data/endpoints.dart';
 import 'package:window_manager/window_manager.dart';
 

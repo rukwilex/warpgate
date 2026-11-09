@@ -1,5 +1,5 @@
-import 'package:dartssh2/dartssh2.dart';
 import 'package:warpgate_core/features/connection/data/connection_pool.dart';
+import 'package:warpgate_core/features/connection/domain/ssh_client.dart';
 import 'package:warpgate_core/features/sftp/data/endpoints.dart';
 import 'package:warpgate_core/features/sftp/domain/file_endpoint.dart';
 
@@ -13,7 +13,7 @@ class EndpointResolver {
   final ConnectionPool pool;
   final String? Function(String hostId) labelOf;
   final Future<void> Function()? ready;
-  final Map<String, (SftpClient, SftpEndpoint)> _cache = {};
+  final Map<String, (SshSftp, SftpEndpoint)> _cache = {};
   final LocalEndpoint _local = LocalEndpoint();
 
   Future<FileEndpoint> resolve(String? hostId) async {

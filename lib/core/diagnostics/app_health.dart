@@ -18,7 +18,7 @@ import 'package:warpgate_core/core/diagnostics/live_objects.dart';
 import 'package:warpgate_core/core/diagnostics/process_stats.dart';
 import 'package:warpgate_core/core/diagnostics/watchdog.dart';
 import 'package:warpgate_core/core/util/worker.dart';
-import 'package:warpgate_core/features/connection/engine/native_ssh.dart';
+import 'package:warpgate_core/features/connection/engine/native/native_engine.dart';
 import 'package:warpgate_core/features/transfers/domain/transfer_job.dart';
 import 'package:xterm/xterm.dart';
 

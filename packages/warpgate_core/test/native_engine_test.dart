@@ -8,7 +8,11 @@ import 'dart:typed_data';
 
 import 'package:dartssh2/dartssh2.dart';
 import 'package:test/test.dart';
-import 'package:warpgate_core/features/connection/engine/native_ssh.dart';
+import 'package:warpgate_core/features/connection/data/ssh_errors.dart';
+import 'package:warpgate_core/features/connection/engine/native/native_auth.dart';
+import 'package:warpgate_core/features/connection/engine/native/native_engine.dart';
+import 'package:warpgate_core/features/connection/engine/native/native_ssh_client.dart';
+import 'package:warpgate_core/features/sftp/domain/file_endpoint.dart' show CancelToken;
 
 void main() {
   final keyPath = Platform.environment['WARPGATE_TEST_KEY'];
@@ -44,11 +48,12 @@ void main() {
 
   test('a key that fails to decrypt falls through to the next method', () async {
     final client = await connect([KeyCredential(encryptedPem, 'wrong'), KeyCredential(pem, null)]);
-    await expectLater(client.authenticated, completes);
+    expect(client.isClosed, isFalse);
+    expect(client.remoteVersion, startsWith('SSH-2.0-'));
     await client.close();
   }, skip: skip);
 
-  test('a failed sign-in throws and completes authenticated with the error', () async {
+  test('a failed sign-in throws the key error', () async {
     Object? caught;
     try {
       await connect([KeyCredential(encryptedPem, 'wrong')], password: () async => null);
@@ -79,10 +84,35 @@ void main() {
     final session = await client.execute('head -c 3000000 /dev/zero');
     var total = 0;
     final err = session.stderr.drain<void>();
-    await session.stdout.forEach((chunk) => total += chunk.length);
+    await session.stdout.forEach((Uint8List chunk) => total += chunk.length);
     await err;
     expect(total, 3000000);
     await client.close();
+  }, skip: skip);
+
+  test('stdin data is delivered before end of file', () async {
+    final client = await connect([KeyCredential(pem, null)]);
+    final session = await client.execute('cat');
+    final out = session.stdout.fold<List<int>>([], (all, chunk) => all..addAll(chunk));
+    unawaited(session.stderr.drain<void>());
+    session.stdin.add(Uint8List.fromList(utf8.encode('piped')));
+    await session.stdin.close();
+    expect(utf8.decode(await out.timeout(const Duration(seconds: 10))), 'piped');
+    await client.close();
+  }, skip: skip);
+
+  test('a cancelled connect fails with a cancellation error', () async {
+    final cancel = CancelToken()..cancel();
+    await expectLater(
+      NativeSshClient.connect(
+        host: '127.0.0.1',
+        port: port!,
+        cancel: cancel,
+        verify: (_, _) async => true,
+        auth: NativeAuth(username: user, credentials: [KeyCredential(pem, null)]),
+      ),
+      throwsA(isA<ConnectCancelledException>()),
+    );
   }, skip: skip);
 
   test('aborting a write cancels the source stream and fails done', () async {

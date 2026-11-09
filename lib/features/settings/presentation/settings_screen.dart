@@ -24,7 +24,7 @@ import 'package:warpgate/features/shell/presentation/ui_state.dart';
 import 'package:warpgate/features/snippets/presentation/snippets_controller.dart';
 import 'package:warpgate/features/transfers/presentation/transfer_queue.dart';
 import 'package:warpgate_core/core/util/format.dart';
-import 'package:warpgate_core/features/connection/engine/native_ssh.dart';
+import 'package:warpgate_core/features/connection/engine/native/native_engine.dart';
 import 'package:warpgate_core/features/hosts/domain/host.dart';
 import 'package:warpgate_core/features/security/data/backup_service.dart';
 import 'package:warpgate_core/features/settings/domain/app_settings.dart';

@@ -8,7 +8,8 @@ import 'package:warpgate_core/core/data/secret_store.dart';
 import 'package:warpgate_core/core/data/sqlite_document_store.dart';
 import 'package:warpgate_core/core/interaction/interaction_broker.dart';
 import 'package:warpgate_core/features/connection/data/connection_pool.dart';
-import 'package:warpgate_core/features/connection/engine/native_ssh.dart';
+import 'package:warpgate_core/features/connection/domain/ssh_client.dart';
+import 'package:warpgate_core/features/connection/engine/native/native_engine.dart';
 import 'package:warpgate_core/features/hosts/data/host_repository.dart';
 import 'package:warpgate_core/features/hosts/domain/host.dart';
 import 'package:warpgate_core/features/keys/data/key_repository.dart';
@@ -204,7 +205,7 @@ Future<void> shellFlood(String command, String name) async {
 
 Future<void> idleSessions(int count, Duration span) async {
   final fleet = await Fleet.open(hostsCount: count);
-  final sessions = <SSHSession>[];
+  final sessions = <SshSession>[];
   for (final host in fleet.hosts) {
     final client = await fleet.pool.client(host.id);
     fleet.pool.retain(host.id);

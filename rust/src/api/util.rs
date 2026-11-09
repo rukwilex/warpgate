@@ -7,6 +7,8 @@ use tokio::io::AsyncReadExt;
 use tokio::runtime::Runtime;
 use tokio::sync::Notify;
 
+use crate::api::error::EngineError;
+
 pub(crate) static RUNTIME: Lazy<Runtime> = Lazy::new(|| {
     tokio::runtime::Builder::new_multi_thread()
         .worker_threads(2)
@@ -16,9 +18,9 @@ pub(crate) static RUNTIME: Lazy<Runtime> = Lazy::new(|| {
         .expect("tokio runtime")
 });
 
-pub(crate) async fn on_runtime<F, T>(future: F) -> anyhow::Result<T>
+pub(crate) async fn on_runtime<F, T>(future: F) -> Result<T, EngineError>
 where
-    F: Future<Output = anyhow::Result<T>> + Send + 'static,
+    F: Future<Output = Result<T, EngineError>> + Send + 'static,
     T: Send + 'static,
 {
     RUNTIME.spawn(future).await?
@@ -70,7 +72,7 @@ pub fn engine_version() -> String {
     format!("warpgate_engine {} (russh 0.65)", env!("CARGO_PKG_VERSION"))
 }
 
-pub async fn sha256_file(path: String) -> anyhow::Result<String> {
+pub async fn sha256_file(path: String) -> Result<String, EngineError> {
     on_runtime(async move {
         let mut file = tokio::fs::File::open(&path).await?;
         let mut hasher = Sha256::new();

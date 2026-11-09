@@ -2,14 +2,15 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:dartssh2/dartssh2.dart';
+import 'package:dartssh2/dartssh2.dart' show SftpStatusError;
 import 'package:path/path.dart' as p;
+import 'package:warpgate_core/features/connection/domain/ssh_client.dart';
 import 'package:warpgate_core/features/sftp/domain/file_endpoint.dart';
 
 class SftpEndpoint extends FileEndpoint {
   new(this._sftp, {required this.label});
 
-  final SftpClient _sftp;
+  final SshSftp _sftp;
 
   @override
   final String label;

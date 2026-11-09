@@ -1,3 +1,4 @@
+import 'api/error.dart';
 import 'api/sftp.dart';
 import 'api/ssh.dart';
 import 'api/util.dart';
@@ -201,6 +202,15 @@ abstract class WarpgateEngineApiImplPlatform
 
   @protected
   ConnectParams dco_decode_connect_params(dynamic raw);
+
+  @protected
+  EngineError dco_decode_engine_error(dynamic raw);
+
+  @protected
+  EngineErrorKind dco_decode_engine_error_kind(dynamic raw);
+
+  @protected
+  int dco_decode_i_32(dynamic raw);
 
   @protected
   PlatformInt64 dco_decode_isize(dynamic raw);
@@ -415,6 +425,15 @@ abstract class WarpgateEngineApiImplPlatform
   ConnectParams sse_decode_connect_params(SseDeserializer deserializer);
 
   @protected
+  EngineError sse_decode_engine_error(SseDeserializer deserializer);
+
+  @protected
+  EngineErrorKind sse_decode_engine_error_kind(SseDeserializer deserializer);
+
+  @protected
+  int sse_decode_i_32(SseDeserializer deserializer);
+
+  @protected
   PlatformInt64 sse_decode_isize(SseDeserializer deserializer);
 
   @protected
@@ -476,9 +495,6 @@ abstract class WarpgateEngineApiImplPlatform
 
   @protected
   BigInt sse_decode_usize(SseDeserializer deserializer);
-
-  @protected
-  int sse_decode_i_32(SseDeserializer deserializer);
 
   @protected
   void sse_encode_AnyhowException(
@@ -668,6 +684,18 @@ abstract class WarpgateEngineApiImplPlatform
   void sse_encode_connect_params(ConnectParams self, SseSerializer serializer);
 
   @protected
+  void sse_encode_engine_error(EngineError self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_engine_error_kind(
+    EngineErrorKind self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_i_32(int self, SseSerializer serializer);
+
+  @protected
   void sse_encode_isize(PlatformInt64 self, SseSerializer serializer);
 
   @protected
@@ -739,9 +767,6 @@ abstract class WarpgateEngineApiImplPlatform
 
   @protected
   void sse_encode_usize(BigInt self, SseSerializer serializer);
-
-  @protected
-  void sse_encode_i_32(int self, SseSerializer serializer);
 }
 
 class WarpgateEngineWire implements BaseWire {

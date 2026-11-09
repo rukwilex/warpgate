@@ -14,6 +14,7 @@ import 'package:warpgate_core/core/platform/native.dart';
 import 'package:warpgate_core/features/connection/data/connection_pool.dart';
 import 'package:warpgate_core/features/connection/data/ssh_errors.dart';
 import 'package:warpgate_core/features/connection/domain/link_state.dart';
+import 'package:warpgate_core/features/connection/domain/ssh_client.dart';
 import 'package:warpgate_core/features/hosts/domain/host.dart';
 import 'package:warpgate_core/features/keys/data/key_codec.dart';
 import 'package:xterm/xterm.dart';
@@ -32,8 +33,8 @@ abstract interface class TerminalBackend {
 class SshShellBackend implements TerminalBackend {
   new(this._client, this._session);
 
-  final SSHClient _client;
-  final SSHSession _session;
+  final SshClient _client;
+  final SshSession _session;
 
   @override
   int? get pid => null;
@@ -399,7 +400,7 @@ class TerminalSession extends IngestSink {
           notice.value =
               'tmux is not installed on ${host.label}, so this pane uses a plain shell. Programs stop when the connection drops.';
         }
-        final SSHSession session;
+        final SshSession session;
         try {
           session = await client.shell(
             pty: pty,
@@ -418,7 +419,7 @@ class TerminalSession extends IngestSink {
   }
 
   Future<TerminalBackend> _plainShell(
-    SSHClient client,
+    SshClient client,
     SSHPtyConfig pty,
     Host host,
     String? directory,

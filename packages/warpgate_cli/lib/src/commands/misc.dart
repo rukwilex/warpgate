@@ -18,7 +18,7 @@ import 'package:warpgate_core/core/errors/exit_codes.dart';
 import 'package:warpgate_core/core/interaction/interaction_broker.dart';
 import 'package:warpgate_core/features/connection/data/connection_pool.dart';
 import 'package:warpgate_core/features/connection/data/ssh_agent_client.dart';
-import 'package:warpgate_core/features/connection/engine/native_ssh.dart';
+import 'package:warpgate_core/features/connection/engine/native/native_engine.dart';
 import 'package:warpgate_core/features/hosts/data/hosts_service.dart';
 import 'package:warpgate_core/features/mcp/data/mcp_protocol.dart';
 import 'package:warpgate_core/features/mcp/data/mcp_server.dart';

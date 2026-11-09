@@ -20,7 +20,7 @@ import 'package:warpgate/features/shell/presentation/ui_state.dart';
 import 'package:warpgate/features/terminal/presentation/terminal_sessions.dart';
 import 'package:warpgate/features/workspace/presentation/workbench_controller.dart';
 import 'package:warpgate_core/core/diagnostics/watchdog.dart';
-import 'package:warpgate_core/features/connection/engine/native_ssh.dart';
+import 'package:warpgate_core/features/connection/engine/native/native_engine.dart';
 import 'package:warpgate_core/features/hosts/domain/host.dart';
 import 'package:window_manager/window_manager.dart';
 

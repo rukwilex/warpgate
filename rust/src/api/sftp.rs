@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
-use anyhow::anyhow;
 use russh_sftp::client::RawSftpSession;
 use russh_sftp::protocol::{FileAttributes, OpenFlags, StatusCode};
 
+use crate::api::error::{EngineError, EngineErrorKind};
 use crate::api::ssh::SshClient;
 use crate::api::util::on_runtime;
 
@@ -35,26 +35,6 @@ impl From<&FileAttributes> for SftpAttrs {
     }
 }
 
-fn sftp_error(error: russh_sftp::client::error::Error) -> anyhow::Error {
-    match error {
-        russh_sftp::client::error::Error::Status(status) => {
-            let code: u32 = match status.status_code {
-                StatusCode::Ok => 0,
-                StatusCode::Eof => 1,
-                StatusCode::NoSuchFile => 2,
-                StatusCode::PermissionDenied => 3,
-                StatusCode::Failure => 4,
-                StatusCode::BadMessage => 5,
-                StatusCode::NoConnection => 6,
-                StatusCode::ConnectionLost => 7,
-                StatusCode::OpUnsupported => 8,
-            };
-            anyhow!("sftp_status {code}: {}", status.error_message)
-        }
-        other => anyhow!("sftp: {other}"),
-    }
-}
-
 pub struct SftpSession {
     raw: Arc<RawSftpSession>,
 }
@@ -66,7 +46,7 @@ pub struct SftpFile {
 }
 
 impl SshClient {
-    pub async fn sftp(&self) -> anyhow::Result<SftpSession> {
+    pub async fn sftp(&self) -> Result<SftpSession, EngineError> {
         let client = self.clone_ref();
         on_runtime(async move {
             let stream = client.open_subsystem_stream("sftp").await?;
@@ -75,7 +55,7 @@ impl SshClient {
                 ..Default::default()
             };
             let mut raw = RawSftpSession::new_with_config(stream, config);
-            raw.init().await.map_err(sftp_error)?;
+            raw.init().await?;
             if let Ok(limits) = raw.limits().await {
                 raw.set_limits(limits.into());
             }
@@ -86,10 +66,10 @@ impl SshClient {
 }
 
 impl SftpSession {
-    pub async fn list(&self, path: String) -> anyhow::Result<Vec<SftpEntry>> {
+    pub async fn list(&self, path: String) -> Result<Vec<SftpEntry>, EngineError> {
         let raw = self.raw.clone();
         on_runtime(async move {
-            let handle = raw.opendir(path).await.map_err(sftp_error)?.handle;
+            let handle = raw.opendir(path).await?.handle;
             let mut out = Vec::new();
             loop {
                 match raw.readdir(handle.clone()).await {
@@ -109,7 +89,7 @@ impl SftpSession {
                     }
                     Err(error) => {
                         let _ = raw.close(handle.clone()).await;
-                        return Err(sftp_error(error));
+                        return Err(error.into());
                     }
                 }
             }
@@ -119,82 +99,80 @@ impl SftpSession {
         .await
     }
 
-    pub async fn stat(&self, path: String, follow_links: bool) -> anyhow::Result<SftpAttrs> {
+    pub async fn stat(&self, path: String, follow_links: bool) -> Result<SftpAttrs, EngineError> {
         let raw = self.raw.clone();
         on_runtime(async move {
             let attrs = if follow_links {
-                raw.stat(path).await.map_err(sftp_error)?.attrs
+                raw.stat(path).await?.attrs
             } else {
-                raw.lstat(path).await.map_err(sftp_error)?.attrs
+                raw.lstat(path).await?.attrs
             };
             Ok(SftpAttrs::from(&attrs))
         })
         .await
     }
 
-    pub async fn realpath(&self, path: String) -> anyhow::Result<String> {
+    pub async fn realpath(&self, path: String) -> Result<String, EngineError> {
         let raw = self.raw.clone();
         on_runtime(async move {
-            let name = raw.realpath(path).await.map_err(sftp_error)?;
+            let name = raw.realpath(path).await?;
             name.files
                 .into_iter()
                 .next()
                 .map(|f| f.filename)
-                .ok_or_else(|| anyhow!("sftp: empty realpath reply"))
+                .ok_or_else(|| EngineError::new(EngineErrorKind::Sftp, "empty realpath reply"))
         })
         .await
     }
 
-    pub async fn mkdir(&self, path: String) -> anyhow::Result<()> {
+    pub async fn mkdir(&self, path: String) -> Result<(), EngineError> {
         let raw = self.raw.clone();
         on_runtime(async move {
-            raw.mkdir(path, FileAttributes::empty())
-                .await
-                .map_err(sftp_error)?;
+            raw.mkdir(path, FileAttributes::empty()).await?;
             Ok(())
         })
         .await
     }
 
-    pub async fn rmdir(&self, path: String) -> anyhow::Result<()> {
+    pub async fn rmdir(&self, path: String) -> Result<(), EngineError> {
         let raw = self.raw.clone();
         on_runtime(async move {
-            raw.rmdir(path).await.map_err(sftp_error)?;
+            raw.rmdir(path).await?;
             Ok(())
         })
         .await
     }
 
-    pub async fn remove(&self, path: String) -> anyhow::Result<()> {
+    pub async fn remove(&self, path: String) -> Result<(), EngineError> {
         let raw = self.raw.clone();
         on_runtime(async move {
-            raw.remove(path).await.map_err(sftp_error)?;
+            raw.remove(path).await?;
             Ok(())
         })
         .await
     }
 
-    pub async fn rename(&self, from: String, to: String) -> anyhow::Result<()> {
+    pub async fn rename(&self, from: String, to: String) -> Result<(), EngineError> {
         let raw = self.raw.clone();
         on_runtime(async move {
-            raw.rename(from, to).await.map_err(sftp_error)?;
+            raw.rename(from, to).await?;
             Ok(())
         })
         .await
     }
 
-    pub async fn set_permissions(&self, path: String, mode: u32) -> anyhow::Result<()> {
+    pub async fn set_permissions(&self, path: String, mode: u32) -> Result<(), EngineError> {
         let raw = self.raw.clone();
         on_runtime(async move {
             let mut attrs = FileAttributes::empty();
             attrs.permissions = Some(mode);
-            raw.setstat(path, attrs).await.map_err(sftp_error)?;
+            raw.setstat(path, attrs).await?;
             Ok(())
         })
         .await
     }
 
-    pub async fn open(&self, path: String, flags: u32) -> anyhow::Result<SftpFile> {
+    pub async fn open(&self, path: String, flags: u32) -> Result<SftpFile, EngineError> {
         let raw = self.raw.clone();
         on_runtime(async move {
             let handle = raw
@@ -203,8 +181,7 @@ impl SftpSession {
                     OpenFlags::from_bits_truncate(flags),
                     FileAttributes::empty(),
                 )
-                .await
-                .map_err(sftp_error)?
+                .await?
                 .handle;
             Ok(SftpFile {
                 raw,
@@ -215,7 +192,7 @@ impl SftpSession {
         .await
     }
 
-    pub async fn close(&self) -> anyhow::Result<()> {
+    pub async fn close(&self) -> Result<(), EngineError> {
         let raw = self.raw.clone();
         on_runtime(async move {
             let _ = raw.close_session();
@@ -226,7 +203,7 @@ impl SftpSession {
 }
 
 impl SftpFile {
-    pub async fn read(&self, offset: u64, len: u32) -> anyhow::Result<Option<Vec<u8>>> {
+    pub async fn read(&self, offset: u64, len: u32) -> Result<Option<Vec<u8>>, EngineError> {
         let raw = self.raw.clone();
         let handle = self.handle.clone();
         on_runtime(async move {
@@ -237,29 +214,29 @@ impl SftpFile {
                 {
                     Ok(None)
                 }
-                Err(error) => Err(sftp_error(error)),
+                Err(error) => Err(error.into()),
             }
         })
         .await
     }
 
-    pub async fn write(&self, offset: u64, data: Vec<u8>) -> anyhow::Result<()> {
+    pub async fn write(&self, offset: u64, data: Vec<u8>) -> Result<(), EngineError> {
         let raw = self.raw.clone();
         let handle = self.handle.clone();
         on_runtime(async move {
-            raw.write(handle, offset, data).await.map_err(sftp_error)?;
+            raw.write(handle, offset, data).await?;
             Ok(())
         })
         .await
     }
 
-    pub async fn size(&self) -> anyhow::Result<Option<u64>> {
+    pub async fn size(&self) -> Result<Option<u64>, EngineError> {
         let raw = self.raw.clone();
         let handle = self.handle.clone();
-        on_runtime(async move { Ok(raw.fstat(handle).await.map_err(sftp_error)?.attrs.size) }).await
+        on_runtime(async move { Ok(raw.fstat(handle).await?.attrs.size) }).await
     }
 
-    pub async fn close(&self) -> anyhow::Result<()> {
+    pub async fn close(&self) -> Result<(), EngineError> {
         if self.closed.swap(true, std::sync::atomic::Ordering::SeqCst) {
             return Ok(());
         }
