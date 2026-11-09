@@ -11,6 +11,7 @@ class WgType extends ThemeExtension<WgType> {
   const new({
     required this.caption,
     required this.label,
+    required this.row,
     required this.body,
     required this.bodyStrong,
     required this.title,
@@ -43,6 +44,7 @@ class WgType extends ThemeExtension<WgType> {
     return WgType(
       caption: ui(12, 16, FontWeight.w400, secondary),
       label: ui(13, 18, FontWeight.w500, primary),
+      row: ui(13, 18, FontWeight.w400, primary),
       body: ui(14, 20, FontWeight.w400, primary),
       bodyStrong: ui(14, 20, FontWeight.w500, primary),
       title: ui(16, 22, FontWeight.w500, primary),
@@ -56,6 +58,7 @@ class WgType extends ThemeExtension<WgType> {
 
   final TextStyle caption;
   final TextStyle label;
+  final TextStyle row;
   final TextStyle body;
   final TextStyle bodyStrong;
   final TextStyle title;
@@ -75,6 +78,7 @@ class WgType extends ThemeExtension<WgType> {
     return WgType(
       caption: mix(caption, other.caption),
       label: mix(label, other.label),
+      row: mix(row, other.row),
       body: mix(body, other.body),
       bodyStrong: mix(bodyStrong, other.bodyStrong),
       title: mix(title, other.title),

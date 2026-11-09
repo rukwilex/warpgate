@@ -190,11 +190,10 @@ class _FolderTreeState extends State<FolderTree> {
                       name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: context.type.label.copyWith(
+                      style: context.type.row.copyWith(
                         color: selected
                             ? colors.textPrimary
                             : colors.textSecondary,
-                        fontWeight: FontWeight.w400,
                       ),
                     ),
                   ),

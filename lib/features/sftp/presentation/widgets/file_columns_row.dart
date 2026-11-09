@@ -89,9 +89,8 @@ class FileColumnsRow extends StatelessWidget {
                     entry.name,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: context.type.label.copyWith(
+                    style: context.type.row.copyWith(
                       color: cut ? colors.textMuted : colors.textPrimary,
-                      fontWeight: FontWeight.w400,
                     ),
                   ),
                 ),
