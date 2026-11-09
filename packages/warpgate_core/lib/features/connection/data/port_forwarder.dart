@@ -81,19 +81,14 @@ class PortForwarder {
         _pool.release(hostId);
       };
       _set(initial.copyWith(state: ForwardState.active));
-      unawaited(
-        ssh.done.whenComplete(() {
-          if (_forwards[initial.key]?.state == ForwardState.active) {
-            _stoppers.remove(initial.key);
-            _set(
-              initial.copyWith(
-                state: ForwardState.failed,
-                error: 'The connection closed',
-              ),
-            );
-          }
-        }),
-      );
+      void ended() {
+        if (_forwards[initial.key]?.state != ForwardState.active) return;
+        final stopper = _stoppers.remove(initial.key);
+        if (stopper != null) unawaited(stopper().catchError((Object _) {}));
+        _set(initial.copyWith(state: ForwardState.failed, error: 'The connection closed'));
+      }
+
+      unawaited(ssh.done.then((_) => ended(), onError: (Object _) => ended()));
     } on Object catch (error) {
       _set(
         initial.copyWith(

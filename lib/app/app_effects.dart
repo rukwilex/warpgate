@@ -124,6 +124,12 @@ class _AppEffectsState extends ConsumerState<AppEffects> {
     super.dispose();
   }
 
+  Future<void> _forget(String hostId) async {
+    _connected.remove(hostId);
+    await ref.read(portForwarderProvider).stopHost(hostId);
+    await ref.read(connectionPoolProvider).disconnect(hostId);
+  }
+
   @override
   Widget build(BuildContext context) {
     ref
@@ -136,6 +142,13 @@ class _AppEffectsState extends ConsumerState<AppEffects> {
         workbenchProvider.select((state) => state.activeWorkspace?.name),
         (_, _) => _syncTitle(),
       )
+      ..listen(hostsProvider, (previous, next) {
+        final before = previous?.value?.byId.keys ?? const <String>[];
+        final after = next.value?.byId ?? const <String, Host>{};
+        for (final hostId in before.where((id) => !after.containsKey(id))) {
+          unawaited(_forget(hostId));
+        }
+      })
       ..listen(hostLinksProvider, (_, links) {
         final catalog = ref.read(hostsProvider).value;
         final forwarder = ref.read(portForwarderProvider);
