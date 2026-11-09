@@ -742,7 +742,15 @@ class _StatusOverlayState extends State<_StatusOverlay> {
     final status = widget.status;
     final space = context.space;
     final (title, body, action) = switch (status.state) {
-      LinkState.connecting => ('Connecting to ${widget.title}', null, null),
+      LinkState.connecting => (
+        'Connecting to ${widget.title}',
+        null,
+        WgButton(
+          label: 'Cancel',
+          icon: WgIcons.close,
+          onPressed: widget.session.cancelConnect,
+        ),
+      ),
       LinkState.reconnecting => (
         'Reconnecting, attempt ${status.attempt} of ${Backoff.maxAttempts}',
         [
@@ -750,10 +758,21 @@ class _StatusOverlayState extends State<_StatusOverlay> {
           if (status.nextRetry case final retry?)
             'Next try in ${retry.difference(DateTime.now()).inSeconds.clamp(0, 999)} s',
         ].join('. '),
-        WgButton(
-          label: 'Retry now',
-          icon: WgIcons.retry,
-          onPressed: () => unawaited(widget.session.retryNow()),
+        Wrap(
+          spacing: space.sm,
+          runSpacing: space.sm,
+          children: [
+            WgButton(
+              label: 'Retry now',
+              icon: WgIcons.retry,
+              onPressed: () => unawaited(widget.session.retryNow()),
+            ),
+            WgButton.ghost(
+              label: 'Stop',
+              icon: WgIcons.close,
+              onPressed: widget.session.cancelConnect,
+            ),
+          ],
         ),
       ),
       LinkState.dropped => (

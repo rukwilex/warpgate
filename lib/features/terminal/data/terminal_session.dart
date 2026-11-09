@@ -306,6 +306,7 @@ class TerminalSession extends IngestSink {
   bool _disposed = false;
   bool _userClosed = false;
   int _attempt = 0;
+  int _generation = 0;
   int _columns = 80;
   int _rows = 24;
   bool _retained = false;
@@ -323,6 +324,7 @@ class TerminalSession extends IngestSink {
     if (_disposed || _backend != null) return;
     _userClosed = false;
     _retryTimer?.cancel();
+    final generation = ++_generation;
     _setStatus(
       LinkStatus(
         _attempt == 0 ? LinkState.connecting : LinkState.reconnecting,
@@ -331,7 +333,7 @@ class TerminalSession extends IngestSink {
     );
     try {
       final backend = await _open();
-      if (_disposed) {
+      if (_disposed || generation != _generation) {
         backend.close();
         return;
       }
@@ -347,7 +349,7 @@ class TerminalSession extends IngestSink {
         ),
       );
     } on Object catch (error) {
-      _handleFailure(error);
+      if (generation == _generation) _handleFailure(error);
     }
   }
 
@@ -612,6 +614,10 @@ class TerminalSession extends IngestSink {
   void _handleFailure(Object error) {
     _teardown();
     if (_disposed) return;
+    if (error is ConnectCancelledException) {
+      _setStatus(const LinkStatus(LinkState.idle, message: 'Connecting was cancelled'));
+      return;
+    }
     final message = SshErrorText.describe(error);
     if (SshErrorText.isPermanent(error) ||
         !autoReconnect ||
@@ -643,6 +649,19 @@ class TerminalSession extends IngestSink {
       ),
     );
     _retryTimer = Timer(delay, () => unawaited(start()));
+  }
+
+  void cancelConnect() {
+    final state = status.value.state;
+    if (_backend != null || (state != LinkState.connecting && state != LinkState.reconnecting)) return;
+    _retryTimer?.cancel();
+    _attempt = 0;
+    _generation++;
+    final id = hostId;
+    if (id != null && _pool.status(id).state == LinkState.connecting) {
+      _pool.cancelConnect(id);
+    }
+    _setStatus(const LinkStatus(LinkState.idle, message: 'Connecting was cancelled'));
   }
 
   Future<void> retryNow() async {
