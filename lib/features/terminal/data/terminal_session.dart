@@ -5,12 +5,14 @@ import 'dart:io';
 import 'package:dartssh2/dartssh2.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_pty/flutter_pty.dart';
+import 'package:warpgate/features/terminal/data/folder_tracking.dart';
+import 'package:warpgate/features/terminal/data/session_target.dart';
+import 'package:warpgate/features/terminal/data/terminal_backend.dart';
 import 'package:warpgate/features/terminal/data/terminal_ingest.dart';
 import 'package:warpgate/features/terminal/domain/terminal_geometry.dart';
 import 'package:warpgate/features/terminal/domain/terminal_reflow.dart';
 import 'package:warpgate_core/core/diagnostics/live_objects.dart';
 import 'package:warpgate_core/core/diagnostics/watchdog.dart';
-import 'package:warpgate_core/core/platform/native.dart';
 import 'package:warpgate_core/features/connection/data/connection_pool.dart';
 import 'package:warpgate_core/features/connection/data/ssh_errors.dart';
 import 'package:warpgate_core/features/connection/domain/link_state.dart';
@@ -19,218 +21,9 @@ import 'package:warpgate_core/features/hosts/domain/host.dart';
 import 'package:warpgate_core/features/keys/data/key_codec.dart';
 import 'package:xterm/xterm.dart';
 
-abstract interface class TerminalBackend {
-  int? get pid;
-  Stream<Uint8List> get output;
-  Future<void> get done;
-  bool get connectionLost;
-  void write(Uint8List data);
-  void resize(int columns, int rows);
-  void acknowledge();
-  void close();
-}
-
-class SshShellBackend implements TerminalBackend {
-  new(this._client, this._session);
-
-  final SshClient _client;
-  final SshSession _session;
-
-  @override
-  int? get pid => null;
-
-  @override
-  Stream<Uint8List> get output =>
-      StreamGroup.merge([_session.stdout, _session.stderr]);
-
-  @override
-  Future<void> get done => _session.done;
-
-  @override
-  bool get connectionLost => _client.isClosed;
-
-  @override
-  void write(Uint8List data) => _session.write(data);
-
-  @override
-  void resize(int columns, int rows) => _session.resizeTerminal(columns, rows);
-
-  @override
-  void acknowledge() {}
-
-  @override
-  void close() => _session.close();
-}
-
-class LocalPtyBackend implements TerminalBackend {
-  new(this._pty);
-
-  final Pty _pty;
-
-  @override
-  int? get pid => _pty.pid;
-
-  @override
-  Stream<Uint8List> get output => _pty.output;
-
-  @override
-  Future<void> get done => _pty.exitCode;
-
-  @override
-  bool get connectionLost => false;
-
-  @override
-  void write(Uint8List data) => _pty.write(data);
-
-  @override
-  void resize(int columns, int rows) => _pty.resize(rows, columns);
-
-  bool _closing = false;
-
-  @override
-  void acknowledge() {
-    if (!_closing) _pty.ackRead();
-  }
-
-  @override
-  void close() {
-    if (_closing) return;
-    _closing = true;
-    LiveObjects.opened('closing local shell');
-    if (!Platform.isWindows && !Native.signalGroup(_pty.pid, 1)) {
-      _pty.kill(ProcessSignal.sighup);
-    }
-    _pty.close();
-    final killer = Timer(const Duration(seconds: 3), () {
-      if (Platform.isWindows || !Native.signalGroup(_pty.pid, 9)) {
-        _pty.kill(Platform.isWindows ? ProcessSignal.sigterm : ProcessSignal.sigkill);
-      }
-    });
-    unawaited(
-      _pty.exitCode.whenComplete(() {
-        killer.cancel();
-        LiveObjects.closed('closing local shell');
-      }),
-    );
-  }
-}
-
-abstract final class StreamGroup {
-  static Stream<T> merge<T>(List<Stream<T>> streams) {
-    late final StreamController<T> controller;
-    final subscriptions = <StreamSubscription<T>>[];
-    var open = streams.length;
-    controller = StreamController<T>(
-      onListen: () {
-        for (final stream in streams) {
-          subscriptions.add(
-            stream.listen(
-              controller.add,
-              onError: controller.addError,
-              onDone: () {
-                open -= 1;
-                if (open == 0) unawaited(controller.close());
-              },
-            ),
-          );
-        }
-      },
-      onPause: () {
-        for (final s in subscriptions) {
-          s.pause();
-        }
-      },
-      onResume: () {
-        for (final s in subscriptions) {
-          s.resume();
-        }
-      },
-      onCancel: () => Future.wait(subscriptions.map((s) => s.cancel())),
-    );
-    return controller.stream;
-  }
-}
-
-enum FolderHookResult { installed, unsupported, failed }
-
-enum FolderShell {
-  bash('~/.bashrc'),
-  zsh('~/.zshrc'),
-  fish('~/.config/fish/conf.d/warpgate.fish');
-
-  new(this.rcFile);
-
-  final String rcFile;
-
-  static FolderShell? parse(String name) =>
-      values.where((shell) => shell.name == name).firstOrNull;
-
-  String get hook => switch (this) {
-    FolderShell.bash => r'__wg_osc7() { printf "\033]7;file://%s%s\033\\" "${HOSTNAME:-$(hostname)}" "$PWD"; }; [[ "$PROMPT_COMMAND" == *__wg_osc7* ]] || PROMPT_COMMAND="__wg_osc7${PROMPT_COMMAND:+;$PROMPT_COMMAND}"',
-    FolderShell.zsh => r'__wg_osc7() { printf "\033]7;file://%s%s\033\\" "$HOST" "$PWD"; }; autoload -Uz add-zsh-hook && add-zsh-hook precmd __wg_osc7',
-    FolderShell.fish => r'function __wg_osc7 --on-event fish_prompt; printf "\e]7;file://%s%s\e\\" (hostname) $PWD; end',
-  };
-}
-
-abstract final class FolderTracking {
-  static const paneVariable = 'LC_WARPGATE_PANE';
-
-  static final _osc7 = RegExp(
-    r'\x1b\]7;file://[^/\x07\x1b]*(/[^\x07\x1b]*)(?:\x07|\x1b\\)',
-  );
-
-  static String? parseOsc7(String data) {
-    final matches = _osc7.allMatches(data);
-    if (matches.isEmpty) return null;
-    final raw = matches.last.group(1)!;
-    try {
-      return Uri.decodeComponent(raw);
-    } on Object {
-      return raw;
-    }
-  }
-
-  static String? parseLsof(String output) {
-    for (final line in output.split('\n')) {
-      if (line.startsWith('n/')) return line.substring(1);
-    }
-    return null;
-  }
-
-  static String procScript(String paneId) {
-    final needle = KeyCodec.shellQuote('$paneVariable=$paneId');
-    const find = '/proc/[0-9]*/environ 2>/dev/null | cut -d/ -f3); ';
-    const pick =
-        r'for p in $ids; do pp=$(cut -d" " -f4 /proc/$p/stat 2>/dev/null); '
-        r'case " $ids " in *" $pp "*) ;; *) readlink /proc/$p/cwd; exit 0;; esac; done';
-    return '${r'ids=$(grep -lzx '}$needle $find$pick';
-  }
-
-  static String installScript(FolderShell shell) {
-    final rc = shell.rcFile.replaceFirst('~', r'$HOME');
-    final line = KeyCodec.shellQuote(shell.hook);
-    return 'mkdir -p "\$(dirname "$rc")" && touch "$rc" && '
-        '(grep -q __wg_osc7 "$rc" || printf "\\n%s\\n" $line >> "$rc")';
-  }
-}
-
-sealed class SessionTarget {
-  const new();
-}
-
-class SshTarget extends SessionTarget {
-  const new({required this.host, this.tmuxSession, this.directory});
-
-  final Host host;
-  final String? tmuxSession;
-  final String? directory;
-}
-
-class LocalTarget extends SessionTarget {
-  const new({this.directory});
-
-  final String? directory;
-}
+export 'package:warpgate/features/terminal/data/folder_tracking.dart';
+export 'package:warpgate/features/terminal/data/session_target.dart';
+export 'package:warpgate/features/terminal/data/terminal_backend.dart';
 
 typedef InputSink = void Function(TerminalSession origin, String data);
 
