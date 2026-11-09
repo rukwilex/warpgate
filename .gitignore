@@ -60,3 +60,8 @@ ios/Flutter/Signing.xcconfig
 PLAN*.md
 
 /rust/target/
+
+test/goldens/failures/
+test/screens/failures/
+**/failures/*.png
+packages/*/build/
