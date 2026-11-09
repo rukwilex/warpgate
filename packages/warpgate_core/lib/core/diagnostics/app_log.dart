@@ -130,13 +130,4 @@ class AppLog {
     }
   }
 
-  Future<int> diskBytes() async {
-    final dir = directory;
-    if (dir == null || !Directory(dir).existsSync()) return 0;
-    var total = 0;
-    await for (final entity in Directory(dir).list()) {
-      if (entity is File && p.basename(entity.path).startsWith('warpgate.log')) total += await entity.length();
-    }
-    return total;
-  }
 }

@@ -19,8 +19,6 @@ extension WgAccentColors on WgAccent {
     WgAccent.moss => WgPalette.mossLight,
   };
 
-  Color forBrightness(Brightness brightness) =>
-      brightness == Brightness.dark ? onDark : onLight;
 }
 
 @immutable

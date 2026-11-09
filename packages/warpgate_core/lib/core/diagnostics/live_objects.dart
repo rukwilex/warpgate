@@ -22,8 +22,4 @@ abstract final class LiveObjects {
 
   static Map<String, int> snapshot() => Map.unmodifiable(_counts);
 
-  static void resetForTest() {
-    _counts.clear();
-    _created.clear();
-  }
 }

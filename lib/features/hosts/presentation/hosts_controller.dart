@@ -82,5 +82,3 @@ final hostLookupProvider = Provider<Host? Function(String id)>(
   (ref) =>
       (id) => ref.read(hostsProvider).value?.host(id),
 );
-
-void unawaitedSave(Future<void> future) => unawaited(future);

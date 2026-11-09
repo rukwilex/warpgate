@@ -17,8 +17,6 @@ class SftpSide {
 
   bool get isLocal => hostId == null;
 
-  SftpSide withPath(String value) => SftpSide(hostId: hostId, path: value);
-
   JsonMap toJson() => {'hostId': hostId, 'path': path};
 
   @override

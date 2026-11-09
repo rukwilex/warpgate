@@ -25,17 +25,6 @@ class AppCommand {
   final List<String> keywords;
   final bool rebindable;
 
-  AppCommand withShortcut(SingleActivator? value) => AppCommand(
-    id: id,
-    title: title,
-    category: category,
-    run: run,
-    shortcut: value,
-    icon: icon,
-    keywords: keywords,
-    rebindable: rebindable,
-  );
-
   int score(String query) {
     if (query.isEmpty) return 1;
     final q = query.toLowerCase();

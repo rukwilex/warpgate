@@ -62,9 +62,6 @@ class AppLockController extends Notifier<bool> with WidgetsBindingObserver {
     }
   }
 
-  Future<bool> hasPin() async =>
-      await ref.read(secretStoreProvider).read(SecretKeys.appPin) != null;
-
   Future<void> setPin(String pin) async {
     final hash = await PinHasher.hash(pin);
     await ref.read(secretStoreProvider).write(SecretKeys.appPin, hash);

@@ -147,12 +147,6 @@ class TerminalSessions extends ChangeNotifier {
     }
   }
 
-  void stopAll() {
-    for (final session in _sessions.values) {
-      unawaited(session.stop());
-    }
-  }
-
   @override
   void dispose() {
     for (final session in _sessions.values) {
