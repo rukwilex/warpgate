@@ -68,6 +68,7 @@ where
     let (forward_tx, forward_rx) = mpsc::channel(FORWARD_QUEUE);
     let reason = shared();
     let rejected = Arc::new(AtomicBool::new(false));
+    let prompting = Arc::new(AtomicBool::new(false));
     let remote_version = shared();
     let handler = ClientHandler {
         verifier,
@@ -75,10 +76,13 @@ where
         forwarded: forward_tx,
         reason: reason.clone(),
         rejected: rejected.clone(),
+        prompting: prompting.clone(),
     };
     let stream = VersionSniffer::new(stream, remote_version.clone());
     let connecting = client::connect_stream(config(&params.client_id), stream, handler);
-    let handle = match tokio::time::timeout(millis(params.handshake_timeout_ms), connecting).await {
+    let handle = match within_budget(millis(params.handshake_timeout_ms), &prompting, connecting)
+        .await
+    {
         Ok(Ok(handle)) => handle,
         Ok(Err(error))
             if rejected.load(Ordering::SeqCst) || error.kind == EngineErrorKind::HostKey =>
@@ -105,6 +109,29 @@ where
         reason,
         remote_version,
     })
+}
+
+const BUDGET_TICK: Duration = Duration::from_millis(100);
+
+async fn within_budget<F: std::future::Future>(
+    budget: Duration,
+    paused: &AtomicBool,
+    work: F,
+) -> Result<F::Output, ()> {
+    tokio::pin!(work);
+    let mut deadline = tokio::time::Instant::now() + budget;
+    loop {
+        tokio::select! {
+            output = &mut work => return Ok(output),
+            _ = tokio::time::sleep(BUDGET_TICK) => {
+                if paused.load(Ordering::SeqCst) {
+                    deadline += BUDGET_TICK;
+                } else if tokio::time::Instant::now() >= deadline {
+                    return Err(());
+                }
+            }
+        }
+    }
 }
 
 pub async fn connect(
@@ -276,5 +303,33 @@ impl SshClient {
             reason: self.reason.clone(),
             remote_version: self.remote_version.clone(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test(start_paused = true)]
+    async fn time_spent_prompting_does_not_count_against_the_budget() {
+        let paused = Arc::new(AtomicBool::new(true));
+        let flag = paused.clone();
+        tokio::spawn(async move {
+            tokio::time::sleep(Duration::from_secs(60)).await;
+            flag.store(false, Ordering::SeqCst);
+        });
+        let work = tokio::time::sleep(Duration::from_secs(62));
+        assert!(within_budget(Duration::from_secs(5), &paused, work)
+            .await
+            .is_ok());
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn a_stalled_handshake_still_times_out() {
+        let paused = AtomicBool::new(false);
+        let work = std::future::pending::<()>();
+        assert!(within_budget(Duration::from_secs(5), &paused, work)
+            .await
+            .is_err());
     }
 }

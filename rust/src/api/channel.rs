@@ -58,11 +58,13 @@ impl SshChannel {
         rows: u32,
     ) -> Result<(), EngineError> {
         let write = self.write.clone();
+        let read = self.read.clone();
+        let pending = self.pending.clone();
         on_runtime(async move {
             write
                 .request_pty(true, &term, columns, rows, 0, 0, &[])
                 .await?;
-            Ok(())
+            expect_success(&mut *read.lock().await, &pending).await
         })
         .await
     }

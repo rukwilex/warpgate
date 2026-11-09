@@ -20,6 +20,7 @@ pub(crate) struct ClientHandler {
     pub(crate) forwarded: mpsc::Sender<ForwardedConnection>,
     pub(crate) reason: Shared<EngineError>,
     pub(crate) rejected: Arc<AtomicBool>,
+    pub(crate) prompting: Arc<AtomicBool>,
 }
 
 impl Drop for ClientHandler {
@@ -41,7 +42,9 @@ impl client::Handler for ClientHandler {
         };
         let kind = public.algorithm().as_str().to_string();
         let fingerprint = public.fingerprint(HashAlg::Sha256).to_string();
+        self.prompting.store(true, Ordering::SeqCst);
         let trusted = (self.verifier)(kind, fingerprint).await;
+        self.prompting.store(false, Ordering::SeqCst);
         if !trusted {
             self.rejected.store(true, Ordering::SeqCst);
         }
