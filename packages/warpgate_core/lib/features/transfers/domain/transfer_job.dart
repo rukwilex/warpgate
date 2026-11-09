@@ -72,6 +72,8 @@ class TransferJob {
     this.finishedAt,
     this.completedFiles = const {},
     this.partialFile,
+    this.partialTarget,
+    this.skippedFiles = const {},
     this.origin = 'user',
     this.move = false,
     this.verifiedFiles = const {},
@@ -103,6 +105,10 @@ class TransferJob {
         .cast<String>()
         .toSet(),
     partialFile: json['partialFile'] as String?,
+    partialTarget: json['partialTarget'] as String?,
+    skippedFiles: ((json['skippedFiles'] as List?) ?? const <Object?>[])
+        .whereType<String>()
+        .toSet(),
     origin: json['origin'] as String? ?? 'user',
     move: json['move'] as bool? ?? false,
     verifiedFiles: ((json['verifiedFiles'] as List?) ?? const <Object?>[])
@@ -131,6 +137,8 @@ class TransferJob {
   final DateTime? finishedAt;
   final Set<String> completedFiles;
   final String? partialFile;
+  final String? partialTarget;
+  final Set<String> skippedFiles;
   final String origin;
   final bool move;
   final Set<String> verifiedFiles;
@@ -161,6 +169,8 @@ class TransferJob {
     DateTime? Function()? finishedAt,
     Set<String>? completedFiles,
     String? Function()? partialFile,
+    String? Function()? partialTarget,
+    Set<String>? skippedFiles,
     Set<String>? verifiedFiles,
     int? Function()? ownerPid,
   }) => TransferJob(
@@ -188,6 +198,8 @@ class TransferJob {
     finishedAt: finishedAt == null ? this.finishedAt : finishedAt(),
     completedFiles: completedFiles ?? this.completedFiles,
     partialFile: partialFile == null ? this.partialFile : partialFile(),
+    partialTarget: partialTarget == null ? this.partialTarget : partialTarget(),
+    skippedFiles: skippedFiles ?? this.skippedFiles,
   );
 
   JsonMap toJson() => {
@@ -208,6 +220,8 @@ class TransferJob {
     'finishedAt': finishedAt?.toIso8601String(),
     'completedFiles': completedFiles.toList(),
     'partialFile': partialFile,
+    'partialTarget': partialTarget,
+    'skippedFiles': skippedFiles.toList(),
     'origin': origin,
     'move': move,
     'verifiedFiles': verifiedFiles.toList(),

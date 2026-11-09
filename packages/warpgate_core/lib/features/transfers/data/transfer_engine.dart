@@ -94,7 +94,7 @@ class TransferEngine {
     }
 
     final meter = SpeedMeter();
-    final skippedItems = <String>{};
+    final skippedItems = {...job.skippedFiles};
     final completed = {...job.completedFiles};
     final clock = Stopwatch()..start();
     var lastPublish = -progressEvery.inMicroseconds;
@@ -106,6 +106,7 @@ class TransferEngine {
       return true;
     }
     String? writing;
+    String? writingTo;
     try {
       for (final item in plan) {
         cancel.throwIfCancelled();
@@ -127,6 +128,8 @@ class TransferEngine {
         }
         if (job.completedFiles.contains(item.relative)) continue;
 
+        final resumeAt = job.partialFile == item.relative ? job.partialTarget : null;
+        if (resumeAt != null) targetPath = resumeAt;
         var offset = 0;
         final existing = await target.stat(targetPath);
         final resumable =
@@ -163,6 +166,7 @@ class TransferEngine {
                     doneBytes: bytes,
                     filesDone: count,
                     completedFiles: completed,
+                    skippedFiles: {...skippedItems},
                   ),
                 );
               }
@@ -177,16 +181,19 @@ class TransferEngine {
         }
 
         final relative = item.relative;
+        final writingTarget = targetPath;
         final fileName = source.paths.basename(sourcePath);
         if (item.size >= 1 << 20 || due()) {
           update(
             (job) => job.copyWith(
               currentFile: () => fileName,
               partialFile: () => relative,
+              partialTarget: () => writingTarget,
             ),
           );
         }
         writing = relative;
+        writingTo = targetPath;
         final base = done + offset;
         await target.write(
           targetPath,
@@ -223,6 +230,7 @@ class TransferEngine {
         done += item.size;
         completed.add(relative);
         writing = null;
+        writingTo = null;
         filesDone++;
         if (item.size >= 1 << 20 || due()) {
           final bytes = done;
@@ -233,6 +241,7 @@ class TransferEngine {
               filesDone: count,
               completedFiles: completed,
               partialFile: () => null,
+              partialTarget: () => null,
             ),
           );
         }
@@ -241,6 +250,8 @@ class TransferEngine {
       final bytes = done;
       final count = filesDone;
       final partial = writing;
+      final partialTo = writingTo;
+      final skipped = {...skippedItems};
       final finished = {...completed};
       update(
         (job) => job.copyWith(
@@ -248,6 +259,8 @@ class TransferEngine {
           filesDone: count,
           completedFiles: finished,
           partialFile: () => partial,
+          partialTarget: () => partialTo,
+          skippedFiles: skipped,
         ),
       );
       rethrow;
@@ -259,7 +272,9 @@ class TransferEngine {
         doneBytes: bytes,
         filesDone: count,
         completedFiles: completed,
+        skippedFiles: {...skippedItems},
         partialFile: () => null,
+        partialTarget: () => null,
       ),
     );
     if (job.move) {

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:test/test.dart';
+import 'package:warpgate_core/core/interaction/interaction_broker.dart';
 import 'package:warpgate_core/features/settings/domain/app_settings.dart';
 import 'package:warpgate_core/features/sftp/data/endpoints.dart';
 import 'package:warpgate_core/features/sftp/domain/file_endpoint.dart';
@@ -110,5 +111,72 @@ void main() {
     expect(asked, 0);
     expect(File('${target.path}/c.txt').readAsStringSync(), 'payload of c.txt');
     expect(job.completedFiles, {'a.txt', 'b.txt', 'c.txt'});
+  });
+
+  Future<TransferJob> pausedThenResumed(
+    TransferJob start,
+    String trigger,
+    ConflictResolution Function(ConflictRequest request) answer,
+  ) async {
+    var job = start;
+    final cancel = CancelToken();
+    final local = LocalEndpoint();
+    Future<ConflictAnswer> ask(ConflictRequest request) async => (resolution: answer(request), applyToAll: false);
+    await expectLater(
+      TransferEngine(
+        endpointFor: (hostId) async => hostId == null ? local : CancellingEndpoint(cancel, trigger),
+        askConflict: ask,
+        progressEvery: const Duration(hours: 1),
+      ).run(job, update: (change) => job = change(job), cancel: cancel, policy: ConflictPolicy.ask),
+      throwsA(isA<TransferCancelled>()),
+    );
+    job = TransferJob.fromJson(job.toJson());
+    await TransferEngine(
+      endpointFor: (_) async => local,
+      askConflict: ask,
+      progressEvery: const Duration(hours: 1),
+    ).run(job, update: (change) => job = change(job), cancel: CancelToken(), policy: ConflictPolicy.ask);
+    return job;
+  }
+
+  test('a resumed move keeps the source of a file the user skipped', () async {
+    target.createSync();
+    File('${target.path}/a.txt').writeAsStringSync('keep me');
+    final job = await pausedThenResumed(
+      TransferJob(
+        id: 'm',
+        source: TransferRef(path: source.path),
+        target: TransferRef(path: target.path, hostId: 'remote'),
+        name: 'src',
+        createdAt: DateTime(2026),
+        isDirectory: true,
+        move: true,
+      ),
+      'c.txt',
+      (_) => ConflictResolution.skip,
+    );
+    expect(File('${source.path}/a.txt').existsSync(), isTrue);
+    expect(File('${target.path}/a.txt').readAsStringSync(), 'keep me');
+    expect(File('${source.path}/b.txt').existsSync(), isFalse);
+    expect(job.skippedFiles, {'a.txt'});
+  });
+
+  test('resuming a renamed file continues the new copy and leaves the original alone', () async {
+    target.createSync();
+    File('${target.path}/c.txt').writeAsStringSync('x');
+    await pausedThenResumed(
+      TransferJob(
+        id: 'r',
+        source: TransferRef(path: source.path),
+        target: TransferRef(path: target.path, hostId: 'remote'),
+        name: 'src',
+        createdAt: DateTime(2026),
+        isDirectory: true,
+      ),
+      'c (1).txt',
+      (_) => ConflictResolution.rename,
+    );
+    expect(File('${target.path}/c.txt').readAsStringSync(), 'x');
+    expect(File('${target.path}/c (1).txt').readAsStringSync(), 'payload of c.txt');
   });
 }
